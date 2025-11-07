@@ -16,6 +16,8 @@ import { JAVASCRIPT_QUERIES, compileQuery } from '../parser/queries.js';
 export async function extractJavaScript(source, filePath, language) {
   // Parse the source code
   const tree = await parserManager.parse(source, null, filePath);
+
+  const languageId = parserManager.detectLanguage(filePath) || 'javascript';
   
   // Compile queries
   const functionQuery = compileQuery(language, JAVASCRIPT_QUERIES.functions);
@@ -30,7 +32,7 @@ export async function extractJavaScript(source, filePath, language) {
   const callMatches = callQuery.matches(tree.rootNode);
 
   // Extract functions
-  const functions = extractFunctions(functionMatches, source, filePath);
+  const functions = extractFunctions(functionMatches, source, filePath, languageId);
   
   // Extract exports
   const exports = extractExports(exportMatches, source);
@@ -39,7 +41,7 @@ export async function extractJavaScript(source, filePath, language) {
   const imports = extractImports(importMatches, source);
   
   // Extract call expressions
-  const calls = extractCalls(callMatches, source, filePath);
+  const calls = extractCalls(callMatches, source, filePath, languageId);
 
   // Clean up tree
   tree.delete();
@@ -58,9 +60,10 @@ export async function extractJavaScript(source, filePath, language) {
  * @param {Array} matches - Query matches
  * @param {string} source - Source code
  * @param {string} filePath - File path
+ * @param {string} languageId - Language identifier
  * @returns {Array} - Array of function objects
  */
-function extractFunctions(matches, source, filePath) {
+function extractFunctions(matches, source, filePath, languageId) {
   const functions = [];
 
   for (const match of matches) {
@@ -83,7 +86,9 @@ function extractFunctions(matches, source, filePath) {
       endColumn: funcNode.node.endPosition.column,
       params: paramsNode ? source.slice(paramsNode.node.startIndex, paramsNode.node.endIndex) : '',
       body: bodyNode ? source.slice(bodyNode.node.startIndex, bodyNode.node.endIndex) : '',
-      source: source.slice(funcNode.node.startIndex, funcNode.node.endIndex)
+      source: source.slice(funcNode.node.startIndex, funcNode.node.endIndex),
+      lang: languageId,
+      fqName: nameNode ? source.slice(nameNode.node.startIndex, nameNode.node.endIndex) : '<anonymous>'
     };
 
     functions.push(func);
@@ -166,9 +171,10 @@ function extractImports(matches, source) {
  * @param {Array} matches - Query matches
  * @param {string} source - Source code
  * @param {string} filePath - File path
+ * @param {string} languageId - Language identifier
  * @returns {Array} - Array of call objects
  */
-function extractCalls(matches, source, filePath) {
+function extractCalls(matches, source, filePath, languageId) {
   const calls = [];
 
   for (const match of matches) {
@@ -209,7 +215,8 @@ function extractCalls(matches, source, filePath) {
       startLine: callNode.node.startPosition.row + 1,
       endLine: callNode.node.endPosition.row + 1,
       isMemberCall,
-      isDynamic
+      isDynamic,
+      language: languageId
     });
   }
 

@@ -12,17 +12,18 @@
     {
       "imports": {
         "web-tree-sitter": "https://cdn.jsdelivr.net/npm/web-tree-sitter@0.20.4/dist/tree-sitter.esm.min.js",
-        "3d-force-graph": "https://cdn.jsdelivr.net/npm/3d-force-graph@1.70.25/dist/3d-force-graph.es.min.js",
-        "prismjs": "https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-core.min.js"
+        "3d-force-graph": "https://cdn.jsdelivr.net/npm/3d-force-graph@1.70.25/dist/3d-force-graph.es.min.js"
       }
     }
     </script>
-    <!-- Prism.js themes and languages -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/themes/prism-tomorrow.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-core.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-clike.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-javascript.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-typescript.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-python.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-jsx.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-tsx.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-python.min.js"></script>
     <style>
         * {
             margin: 0;
@@ -36,8 +37,7 @@
             background-size: 400% 400%;
             animation: gradientShift 15s ease infinite;
             min-height: 100vh;
-            overflow-x: hidden;
-            overflow-y: auto;
+            overflow: hidden;
             position: relative;
         }
 
@@ -46,15 +46,22 @@
             50% { background-position: 100% 50%; }
         }
 
-        /* Particle/Star field */
-        .stars {
+        .stars,
+        .gravity-particles {
             position: fixed;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
             pointer-events: none;
+        }
+
+        .stars {
             z-index: 1;
+        }
+
+        .gravity-particles {
+            z-index: 2;
         }
 
         .star {
@@ -67,18 +74,35 @@
             animation: twinkle 3s ease-in-out infinite;
         }
 
-        .star:nth-child(odd) {
-            animation-duration: 2s;
-        }
-
-        .star:nth-child(3n) {
-            animation-duration: 4s;
-            opacity: 0.4;
-        }
+        .star:nth-child(odd) { animation-duration: 2s; }
+        .star:nth-child(3n) { animation-duration: 4s; opacity: 0.4; }
 
         @keyframes twinkle {
             0%, 100% { opacity: 0.3; transform: scale(1); }
             50% { opacity: 0.9; transform: scale(1.2); }
+        }
+
+        .gravity-particle {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            background: rgba(199, 210, 254, 0.3);
+            border-radius: 50%;
+            animation: orbit 20s linear infinite;
+        }
+
+        .gravity-particle:nth-child(1) { top: 20%; left: 10%; animation-duration: 25s; }
+        .gravity-particle:nth-child(2) { top: 60%; left: 80%; animation-duration: 30s; animation-delay: -5s; }
+        .gravity-particle:nth-child(3) { top: 80%; left: 20%; animation-duration: 35s; animation-delay: -10s; }
+
+        @keyframes orbit {
+            0% { transform: rotate(0deg) translateX(100px) rotate(0deg); }
+            100% { transform: rotate(360deg) translateX(100px) rotate(-360deg); }
+        }
+
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
         }
 
         @keyframes float {
@@ -86,26 +110,15 @@
             50% { transform: translateY(-20px); }
         }
 
-        @keyframes fadeInUp {
-            from {
-                opacity: 0;
-                transform: translateY(30px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
-        }
-
-        .container {
+        .hero-container {
             position: relative;
-            z-index: 10;
-            animation: fadeIn 1s ease-out;
+            z-index: 5;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 4rem 1.5rem;
         }
 
         .title {
@@ -120,7 +133,6 @@
                          0 0 80px rgba(199, 210, 254, 0.2),
                          0 0 120px rgba(199, 210, 254, 0.1);
             animation: fadeInUp 1s ease-out, float 6s ease-in-out infinite;
-            animation-delay: 0s, 1s;
             margin-bottom: 1rem;
         }
 
@@ -128,9 +140,9 @@
             font-weight: 300;
             font-size: clamp(1.125rem, 2.5vw, 1.5rem);
             color: #a5b4fc;
-            opacity: 0;
-            animation: fadeInUp 1s ease-out 0.5s forwards;
             letter-spacing: 0.05em;
+            opacity: 0;
+            animation: fadeInUp 1s ease-out 0.4s forwards;
             margin-bottom: 3rem;
         }
 
@@ -146,10 +158,9 @@
             cursor: pointer;
             overflow: hidden;
             transition: all 0.3s ease;
-            box-shadow: 0 10px 30px rgba(99, 102, 241, 0.3),
-                        0 0 20px rgba(139, 92, 246, 0.2);
-            animation: fadeInUp 1s ease-out 0.8s forwards;
+            box-shadow: 0 10px 30px rgba(99, 102, 241, 0.3), 0 0 20px rgba(139, 92, 246, 0.2);
             opacity: 0;
+            animation: fadeInUp 1s ease-out 0.6s forwards;
         }
 
         .button::before {
@@ -163,148 +174,36 @@
             transition: left 0.5s;
         }
 
-        .button:hover::before {
-            left: 100%;
-        }
+        .button:hover::before { left: 100%; }
+        .button:hover { transform: translateY(-2px) scale(1.05); box-shadow: 0 15px 40px rgba(99, 102, 241, 0.4), 0 0 30px rgba(139, 92, 246, 0.3); }
+        .button:active { transform: translateY(0) scale(1.02); }
 
-        .button:hover {
-            transform: translateY(-2px) scale(1.05);
-            box-shadow: 0 15px 40px rgba(99, 102, 241, 0.4),
-                        0 0 30px rgba(139, 92, 246, 0.3);
-        }
-
-        .button:active {
-            transform: translateY(0) scale(1.02);
-        }
-
-        /* Subtle gravity effect - particles that seem to orbit */
-        .gravity-particles {
-            position: fixed;
-            top: 0;
-            left: 0;
+        .results-container,
+        .progress-container {
+            max-width: 960px;
             width: 100%;
-            height: 100%;
-            pointer-events: none;
-            z-index: 2;
-        }
-
-        .gravity-particle {
-            position: absolute;
-            width: 1px;
-            height: 1px;
-            background: rgba(199, 210, 254, 0.3);
-            border-radius: 50%;
-            animation: orbit 20s linear infinite;
-        }
-
-        .gravity-particle:nth-child(1) {
-            top: 20%;
-            left: 10%;
-            animation-duration: 25s;
-        }
-
-        .gravity-particle:nth-child(2) {
-            top: 60%;
-            left: 80%;
-            animation-duration: 30s;
-            animation-delay: -5s;
-        }
-
-        .gravity-particle:nth-child(3) {
-            top: 80%;
-            left: 20%;
-            animation-duration: 35s;
-            animation-delay: -10s;
-        }
-
-        @keyframes orbit {
-            0% {
-                transform: rotate(0deg) translateX(100px) rotate(0deg);
-            }
-            100% {
-                transform: rotate(360deg) translateX(100px) rotate(-360deg);
-            }
-        }
-
-        /* Results display */
-        .results-container {
-            max-width: 900px;
-            width: 100%;
-            margin: 2rem auto;
+            margin: 2.5rem auto 0;
             padding: 2rem;
-            background: rgba(15, 23, 42, 0.6);
-            backdrop-filter: blur(10px);
+            background: rgba(15, 23, 42, 0.65);
+            backdrop-filter: blur(12px);
             border-radius: 1rem;
-            border: 1px solid rgba(199, 210, 254, 0.1);
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-            animation: fadeInUp 0.5s ease-out;
+            border: 1px solid rgba(199, 210, 254, 0.12);
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.35);
+            animation: fadeInUp 0.6s ease-out;
         }
 
         .counter {
             font-size: 1.25rem;
             color: #a5b4fc;
-            margin-bottom: 1.5rem;
+            margin-bottom: 1.25rem;
             font-weight: 600;
-        }
-
-        .file-list {
-            max-height: 500px;
-            overflow-y: auto;
-            padding-right: 0.5rem;
-        }
-
-        .file-list::-webkit-scrollbar {
-            width: 8px;
-        }
-
-        .file-list::-webkit-scrollbar-track {
-            background: rgba(15, 23, 42, 0.5);
-            border-radius: 4px;
-        }
-
-        .file-list::-webkit-scrollbar-thumb {
-            background: rgba(199, 210, 254, 0.3);
-            border-radius: 4px;
-        }
-
-        .file-list::-webkit-scrollbar-thumb:hover {
-            background: rgba(199, 210, 254, 0.5);
-        }
-
-        .file-item {
-            padding: 0.75rem 1rem;
-            margin-bottom: 0.5rem;
-            background: rgba(30, 41, 59, 0.5);
-            border-radius: 0.5rem;
-            border-left: 3px solid #6366f1;
-            color: #e0e7ff;
-            font-family: 'Monaco', 'Menlo', 'Courier New', monospace;
-            font-size: 0.9rem;
-            word-break: break-all;
-            transition: all 0.2s ease;
-            animation: fadeInUp 0.3s ease-out;
-        }
-
-        .file-item:hover {
-            background: rgba(30, 41, 59, 0.8);
-            border-left-color: #8b5cf6;
-            transform: translateX(5px);
-        }
-
-        .progress-container {
-            margin-top: 2rem;
-            padding: 1.5rem;
-            background: rgba(15, 23, 42, 0.6);
-            backdrop-filter: blur(10px);
-            border-radius: 1rem;
-            border: 1px solid rgba(199, 210, 254, 0.1);
         }
 
         .progress-text {
             color: #a5b4fc;
             font-size: 1rem;
-            margin-bottom: 0.75rem;
             text-align: center;
+            margin-bottom: 1rem;
         }
 
         .progress-bar {
@@ -317,61 +216,80 @@
 
         .progress-fill {
             height: 100%;
+            width: 0%;
             background: linear-gradient(90deg, #6366f1 0%, #8b5cf6 100%);
-            border-radius: 4px;
             transition: width 0.3s ease;
+            border-radius: 4px;
             box-shadow: 0 0 10px rgba(99, 102, 241, 0.5);
         }
 
-        .hidden {
-            display: none;
+        .file-list {
+            max-height: 420px;
+            overflow-y: auto;
+            padding-right: 0.5rem;
         }
 
-        /* Visualization Styles */
+        .file-list::-webkit-scrollbar { width: 8px; }
+        .file-list::-webkit-scrollbar-track { background: rgba(15, 23, 42, 0.5); border-radius: 4px; }
+        .file-list::-webkit-scrollbar-thumb { background: rgba(199, 210, 254, 0.35); border-radius: 4px; }
+        .file-list::-webkit-scrollbar-thumb:hover { background: rgba(199, 210, 254, 0.55); }
+
+        .file-item {
+            padding: 0.75rem 1rem;
+            margin-bottom: 0.5rem;
+            background: rgba(30, 41, 59, 0.55);
+            border-radius: 0.5rem;
+            border-left: 3px solid #6366f1;
+            color: #e0e7ff;
+            font-family: 'Monaco', 'Menlo', 'Courier New', monospace;
+            font-size: 0.9rem;
+            word-break: break-all;
+            transition: all 0.2s ease;
+        }
+
+        .file-item:hover { background: rgba(30, 41, 59, 0.8); border-left-color: #8b5cf6; transform: translateX(4px); }
+
+        .hidden { display: none !important; }
+
         .viz-container {
             position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            z-index: 100;
-            background: rgba(10, 14, 39, 0.95);
-            backdrop-filter: blur(10px);
-        }
-
-        .viz-container.hidden {
-            display: none;
+            inset: 0;
+            display: grid;
+            grid-template-columns: 1fr 360px;
+            background: rgba(10, 14, 39, 0.97);
+            z-index: 50;
         }
 
         .viz-graph {
+            position: relative;
             width: 100%;
             height: 100%;
         }
 
         .viz-sidebar {
-            position: fixed;
-            top: 0;
-            right: 0;
-            width: 350px;
-            height: 100%;
-            background: rgba(15, 23, 42, 0.95);
-            backdrop-filter: blur(10px);
-            border-left: 1px solid rgba(199, 210, 254, 0.1);
-            overflow-y: auto;
-            z-index: 101;
             display: flex;
             flex-direction: column;
+            background: rgba(15, 23, 42, 0.95);
+            border-left: 1px solid rgba(199, 210, 254, 0.12);
+            overflow: hidden;
+        }
+
+        .viz-controls,
+        .viz-inspector {
+            padding: 1.5rem;
+            overflow-y: auto;
         }
 
         .viz-controls {
-            padding: 1.5rem;
             border-bottom: 1px solid rgba(199, 210, 254, 0.1);
         }
 
-        .viz-inspector {
-            flex: 1;
-            padding: 1.5rem;
-            overflow-y: auto;
+        .inspector-panel {
+            display: none;
+        }
+
+        .inspector-panel.visible {
+            display: block;
         }
 
         .inspector-header {
@@ -384,7 +302,7 @@
         }
 
         .inspector-title {
-            font-size: 1.25rem;
+            font-size: 1.125rem;
             font-weight: 600;
             color: #e0e7ff;
         }
@@ -396,49 +314,26 @@
             font-size: 1.5rem;
             cursor: pointer;
             padding: 0.25rem 0.5rem;
-            line-height: 1;
-            transition: color 0.2s;
-        }
-
-        .inspector-close:hover {
-            color: #e0e7ff;
-        }
-
-        .inspector-content {
-            color: #e0e7ff;
         }
 
         .inspector-info {
-            margin-bottom: 1.5rem;
+            color: #e0e7ff;
+            font-size: 0.9rem;
         }
 
         .info-row {
             margin-bottom: 0.75rem;
-            font-size: 0.9rem;
             line-height: 1.6;
         }
 
-        .info-row strong {
-            color: #a5b4fc;
-            margin-right: 0.5rem;
-        }
+        .info-row strong { color: #a5b4fc; margin-right: 0.4rem; }
 
         .info-row code {
-            background: rgba(30, 41, 59, 0.5);
-            padding: 0.125rem 0.375rem;
+            background: rgba(30, 41, 59, 0.6);
+            padding: 0.15rem 0.4rem;
             border-radius: 0.25rem;
             font-size: 0.85em;
             color: #c7d2fe;
-        }
-
-        .metric-tag {
-            display: inline-block;
-            background: rgba(99, 102, 241, 0.2);
-            padding: 0.25rem 0.5rem;
-            border-radius: 0.25rem;
-            font-size: 0.85em;
-            margin-right: 0.5rem;
-            margin-top: 0.25rem;
         }
 
         .inspector-code-container {
@@ -446,25 +341,14 @@
         }
 
         .inspector-code {
-            background: rgba(10, 14, 39, 0.8);
-            border: 1px solid rgba(199, 210, 254, 0.1);
+            max-height: 320px;
+            overflow-y: auto;
+            background: rgba(9, 13, 33, 0.85);
+            border: 1px solid rgba(99, 102, 241, 0.25);
             border-radius: 0.5rem;
             padding: 1rem;
-            overflow-x: auto;
+            color: #e0e7ff;
             font-size: 0.85rem;
-            line-height: 1.6;
-        }
-
-        .inspector-code code {
-            font-family: 'Monaco', 'Menlo', 'Courier New', monospace;
-        }
-
-        .inspector-panel.hidden {
-            display: none;
-        }
-
-        .inspector-panel.visible {
-            display: block;
         }
 
         .controls-section {
@@ -484,19 +368,15 @@
             margin-bottom: 0.5rem;
             color: #e0e7ff;
             font-size: 0.9rem;
-            cursor: pointer;
         }
 
-        .control-toggle input {
-            margin-right: 0.5rem;
-            cursor: pointer;
-        }
+        .control-toggle input { margin-right: 0.5rem; cursor: pointer; }
 
         .control-button {
             width: 100%;
             padding: 0.5rem 1rem;
-            margin-bottom: 0.5rem;
-            background: rgba(99, 102, 241, 0.2);
+            margin-bottom: 0.6rem;
+            background: rgba(99, 102, 241, 0.25);
             border: 1px solid rgba(99, 102, 241, 0.3);
             border-radius: 0.5rem;
             color: #e0e7ff;
@@ -505,57 +385,59 @@
             transition: all 0.2s;
         }
 
-        .control-button:hover {
-            background: rgba(99, 102, 241, 0.3);
-            border-color: rgba(99, 102, 241, 0.5);
-        }
+        .control-button:hover { background: rgba(99, 102, 241, 0.35); border-color: rgba(99, 102, 241, 0.5); }
 
         .control-filter {
-            margin-bottom: 0.75rem;
+            margin-bottom: 0.85rem;
         }
 
         .control-filter label {
             display: block;
             color: #a5b4fc;
             font-size: 0.85rem;
-            margin-bottom: 0.25rem;
+            margin-bottom: 0.35rem;
         }
 
         .control-filter input,
         .control-filter select {
             width: 100%;
             padding: 0.5rem;
-            background: rgba(30, 41, 59, 0.5);
-            border: 1px solid rgba(199, 210, 254, 0.1);
-            border-radius: 0.25rem;
+            background: rgba(30, 41, 59, 0.55);
+            border: 1px solid rgba(199, 210, 254, 0.18);
+            border-radius: 0.4rem;
             color: #e0e7ff;
             font-size: 0.9rem;
         }
 
-        .control-filter input:focus,
-        .control-filter select:focus {
-            outline: none;
-            border-color: rgba(99, 102, 241, 0.5);
-        }
-
         .viz-close-button {
-            position: fixed;
-            top: 1rem;
-            right: 1rem;
-            z-index: 102;
-            background: rgba(15, 23, 42, 0.9);
-            border: 1px solid rgba(199, 210, 254, 0.2);
-            border-radius: 0.5rem;
+            position: absolute;
+            top: 1.5rem;
+            right: 1.5rem;
+            z-index: 60;
             padding: 0.75rem 1.5rem;
+            background: rgba(15, 23, 42, 0.9);
             color: #e0e7ff;
-            font-size: 1rem;
+            border: 1px solid rgba(199, 210, 254, 0.25);
+            border-radius: 0.5rem;
             cursor: pointer;
             transition: all 0.2s;
         }
 
-        .viz-close-button:hover {
-            background: rgba(15, 23, 42, 1);
-            border-color: rgba(199, 210, 254, 0.4);
+        .viz-close-button:hover { background: rgba(15, 23, 42, 1); border-color: rgba(199, 210, 254, 0.4); }
+
+        @media (max-width: 1024px) {
+            .viz-container {
+                grid-template-columns: 1fr;
+            }
+
+            .viz-sidebar {
+                position: absolute;
+                right: 0;
+                top: 0;
+                bottom: 0;
+                width: min(360px, 90vw);
+                box-shadow: -12px 0 40px rgba(0, 0, 0, 0.5);
+            }
         }
     </style>
 </head>
@@ -566,59 +448,50 @@
         <div class="gravity-particle"></div>
         <div class="gravity-particle"></div>
     </div>
-    
-    <div class="min-h-screen flex flex-col items-center justify-center container py-8">
-        <div class="text-center space-y-8 px-4 mb-8">
+
+    <div class="hero-container">
+        <div class="text-center space-y-6">
             <h1 class="title">HELIOS</h1>
             <p class="tagline">See the gravity of your code</p>
-            <button class="button" id="selectBtn">
-                Select Repository
-            </button>
+            <button class="button" id="selectBtn">Select Repository</button>
         </div>
 
         <div class="progress-container hidden" id="progressContainer">
             <div class="progress-text" id="progressText">Scanning files...</div>
             <div class="progress-bar">
-                <div class="progress-fill" id="progressFill" style="width: 0%"></div>
+                <div class="progress-fill" id="progressFill"></div>
             </div>
         </div>
 
         <div class="results-container hidden" id="resultsContainer">
             <div class="counter" id="counter">Found 0 JavaScript files</div>
-            <div class="counter" id="functionsCounter" style="margin-top: 0.5rem; font-size: 1rem; opacity: 0.8;">0 functions extracted</div>
+            <div class="counter" id="functionsCounter" style="font-size: 1rem; opacity: 0.85;">0 functions extracted</div>
             <div class="file-list" id="fileList"></div>
-            <button class="button" id="visualizeBtn" style="margin-top: 2rem; opacity: 0; animation: fadeInUp 1s ease-out 1s forwards;">
-                Visualize Graph
-            </button>
+            <button class="button hidden" id="visualizeBtn" style="margin-top: 2rem;">Visualize Graph</button>
         </div>
     </div>
 
-    <!-- 3D Visualization Container -->
     <div class="viz-container hidden" id="vizContainer">
-        <button class="viz-close-button" id="vizCloseBtn">Close Visualization</button>
         <div class="viz-graph" id="vizGraph"></div>
         <div class="viz-sidebar">
             <div class="viz-controls" id="vizControls"></div>
             <div class="viz-inspector" id="vizInspector"></div>
         </div>
+        <button class="viz-close-button" id="vizCloseBtn">Close Visualization</button>
     </div>
 
     <script type="module">
-        // Import parser modules
         import { parserManager } from './src/parser/parser.js';
         import { extractJavaScript } from './src/extractors/javascript.js';
         import { SymbolTableManager } from './src/extractors/symbol-table.js';
-        
-        // Import visualization modules
+        import { extractPython } from './src/extractors/python.js';
+        import { buildCallGraph } from './src/extractors/call-graph.js';
         import { GraphVisualization } from './src/viz/graph-viz.js';
         import { InspectorPanel } from './src/viz/inspector.js';
         import { VisualizationControls } from './src/viz/controls.js';
-        import { buildCallGraph } from './src/extractors/call-graph.js';
 
-        // Generate random stars
         const starsContainer = document.getElementById('stars');
-        const starCount = 100;
-
+        const starCount = 120;
         for (let i = 0; i < starCount; i++) {
             const star = document.createElement('div');
             star.className = 'star';
@@ -628,7 +501,6 @@
             starsContainer.appendChild(star);
         }
 
-        // File System Access API implementation
         const selectBtn = document.getElementById('selectBtn');
         const progressContainer = document.getElementById('progressContainer');
         const progressText = document.getElementById('progressText');
@@ -637,17 +509,36 @@
         const counter = document.getElementById('counter');
         const functionsCounter = document.getElementById('functionsCounter');
         const fileList = document.getElementById('fileList');
+        const visualizeBtn = document.getElementById('visualizeBtn');
+        const vizContainer = document.getElementById('vizContainer');
+        const vizGraph = document.getElementById('vizGraph');
+        const vizControls = document.getElementById('vizControls');
+        const vizInspector = document.getElementById('vizInspector');
+        const vizCloseBtn = document.getElementById('vizCloseBtn');
 
-        let jsFiles = [];
-        let jsFileHandles = new Map(); // Store file handles for reading
+        const SUPPORTED_EXTENSIONS = ['.js', '.jsx', '.ts', '.tsx', '.py'];
+        const languageDisplayNames = {
+            javascript: 'JavaScript',
+            typescript: 'TypeScript',
+            python: 'Python'
+        };
+
+        let sourceFiles = [];
+        let fileHandles = new Map();
         let totalFiles = 0;
         let scannedFiles = 0;
         let allFunctions = [];
-        let allCalls = []; // All call expressions from all files
-        let callGraph = null; // Built call graph
+        let allCalls = [];
+        let callGraph = null;
+
+        let graphViz = null;
+        let inspector = null;
+        let controls = null;
+        let fullVizData = null;
+        let functionMapById = new Map();
+
         const symbolTableManager = new SymbolTableManager();
 
-        // Check if File System Access API is supported
         if (!window.showDirectoryPicker) {
             selectBtn.textContent = 'File System Access API not supported';
             selectBtn.disabled = true;
@@ -657,203 +548,191 @@
 
         selectBtn.addEventListener('click', async () => {
             try {
-                // Request directory access
                 const directoryHandle = await window.showDirectoryPicker();
-                
-                // Reset state
-                jsFiles = [];
-                jsFileHandles.clear();
+
+                sourceFiles = [];
+                fileHandles.clear();
                 allFunctions = [];
                 allCalls = [];
                 callGraph = null;
                 scannedFiles = 0;
                 totalFiles = 0;
                 fileList.innerHTML = '';
+                functionsCounter.textContent = '0 functions extracted';
+                visualizeBtn.classList.add('hidden');
+                progressFill.style.width = '0%';
+                progressText.textContent = 'Initializing parser...';
                 resultsContainer.classList.add('hidden');
                 progressContainer.classList.remove('hidden');
-                progressFill.style.width = '0%';
-                progressText.textContent = 'Counting files...';
 
-                // Initialize parser
-                progressText.textContent = 'Initializing parser...';
                 await parserManager.initialize();
 
-                // Count total files first for accurate progress
+                progressText.textContent = 'Counting files...';
                 totalFiles = await countFiles(directoryHandle);
                 progressText.textContent = 'Scanning files...';
-
-                // Scan directory recursively
                 await scanDirectory(directoryHandle, '');
-                
-                // Parse JavaScript files
-                progressText.textContent = 'Parsing JavaScript files...';
-                await parseJavaScriptFiles();
-                
-                // Build call graph
+
+                progressText.textContent = 'Parsing source files...';
+                await parseSourceFiles();
+
                 progressText.textContent = 'Building call graph...';
                 callGraph = buildCallGraph(allFunctions, allCalls, symbolTableManager);
-                
-                // Make call graph available globally for visualization
-                window.heliosCallGraph = callGraph;
-                window.heliosFunctions = allFunctions;
-                window.heliosSymbolTables = symbolTableManager;
-                
-                // Hide progress, show results
+
+                const stats = callGraph?.stats || { totalEdges: 0, staticEdges: 0, dynamicEdges: 0 };
+
                 progressContainer.classList.add('hidden');
                 resultsContainer.classList.remove('hidden');
-                
-                // Update counters
-                counter.textContent = `Found ${jsFiles.length} JavaScript file${jsFiles.length !== 1 ? 's' : ''}`;
-                functionsCounter.textContent = `${allFunctions.length} function${allFunctions.length !== 1 ? 's' : ''} extracted, ${callGraph.stats.totalEdges} call edge${callGraph.stats.totalEdges !== 1 ? 's' : ''} (${callGraph.stats.staticEdges} static, ${callGraph.stats.dynamicEdges} dynamic)`;
-                
-                // Display files and functions
+
+                counter.textContent = formatCounterMessage();
+                functionsCounter.textContent = `${allFunctions.length} function${allFunctions.length !== 1 ? 's' : ''} extracted · ${stats.totalEdges} call edge${stats.totalEdges !== 1 ? 's' : ''} (${stats.staticEdges} static · ${stats.dynamicEdges} dynamic)`;
+
                 displayResults();
 
-                // Show visualize button if we have functions
-                if (allFunctions.length > 0) {
-                    const visualizeBtn = document.getElementById('visualizeBtn');
-                    if (visualizeBtn) {
-                        visualizeBtn.style.display = 'block';
-                    }
+                if (allFunctions.length > 0 && stats.totalEdges >= 0) {
+                    visualizeBtn.classList.remove('hidden');
                 }
 
+                window.heliosFunctions = allFunctions;
+                window.heliosCalls = allCalls;
+                window.heliosCallGraph = callGraph;
+                window.heliosSymbolTables = symbolTableManager;
+
             } catch (error) {
-                if (error.name !== 'AbortError') {
+                if (error?.name !== 'AbortError') {
                     console.error('Error selecting directory:', error);
-                    progressText.textContent = 'Error: ' + error.message;
-                    setTimeout(() => {
-                        progressContainer.classList.add('hidden');
-                    }, 3000);
+                    progressText.textContent = 'Error: ' + (error?.message || 'Unknown error');
+                    setTimeout(() => progressContainer.classList.add('hidden'), 3000);
                 }
             }
         });
 
-        async function scanDirectory(directoryHandle, currentPath) {
-            try {
-                for await (const entry of directoryHandle.values()) {
-                    if (entry.kind === 'file') {
-                        scannedFiles++;
-                        const fileName = entry.name;
-                        const fullPath = currentPath ? `${currentPath}/${fileName}` : fileName;
-                        
-                        // Check if it's a JavaScript file
-                        if (fileName.endsWith('.js') || fileName.endsWith('.jsx') || 
-                            fileName.endsWith('.ts') || fileName.endsWith('.tsx')) {
-                            jsFiles.push(fullPath);
-                            jsFileHandles.set(fullPath, entry);
-                        }
+        visualizeBtn.addEventListener('click', async () => {
+            if (!callGraph || !callGraph.nodes?.length) {
+                alert('No call graph data available yet.');
+                return;
+            }
+            await initializeVisualization();
+        });
 
-                        // Update progress
-                        if (totalFiles > 0) {
-                            const progress = Math.min((scannedFiles / totalFiles) * 100, 100);
-                            progressFill.style.width = `${progress}%`;
-                            progressText.textContent = `Scanning... ${scannedFiles} file${scannedFiles !== 1 ? 's' : ''} scanned`;
+        vizCloseBtn.addEventListener('click', () => {
+            vizContainer.classList.add('hidden');
+            if (inspector) inspector.hide();
+        });
+
+        async function scanDirectory(directoryHandle, currentPath) {
+            for await (const entry of directoryHandle.values()) {
+                if (entry.kind === 'file') {
+                    scannedFiles++;
+                    const fileName = entry.name;
+                    const fullPath = currentPath ? `${currentPath}/${fileName}` : fileName;
+
+                    const extension = getExtension(fileName);
+                    if (SUPPORTED_EXTENSIONS.includes(extension)) {
+                        const language = parserManager.detectLanguage(fullPath);
+                        if (language) {
+                            sourceFiles.push({ path: fullPath, language });
+                            fileHandles.set(fullPath, entry);
                         }
-                    } else if (entry.kind === 'directory') {
-                        // Skip common directories that shouldn't be scanned
-                        const dirName = entry.name.toLowerCase();
-                        if (dirName === 'node_modules' || dirName === '.git' || dirName === 'dist' || dirName === 'build') {
-                            continue;
-                        }
-                        
-                        const newPath = currentPath ? `${currentPath}/${entry.name}` : entry.name;
-                        await scanDirectory(entry, newPath);
                     }
+
+                    updateProgress('Scanning...', scannedFiles, totalFiles);
+                } else if (entry.kind === 'directory') {
+                    const dirName = entry.name.toLowerCase();
+                    if (['node_modules', '.git', 'dist', 'build', '.next', 'out', 'coverage'].includes(dirName)) {
+                        continue;
+                    }
+                    const newPath = currentPath ? `${currentPath}/${entry.name}` : entry.name;
+                    await scanDirectory(entry, newPath);
                 }
-            } catch (error) {
-                console.error('Error scanning directory:', error);
             }
         }
 
         async function countFiles(directoryHandle) {
             let count = 0;
-            try {
-                for await (const entry of directoryHandle.values()) {
-                    if (entry.kind === 'file') {
-                        count++;
-                    } else if (entry.kind === 'directory') {
-                        const dirName = entry.name.toLowerCase();
-                        if (dirName === 'node_modules' || dirName === '.git' || dirName === 'dist' || dirName === 'build') {
-                            continue;
-                        }
-                        count += await countFiles(entry);
+            for await (const entry of directoryHandle.values()) {
+                if (entry.kind === 'file') {
+                    count++;
+                } else if (entry.kind === 'directory') {
+                    const dirName = entry.name.toLowerCase();
+                    if (['node_modules', '.git', 'dist', 'build', '.next', 'out', 'coverage'].includes(dirName)) {
+                        continue;
                     }
+                    count += await countFiles(entry);
                 }
-            } catch (error) {
-                console.error('Error counting files:', error);
             }
             return count;
         }
 
-        /**
-         * Parse all JavaScript files and extract functions
-         */
-        async function parseJavaScriptFiles() {
-            const language = await parserManager.loadLanguage('javascript');
+        function updateProgress(label, current, total) {
+            if (!total) return;
+            const progress = Math.min((current / total) * 100, 100);
+            progressFill.style.width = `${progress}%`;
+            progressText.textContent = `${label} ${current.toLocaleString()} of ${total.toLocaleString()} files`;
+        }
+
+        async function parseSourceFiles() {
+            const filesByLanguage = groupFilesByLanguage(sourceFiles);
+            const total = sourceFiles.length;
             let parsedCount = 0;
 
-            for (const filePath of jsFiles) {
-                try {
-                    const fileHandle = jsFileHandles.get(filePath);
-                    if (!fileHandle) continue;
+            for (const [languageId, files] of Object.entries(filesByLanguage)) {
+                if (!files.length) continue;
 
-                    const file = await fileHandle.getFile();
-                    const source = await file.text();
+                const language = await parserManager.loadLanguage(languageId);
+                const extractor = getExtractorForLanguage(languageId);
+                if (!extractor) continue;
 
-                    // Extract functions, exports, imports, calls
-                    const extracted = await extractJavaScript(source, filePath, language);
+                for (const file of files) {
+                    try {
+                        const fileHandle = fileHandles.get(file.path);
+                        if (!fileHandle) continue;
 
-                    // Store functions
-                    allFunctions.push(...extracted.functions);
+                        const fileBlob = await fileHandle.getFile();
+                        const source = await fileBlob.text();
 
-                    // Store calls (filePath is already set by extractor)
-                    allCalls.push(...extracted.calls);
+                        const extracted = await extractor(source, file.path, language, languageId);
 
-                    // Build symbol table
-                    const symbolTable = symbolTableManager.getTable(filePath);
-                    extracted.exports.forEach(exp => {
-                        symbolTable.addExport(exp.name, { isDefault: exp.isDefault });
-                    });
-                    extracted.imports.forEach(imp => {
-                        symbolTable.addImport(imp.name, imp.from, imp.originalName);
-                    });
+                        allFunctions.push(...annotateFunctions(extracted.functions, languageId));
+                        allCalls.push(...annotateCalls(extracted.calls, languageId));
 
-                    parsedCount++;
-                    
-                    // Update progress
-                    if (jsFiles.length > 0) {
-                        const progress = Math.min((parsedCount / jsFiles.length) * 100, 100);
-                        progressFill.style.width = `${progress}%`;
-                        progressText.textContent = `Parsing... ${parsedCount}/${jsFiles.length} files`;
+                        const symbolTable = symbolTableManager.getTable(file.path);
+                        (extracted.exports || []).forEach(exp => {
+                            if (!exp?.name) return;
+                            symbolTable.addExport(exp.name, { isDefault: exp.isDefault });
+                        });
+                        (extracted.imports || []).forEach(imp => {
+                            if (!imp?.name) return;
+                            symbolTable.addImport(imp.name, imp.from, imp.originalName);
+                        });
+
+                        parsedCount++;
+                        updateProgress(`Parsing ${languageDisplayNames[languageId] || languageId}...`, parsedCount, total);
+                    } catch (err) {
+                        console.error(`Failed to parse ${file.path}:`, err);
                     }
-                } catch (err) {
-                    console.error(`Failed to parse ${filePath}:`, err);
                 }
             }
         }
 
-        /**
-         * Display files and extracted functions in results
-         */
         function displayResults() {
             fileList.innerHTML = '';
 
-            // Display files with function counts
-            jsFiles.forEach((filePath, index) => {
-                const fileFunctions = allFunctions.filter(f => f.filePath === filePath);
-                
+            sourceFiles.forEach((file, index) => {
+                const { path, language } = file;
+                const label = languageDisplayNames[language] || language;
+                const fileFunctions = allFunctions.filter(f => f.filePath === path);
+
                 const fileItem = document.createElement('div');
                 fileItem.className = 'file-item';
                 fileItem.innerHTML = `
-                    <div style="font-weight: 600; margin-bottom: 0.25rem;">${filePath}</div>
-                    <div style="font-size: 0.85rem; opacity: 0.7;">
-                        ${fileFunctions.length} function${fileFunctions.length !== 1 ? 's' : ''}
+                    <div style="font-weight: 600; margin-bottom: 0.25rem;">${path}</div>
+                    <div style="font-size: 0.8rem; opacity: 0.65;">
+                        ${label} · ${fileFunctions.length} function${fileFunctions.length !== 1 ? 's' : ''}
                     </div>
                 `;
                 fileItem.style.animationDelay = `${index * 0.02}s`;
                 fileList.appendChild(fileItem);
 
-                // Display functions for this file
                 fileFunctions.forEach((func, funcIndex) => {
                     const funcItem = document.createElement('div');
                     funcItem.className = 'file-item';
@@ -873,128 +752,110 @@
             });
         }
 
-        // Visualization integration
-        let graphViz = null;
-        let inspector = null;
-        let controls = null;
-
-        // Initialize visualization when "Visualize Graph" button is clicked
-        const visualizeBtn = document.getElementById('visualizeBtn');
-        const vizContainer = document.getElementById('vizContainer');
-        const vizGraph = document.getElementById('vizGraph');
-        const vizControls = document.getElementById('vizControls');
-        const vizInspector = document.getElementById('vizInspector');
-        const vizCloseBtn = document.getElementById('vizCloseBtn');
-
-        if (visualizeBtn) {
-            visualizeBtn.addEventListener('click', async () => {
-                await initializeVisualization();
-            });
-        }
-
-        if (vizCloseBtn) {
-            vizCloseBtn.addEventListener('click', () => {
-                closeVisualization();
-            });
-        }
-
-        /**
-         * Initialize 3D visualization with current function data
-         */
         async function initializeVisualization() {
-            try {
-                // Show visualization container
-                vizContainer.classList.remove('hidden');
+            vizContainer.classList.remove('hidden');
 
-                // Create graph visualization
-                if (!graphViz) {
-                    graphViz = new GraphVisualization(vizGraph);
-                    await graphViz.initialize();
+            if (!graphViz) {
+                graphViz = new GraphVisualization(vizGraph);
+                await graphViz.initialize();
+                graphViz.onNodeClick = handleNodeClick;
+                graphViz.onNodeHover = handleNodeHover;
+                graphViz.onFilterChange = applyVisualizationFilters;
+            }
 
-                    // Set up node click handler
-                    graphViz.onNodeClick = (node) => {
-                        if (node && inspector) {
-                            // Try to get source code from file
-                            getFunctionSource(node).then(source => {
-                                inspector.show(node, source);
-                            });
-                        } else if (inspector) {
-                            inspector.hide();
-                        }
-                    };
-                }
+            if (!inspector) {
+                inspector = new InspectorPanel(vizInspector);
+            }
 
-                // Create inspector panel
-                if (!inspector) {
-                    inspector = new InspectorPanel(vizInspector);
-                }
+            if (!controls) {
+                controls = new VisualizationControls(vizControls, graphViz);
+            }
 
-                // Create controls
-                if (!controls) {
-                    controls = new VisualizationControls(vizControls, graphViz);
-                }
+            functionMapById = new Map((callGraph.nodes || []).map(fn => [fn.id, fn]));
+            fullVizData = convertCallGraphToVizData(callGraph);
+            applyVisualizationFilters(controls ? controls.getFilters() : {});
 
-                // Convert call graph to visualization format
-                const graphData = convertCallGraphToVizData(callGraph);
+            setTimeout(() => graphViz.fitToView(), 400);
+        }
 
-                // Load data into visualization
-                graphViz.loadData(graphData);
+        function groupFilesByLanguage(files) {
+            return files.reduce((acc, file) => {
+                const lang = file.language || detectLanguageFromPath(file.path || '');
+                if (!acc[lang]) acc[lang] = [];
+                acc[lang].push(file);
+                return acc;
+            }, {});
+        }
 
-                // Fit to view
-                setTimeout(() => {
-                    graphViz.fitToView();
-                }, 500);
-
-            } catch (error) {
-                console.error('Failed to initialize visualization:', error);
-                alert('Failed to initialize visualization. See console for details.');
+        function getExtractorForLanguage(languageId) {
+            switch (languageId) {
+                case 'javascript':
+                case 'typescript':
+                case 'jsx':
+                case 'tsx':
+                    return extractJavaScript;
+                case 'python':
+                    return extractPython;
+                default:
+                    return null;
             }
         }
 
-        /**
-         * Convert call graph to visualization data format
-         * Uses the call graph structure from buildCallGraph()
-         */
-        function convertCallGraphToVizData(callGraph) {
-            if (!callGraph || !callGraph.nodes || !callGraph.edges) {
-                console.warn('Invalid call graph data');
-                return { nodes: [], links: [] };
+        function annotateFunctions(functions = [], languageId) {
+            return (functions || []).map(fn => ({
+                ...fn,
+                lang: fn.lang || languageId,
+                fqName: fn.fqName || fn.name
+            }));
+        }
+
+        function annotateCalls(calls = [], languageId) {
+            return (calls || []).map(call => ({
+                ...call,
+                language: call.language || languageId
+            }));
+        }
+
+        function getExtension(fileName = '') {
+            const index = fileName.lastIndexOf('.');
+            return index >= 0 ? fileName.slice(index).toLowerCase() : '';
+        }
+
+        function formatCounterMessage() {
+            if (!sourceFiles.length) {
+                return 'No source files processed yet';
             }
 
-            // Create nodes from call graph functions
-            const nodes = callGraph.nodes.map(func => {
-                // Calculate LOC from line range
-                const loc = func.endLine && func.startLine 
-                    ? func.endLine - func.startLine + 1 
-                    : 0;
+            const counts = groupFilesByLanguage(sourceFiles);
+            const parts = Object.entries(counts)
+                .filter(([, files]) => files.length > 0)
+                .map(([lang, files]) => `${files.length} ${(languageDisplayNames[lang] || lang)} file${files.length !== 1 ? 's' : ''}`);
 
-                return {
-                    id: func.id,
-                    fqName: func.name, // Use function name as FQN for now
-                    name: func.name,
-                    filePath: func.filePath,
-                    lang: detectLanguageFromPath(func.filePath),
-                    size: loc,
-                    loc: loc,
-                    startLine: func.startLine,
-                    startColumn: func.startColumn,
-                    endLine: func.endLine,
-                    endColumn: func.endColumn,
-                    source: func.source || '',
-                    params: func.params || '',
-                    body: func.body || '',
-                    doc: func.doc || '',
-                    metrics: {},
-                    // Mock data for visualization (will be replaced by real analysis later)
-                    community: Math.floor(Math.random() * 5),
-                    centrality: Math.random()
-                };
-            });
+            return `Found ${sourceFiles.length} source file${sourceFiles.length !== 1 ? 's' : ''}${parts.length ? ' (' + parts.join(', ') + ')' : ''}`;
+        }
 
-            // Create links from call graph edges
-            const links = callGraph.edges.map(edge => ({
-                source: edge.source, // Function ID
-                target: edge.target, // Function ID
+        function convertCallGraphToVizData(graph) {
+            if (!graph) return { nodes: [], links: [] };
+
+            const nodes = (graph.nodes || []).map(fn => ({
+                id: fn.id,
+                fqName: fn.fqName || fn.name,
+                name: fn.name,
+                filePath: fn.filePath,
+                lang: fn.lang || detectLanguageFromPath(fn.filePath),
+                size: fn.loc || Math.max(1, (fn.endLine || fn.startLine || 0) - (fn.startLine || 0) + 1),
+                startLine: fn.startLine,
+                endLine: fn.endLine,
+                startColumn: fn.startColumn,
+                endColumn: fn.endColumn,
+                doc: fn.doc || '',
+                metrics: fn.metrics || {},
+                source: fn.source || ''
+            }));
+
+            const links = (graph.edges || []).map(edge => ({
+                source: edge.source,
+                target: edge.target,
                 type: 'call',
                 weight: edge.weight || 1,
                 dynamic: edge.isDynamic || false,
@@ -1004,71 +865,90 @@
             return { nodes, links };
         }
 
-        /**
-         * Detect language from file path
-         */
-        function detectLanguageFromPath(filePath) {
-            if (!filePath) return 'javascript';
-            if (filePath.endsWith('.ts') || filePath.endsWith('.tsx')) return 'typescript';
-            if (filePath.endsWith('.py')) return 'python';
-            if (filePath.endsWith('.jsx')) return 'jsx';
-            return 'javascript';
+        function detectLanguageFromPath(path = '') {
+            const ext = getExtension(path);
+            switch (ext) {
+                case '.ts':
+                case '.tsx':
+                    return 'typescript';
+                case '.jsx':
+                    return 'jsx';
+                case '.py':
+                    return 'python';
+                default:
+                    return 'javascript';
+            }
         }
 
-        /**
-         * Get function source code from file
-         * Uses the function's source property if available, otherwise extracts from file
-         */
-        async function getFunctionSource(node) {
-            if (!node) return null;
+        function applyVisualizationFilters(filters = {}) {
+            if (!graphViz || !fullVizData) {
+                return;
+            }
 
-            // If source is already available in node, use it
-            if (node.source) {
-                return node.source;
+            const moduleFilter = filters.module?.toLowerCase() || filters.folder?.toLowerCase() || '';
+            const languageFilter = filters.language || '';
+            const minSize = Number.isFinite(filters.minSize) ? filters.minSize : 0;
+            const maxSize = Number.isFinite(filters.maxSize) ? filters.maxSize : Infinity;
+
+            const filteredNodes = fullVizData.nodes.filter(node => {
+                if (moduleFilter && !(node.filePath || '').toLowerCase().includes(moduleFilter)) {
+                    return false;
+                }
+                if (languageFilter && node.lang !== languageFilter) {
+                    return false;
+                }
+                if (node.size < minSize) {
+                    return false;
+                }
+                if (Number.isFinite(maxSize) && node.size > maxSize) {
+                    return false;
+                }
+                return true;
+            });
+
+            const allowedIds = new Set(filteredNodes.map(node => node.id));
+            const filteredLinks = fullVizData.links.filter(link => allowedIds.has(link.source) && allowedIds.has(link.target));
+
+            graphViz.loadData({ nodes: filteredNodes, links: filteredLinks });
+        }
+
+        async function handleNodeClick(node) {
+            if (!node) {
+                inspector?.hide();
+                return;
+            }
+            const source = await getFunctionSource(node);
+            inspector?.show(node, source);
+        }
+
+        function handleNodeHover(node) {
+            // Future enhancements: display hover details in sidebar
+        }
+
+        async function getFunctionSource(node) {
+            const original = functionMapById.get(node.id);
+            if (original?.source) {
+                return original.source;
+            }
+
+            const filePath = original?.filePath || node.filePath;
+            if (!filePath || !fileHandles.has(filePath)) {
+                return '';
             }
 
             try {
-                const fileHandle = jsFileHandles.get(node.filePath);
-                if (!fileHandle) {
-                    // Try to find the function in allFunctions
-                    const func = allFunctions.find(f => f.id === node.id);
-                    if (func && func.source) {
-                        return func.source;
-                    }
-                    return null;
-                }
-
+                const fileHandle = fileHandles.get(filePath);
                 const file = await fileHandle.getFile();
                 const source = await file.text();
-
-                // Extract function source using line range
-                if (node.startLine && node.endLine) {
+                if (original?.startLine && original?.endLine) {
                     const lines = source.split('\n');
-                    const startIdx = Math.max(0, node.startLine - 1);
-                    const endIdx = Math.min(lines.length, node.endLine);
-                    return lines.slice(startIdx, endIdx).join('\n');
+                    const slice = lines.slice(original.startLine - 1, original.endLine).join('\n');
+                    return slice;
                 }
-
-                // Fallback: try to find function in allFunctions
-                const func = allFunctions.find(f => f.id === node.id);
-                if (func && func.source) {
-                    return func.source;
-                }
-
                 return source;
             } catch (err) {
-                console.error('Failed to get function source:', err);
-                return null;
-            }
-        }
-
-        /**
-         * Close visualization
-         */
-        function closeVisualization() {
-            vizContainer.classList.add('hidden');
-            if (inspector) {
-                inspector.hide();
+                console.error('Failed to read function source', err);
+                return '';
             }
         }
     </script>

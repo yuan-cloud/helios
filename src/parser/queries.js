@@ -83,27 +83,43 @@ export const PYTHON_QUERIES = {
       name: (identifier) @name
       parameters: (parameters) @params
       body: (block) @body) @func
+
+    (decorated_definition
+      definition: (function_definition
+        name: (identifier) @name
+        parameters: (parameters) @params
+        body: (block) @body) @func)
   `,
-  
+
   imports: `
     (import_statement
-      (dotted_as_names
+      name: (dotted_as_names
         (dotted_as_name
-          (dotted_name) @module
-          (alias) @alias)))
-    
+          name: (dotted_name) @module
+          alias: (identifier)? @alias))) @import
+
+    (import_statement
+      name: (dotted_as_names
+        (dotted_as_name
+          name: (identifier) @module
+          alias: (identifier)? @alias))) @import
+
     (import_from_statement
-      module_name: (dotted_name) @module
-      (import_as_names
+      module_name: (dotted_name)? @module
+      name: (import_as_names
         (import_as_name
-          (name) @name
-          (alias) @alias)))
+          name: (identifier) @name
+          alias: (identifier)? @alias))) @import
+
+    (import_from_statement
+      module_name: (dotted_name)? @module
+      name: (wildcard) @wildcard) @import
   `,
-  
+
   calls: `
     (call
       function: (identifier) @callee) @call
-    
+
     (call
       function: (attribute
         object: (_) @object

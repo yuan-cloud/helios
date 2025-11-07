@@ -57,6 +57,13 @@ Everything runs from static hosting (GitHub/Cloudflare Pages). To enable threads
 
 ### 3.2 Language Detection and AST Parsing
 
+[parser-agent - ✅ COMPLETED - 2025-11-07]
+
+✅ web-tree-sitter initialization with lazy grammar loading (JS/TS)
+✅ Extraction queries capturing functions, imports/exports, call expressions
+✅ Per-file symbol tables populated for cross-file name resolution
+❌ Python grammar deferred (blocked: waiting until JS/TS flow validated end-to-end)
+
 - Load web-tree-sitter once; lazy-load grammars per file type. Ship grammar WASMs via CDN (e.g., `tree-sitter-python.wasm`, `tree-sitter-javascript.wasm`).
 - Use Tree-sitter query patterns to extract:
   - Function declarations/defs (names, params, spans),
@@ -70,6 +77,13 @@ Tree-sitter's query DSL lets you capture these nodes robustly.
 **Optional stretch**: Leverage tree-sitter-stack-graphs rules for better name resolution in TS/JS; it exists in Rust with CLI and could be compiled to WASM later. Start with heuristic resolution, then iterate.
 
 ### 3.3 Call Graph Construction (Static, Best-Effort)
+
+[parser-agent - ✅ COMPLETED - 2025-11-07]
+
+✅ Static call graph builder emitting caller→callee edges with call-site metadata
+✅ Dynamic call tagging (member calls, constructors) with heuristic flags
+✅ Edge de-duplication + call-site weight aggregation; stats surfaced in UI
+⏳ Enhanced name resolution (stack-graphs integration) planned after MVP stabilizes
 
 - For each `call_expression`, extract callee:
   - Identifiers → resolve via lexical scope + module import table.
