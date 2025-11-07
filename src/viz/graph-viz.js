@@ -11,7 +11,7 @@
  * - Toggles for similarity edges, filters
  */
 
-import ForceGraph3D from '3d-force-graph';
+// 3d-force-graph will be loaded dynamically in initialize()
 
 /**
  * GraphVisualization - Main 3D visualization controller
@@ -49,6 +49,10 @@ export class GraphVisualization {
     if (!this.container) {
       throw new Error('Container element required');
     }
+
+    // Dynamically import 3d-force-graph
+    const ForceGraph3DModule = await import('3d-force-graph');
+    const ForceGraph3D = ForceGraph3DModule.default || ForceGraph3DModule;
 
     // Create 3D force graph
     this.graph = ForceGraph3D()

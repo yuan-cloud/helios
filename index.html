@@ -326,6 +326,237 @@
         .hidden {
             display: none;
         }
+
+        /* Visualization Styles */
+        .viz-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 100;
+            background: rgba(10, 14, 39, 0.95);
+            backdrop-filter: blur(10px);
+        }
+
+        .viz-container.hidden {
+            display: none;
+        }
+
+        .viz-graph {
+            width: 100%;
+            height: 100%;
+        }
+
+        .viz-sidebar {
+            position: fixed;
+            top: 0;
+            right: 0;
+            width: 350px;
+            height: 100%;
+            background: rgba(15, 23, 42, 0.95);
+            backdrop-filter: blur(10px);
+            border-left: 1px solid rgba(199, 210, 254, 0.1);
+            overflow-y: auto;
+            z-index: 101;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .viz-controls {
+            padding: 1.5rem;
+            border-bottom: 1px solid rgba(199, 210, 254, 0.1);
+        }
+
+        .viz-inspector {
+            flex: 1;
+            padding: 1.5rem;
+            overflow-y: auto;
+        }
+
+        .inspector-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+            padding-bottom: 0.75rem;
+            border-bottom: 1px solid rgba(199, 210, 254, 0.1);
+        }
+
+        .inspector-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: #e0e7ff;
+        }
+
+        .inspector-close {
+            background: none;
+            border: none;
+            color: #a5b4fc;
+            font-size: 1.5rem;
+            cursor: pointer;
+            padding: 0.25rem 0.5rem;
+            line-height: 1;
+            transition: color 0.2s;
+        }
+
+        .inspector-close:hover {
+            color: #e0e7ff;
+        }
+
+        .inspector-content {
+            color: #e0e7ff;
+        }
+
+        .inspector-info {
+            margin-bottom: 1.5rem;
+        }
+
+        .info-row {
+            margin-bottom: 0.75rem;
+            font-size: 0.9rem;
+            line-height: 1.6;
+        }
+
+        .info-row strong {
+            color: #a5b4fc;
+            margin-right: 0.5rem;
+        }
+
+        .info-row code {
+            background: rgba(30, 41, 59, 0.5);
+            padding: 0.125rem 0.375rem;
+            border-radius: 0.25rem;
+            font-size: 0.85em;
+            color: #c7d2fe;
+        }
+
+        .metric-tag {
+            display: inline-block;
+            background: rgba(99, 102, 241, 0.2);
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.25rem;
+            font-size: 0.85em;
+            margin-right: 0.5rem;
+            margin-top: 0.25rem;
+        }
+
+        .inspector-code-container {
+            margin-top: 1rem;
+        }
+
+        .inspector-code {
+            background: rgba(10, 14, 39, 0.8);
+            border: 1px solid rgba(199, 210, 254, 0.1);
+            border-radius: 0.5rem;
+            padding: 1rem;
+            overflow-x: auto;
+            font-size: 0.85rem;
+            line-height: 1.6;
+        }
+
+        .inspector-code code {
+            font-family: 'Monaco', 'Menlo', 'Courier New', monospace;
+        }
+
+        .inspector-panel.hidden {
+            display: none;
+        }
+
+        .inspector-panel.visible {
+            display: block;
+        }
+
+        .controls-section {
+            margin-bottom: 1.5rem;
+        }
+
+        .controls-title {
+            font-size: 1rem;
+            font-weight: 600;
+            color: #a5b4fc;
+            margin-bottom: 0.75rem;
+        }
+
+        .control-toggle {
+            display: flex;
+            align-items: center;
+            margin-bottom: 0.5rem;
+            color: #e0e7ff;
+            font-size: 0.9rem;
+            cursor: pointer;
+        }
+
+        .control-toggle input {
+            margin-right: 0.5rem;
+            cursor: pointer;
+        }
+
+        .control-button {
+            width: 100%;
+            padding: 0.5rem 1rem;
+            margin-bottom: 0.5rem;
+            background: rgba(99, 102, 241, 0.2);
+            border: 1px solid rgba(99, 102, 241, 0.3);
+            border-radius: 0.5rem;
+            color: #e0e7ff;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .control-button:hover {
+            background: rgba(99, 102, 241, 0.3);
+            border-color: rgba(99, 102, 241, 0.5);
+        }
+
+        .control-filter {
+            margin-bottom: 0.75rem;
+        }
+
+        .control-filter label {
+            display: block;
+            color: #a5b4fc;
+            font-size: 0.85rem;
+            margin-bottom: 0.25rem;
+        }
+
+        .control-filter input,
+        .control-filter select {
+            width: 100%;
+            padding: 0.5rem;
+            background: rgba(30, 41, 59, 0.5);
+            border: 1px solid rgba(199, 210, 254, 0.1);
+            border-radius: 0.25rem;
+            color: #e0e7ff;
+            font-size: 0.9rem;
+        }
+
+        .control-filter input:focus,
+        .control-filter select:focus {
+            outline: none;
+            border-color: rgba(99, 102, 241, 0.5);
+        }
+
+        .viz-close-button {
+            position: fixed;
+            top: 1rem;
+            right: 1rem;
+            z-index: 102;
+            background: rgba(15, 23, 42, 0.9);
+            border: 1px solid rgba(199, 210, 254, 0.2);
+            border-radius: 0.5rem;
+            padding: 0.75rem 1.5rem;
+            color: #e0e7ff;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .viz-close-button:hover {
+            background: rgba(15, 23, 42, 1);
+            border-color: rgba(199, 210, 254, 0.4);
+        }
     </style>
 </head>
 <body>
@@ -356,6 +587,19 @@
             <div class="counter" id="counter">Found 0 JavaScript files</div>
             <div class="counter" id="functionsCounter" style="margin-top: 0.5rem; font-size: 1rem; opacity: 0.8;">0 functions extracted</div>
             <div class="file-list" id="fileList"></div>
+            <button class="button" id="visualizeBtn" style="margin-top: 2rem; opacity: 0; animation: fadeInUp 1s ease-out 1s forwards;">
+                Visualize Graph
+            </button>
+        </div>
+    </div>
+
+    <!-- 3D Visualization Container -->
+    <div class="viz-container hidden" id="vizContainer">
+        <button class="viz-close-button" id="vizCloseBtn">Close Visualization</button>
+        <div class="viz-graph" id="vizGraph"></div>
+        <div class="viz-sidebar">
+            <div class="viz-controls" id="vizControls"></div>
+            <div class="viz-inspector" id="vizInspector"></div>
         </div>
     </div>
 
@@ -364,6 +608,11 @@
         import { parserManager } from './src/parser/parser.js';
         import { extractJavaScript } from './src/extractors/javascript.js';
         import { SymbolTableManager } from './src/extractors/symbol-table.js';
+        
+        // Import visualization modules
+        import { GraphVisualization } from './src/viz/graph-viz.js';
+        import { InspectorPanel } from './src/viz/inspector.js';
+        import { VisualizationControls } from './src/viz/controls.js';
         import { buildCallGraph } from './src/extractors/call-graph.js';
 
         // Generate random stars
@@ -459,6 +708,14 @@
                 
                 // Display files and functions
                 displayResults();
+
+                // Show visualize button if we have functions
+                if (allFunctions.length > 0) {
+                    const visualizeBtn = document.getElementById('visualizeBtn');
+                    if (visualizeBtn) {
+                        visualizeBtn.style.display = 'block';
+                    }
+                }
 
             } catch (error) {
                 if (error.name !== 'AbortError') {
@@ -614,6 +871,205 @@
                     fileList.appendChild(funcItem);
                 });
             });
+        }
+
+        // Visualization integration
+        let graphViz = null;
+        let inspector = null;
+        let controls = null;
+
+        // Initialize visualization when "Visualize Graph" button is clicked
+        const visualizeBtn = document.getElementById('visualizeBtn');
+        const vizContainer = document.getElementById('vizContainer');
+        const vizGraph = document.getElementById('vizGraph');
+        const vizControls = document.getElementById('vizControls');
+        const vizInspector = document.getElementById('vizInspector');
+        const vizCloseBtn = document.getElementById('vizCloseBtn');
+
+        if (visualizeBtn) {
+            visualizeBtn.addEventListener('click', async () => {
+                await initializeVisualization();
+            });
+        }
+
+        if (vizCloseBtn) {
+            vizCloseBtn.addEventListener('click', () => {
+                closeVisualization();
+            });
+        }
+
+        /**
+         * Initialize 3D visualization with current function data
+         */
+        async function initializeVisualization() {
+            try {
+                // Show visualization container
+                vizContainer.classList.remove('hidden');
+
+                // Create graph visualization
+                if (!graphViz) {
+                    graphViz = new GraphVisualization(vizGraph);
+                    await graphViz.initialize();
+
+                    // Set up node click handler
+                    graphViz.onNodeClick = (node) => {
+                        if (node && inspector) {
+                            // Try to get source code from file
+                            getFunctionSource(node).then(source => {
+                                inspector.show(node, source);
+                            });
+                        } else if (inspector) {
+                            inspector.hide();
+                        }
+                    };
+                }
+
+                // Create inspector panel
+                if (!inspector) {
+                    inspector = new InspectorPanel(vizInspector);
+                }
+
+                // Create controls
+                if (!controls) {
+                    controls = new VisualizationControls(vizControls, graphViz);
+                }
+
+                // Convert call graph to visualization format
+                const graphData = convertCallGraphToVizData(callGraph);
+
+                // Load data into visualization
+                graphViz.loadData(graphData);
+
+                // Fit to view
+                setTimeout(() => {
+                    graphViz.fitToView();
+                }, 500);
+
+            } catch (error) {
+                console.error('Failed to initialize visualization:', error);
+                alert('Failed to initialize visualization. See console for details.');
+            }
+        }
+
+        /**
+         * Convert call graph to visualization data format
+         * Uses the call graph structure from buildCallGraph()
+         */
+        function convertCallGraphToVizData(callGraph) {
+            if (!callGraph || !callGraph.nodes || !callGraph.edges) {
+                console.warn('Invalid call graph data');
+                return { nodes: [], links: [] };
+            }
+
+            // Create nodes from call graph functions
+            const nodes = callGraph.nodes.map(func => {
+                // Calculate LOC from line range
+                const loc = func.endLine && func.startLine 
+                    ? func.endLine - func.startLine + 1 
+                    : 0;
+
+                return {
+                    id: func.id,
+                    fqName: func.name, // Use function name as FQN for now
+                    name: func.name,
+                    filePath: func.filePath,
+                    lang: detectLanguageFromPath(func.filePath),
+                    size: loc,
+                    loc: loc,
+                    startLine: func.startLine,
+                    startColumn: func.startColumn,
+                    endLine: func.endLine,
+                    endColumn: func.endColumn,
+                    source: func.source || '',
+                    params: func.params || '',
+                    body: func.body || '',
+                    doc: func.doc || '',
+                    metrics: {},
+                    // Mock data for visualization (will be replaced by real analysis later)
+                    community: Math.floor(Math.random() * 5),
+                    centrality: Math.random()
+                };
+            });
+
+            // Create links from call graph edges
+            const links = callGraph.edges.map(edge => ({
+                source: edge.source, // Function ID
+                target: edge.target, // Function ID
+                type: 'call',
+                weight: edge.weight || 1,
+                dynamic: edge.isDynamic || false,
+                metadata: edge.metadata || {}
+            }));
+
+            return { nodes, links };
+        }
+
+        /**
+         * Detect language from file path
+         */
+        function detectLanguageFromPath(filePath) {
+            if (!filePath) return 'javascript';
+            if (filePath.endsWith('.ts') || filePath.endsWith('.tsx')) return 'typescript';
+            if (filePath.endsWith('.py')) return 'python';
+            if (filePath.endsWith('.jsx')) return 'jsx';
+            return 'javascript';
+        }
+
+        /**
+         * Get function source code from file
+         * Uses the function's source property if available, otherwise extracts from file
+         */
+        async function getFunctionSource(node) {
+            if (!node) return null;
+
+            // If source is already available in node, use it
+            if (node.source) {
+                return node.source;
+            }
+
+            try {
+                const fileHandle = jsFileHandles.get(node.filePath);
+                if (!fileHandle) {
+                    // Try to find the function in allFunctions
+                    const func = allFunctions.find(f => f.id === node.id);
+                    if (func && func.source) {
+                        return func.source;
+                    }
+                    return null;
+                }
+
+                const file = await fileHandle.getFile();
+                const source = await file.text();
+
+                // Extract function source using line range
+                if (node.startLine && node.endLine) {
+                    const lines = source.split('\n');
+                    const startIdx = Math.max(0, node.startLine - 1);
+                    const endIdx = Math.min(lines.length, node.endLine);
+                    return lines.slice(startIdx, endIdx).join('\n');
+                }
+
+                // Fallback: try to find function in allFunctions
+                const func = allFunctions.find(f => f.id === node.id);
+                if (func && func.source) {
+                    return func.source;
+                }
+
+                return source;
+            } catch (err) {
+                console.error('Failed to get function source:', err);
+                return null;
+            }
+        }
+
+        /**
+         * Close visualization
+         */
+        function closeVisualization() {
+            vizContainer.classList.add('hidden');
+            if (inspector) {
+                inspector.hide();
+            }
         }
     </script>
 </body>

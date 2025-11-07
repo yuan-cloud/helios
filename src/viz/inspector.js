@@ -32,17 +32,22 @@ export class InspectorPanel {
     }
 
     this.container.innerHTML = `
-      <div class="inspector-header">
-        <h3 class="inspector-title">Function Inspector</h3>
-        <button class="inspector-close" aria-label="Close inspector">×</button>
-      </div>
-      <div class="inspector-content">
-        <div class="inspector-info" id="inspectorInfo"></div>
-        <div class="inspector-code-container">
-          <pre class="inspector-code" id="inspectorCode"><code></code></pre>
+      <div class="inspector-panel hidden">
+        <div class="inspector-header">
+          <h3 class="inspector-title">Function Inspector</h3>
+          <button class="inspector-close" aria-label="Close inspector">×</button>
+        </div>
+        <div class="inspector-content">
+          <div class="inspector-info" id="inspectorInfo"></div>
+          <div class="inspector-code-container">
+            <pre class="inspector-code" id="inspectorCode"><code></code></pre>
+          </div>
         </div>
       </div>
     `;
+    
+    // Store panel element for visibility toggling
+    this.panelEl = this.container.querySelector('.inspector-panel');
 
     // Close button handler
     const closeBtn = this.container.querySelector('.inspector-close');
@@ -90,16 +95,20 @@ export class InspectorPanel {
     }
 
     // Show panel
-    this.container.classList.remove('hidden');
-    this.container.classList.add('visible');
+    if (this.panelEl) {
+      this.panelEl.classList.remove('hidden');
+      this.panelEl.classList.add('visible');
+    }
   }
 
   /**
    * Hide inspector
    */
   hide() {
-    this.container.classList.add('hidden');
-    this.container.classList.remove('visible');
+    if (this.panelEl) {
+      this.panelEl.classList.add('hidden');
+      this.panelEl.classList.remove('visible');
+    }
     this.currentNode = null;
     this.sourceCode = null;
   }
@@ -108,7 +117,7 @@ export class InspectorPanel {
    * Check if inspector is visible
    */
   isVisible() {
-    return this.container.classList.contains('visible');
+    return this.panelEl && this.panelEl.classList.contains('visible');
   }
 
   /**
