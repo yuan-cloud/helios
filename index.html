@@ -11,10 +11,18 @@
     <script type="importmap">
     {
       "imports": {
-        "web-tree-sitter": "https://cdn.jsdelivr.net/npm/web-tree-sitter@0.20.4/dist/tree-sitter.esm.min.js"
+        "web-tree-sitter": "https://cdn.jsdelivr.net/npm/web-tree-sitter@0.20.4/dist/tree-sitter.esm.min.js",
+        "3d-force-graph": "https://cdn.jsdelivr.net/npm/3d-force-graph@1.70.25/dist/3d-force-graph.es.min.js",
+        "prismjs": "https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-core.min.js"
       }
     }
     </script>
+    <!-- Prism.js themes and languages -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/themes/prism-tomorrow.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-javascript.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-typescript.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-python.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-jsx.min.js"></script>
     <style>
         * {
             margin: 0;
@@ -356,6 +364,7 @@
         import { parserManager } from './src/parser/parser.js';
         import { extractJavaScript } from './src/extractors/javascript.js';
         import { SymbolTableManager } from './src/extractors/symbol-table.js';
+        import { buildCallGraph } from './src/extractors/call-graph.js';
 
         // Generate random stars
         const starsContainer = document.getElementById('stars');
@@ -385,6 +394,8 @@
         let totalFiles = 0;
         let scannedFiles = 0;
         let allFunctions = [];
+        let allCalls = []; // All call expressions from all files
+        let callGraph = null; // Built call graph
         const symbolTableManager = new SymbolTableManager();
 
         // Check if File System Access API is supported
@@ -404,6 +415,8 @@
                 jsFiles = [];
                 jsFileHandles.clear();
                 allFunctions = [];
+                allCalls = [];
+                callGraph = null;
                 scannedFiles = 0;
                 totalFiles = 0;
                 fileList.innerHTML = '';
@@ -427,13 +440,22 @@
                 progressText.textContent = 'Parsing JavaScript files...';
                 await parseJavaScriptFiles();
                 
+                // Build call graph
+                progressText.textContent = 'Building call graph...';
+                callGraph = buildCallGraph(allFunctions, allCalls, symbolTableManager);
+                
+                // Make call graph available globally for visualization
+                window.heliosCallGraph = callGraph;
+                window.heliosFunctions = allFunctions;
+                window.heliosSymbolTables = symbolTableManager;
+                
                 // Hide progress, show results
                 progressContainer.classList.add('hidden');
                 resultsContainer.classList.remove('hidden');
                 
                 // Update counters
                 counter.textContent = `Found ${jsFiles.length} JavaScript file${jsFiles.length !== 1 ? 's' : ''}`;
-                functionsCounter.textContent = `${allFunctions.length} function${allFunctions.length !== 1 ? 's' : ''} extracted`;
+                functionsCounter.textContent = `${allFunctions.length} function${allFunctions.length !== 1 ? 's' : ''} extracted, ${callGraph.stats.totalEdges} call edge${callGraph.stats.totalEdges !== 1 ? 's' : ''} (${callGraph.stats.staticEdges} static, ${callGraph.stats.dynamicEdges} dynamic)`;
                 
                 // Display files and functions
                 displayResults();
@@ -526,6 +548,9 @@
 
                     // Store functions
                     allFunctions.push(...extracted.functions);
+
+                    // Store calls (filePath is already set by extractor)
+                    allCalls.push(...extracted.calls);
 
                     // Build symbol table
                     const symbolTable = symbolTableManager.getTable(filePath);
