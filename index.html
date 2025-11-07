@@ -1,0 +1,595 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HELIOS - See the gravity of your code</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script type="importmap">
+    {
+      "imports": {
+        "web-tree-sitter": "https://cdn.jsdelivr.net/npm/web-tree-sitter@0.20.4/dist/tree-sitter.esm.min.js"
+      }
+    }
+    </script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #0a0e27 0%, #1a1a3e 25%, #2d1b4e 50%, #1a1a3e 75%, #0a0e27 100%);
+            background-size: 400% 400%;
+            animation: gradientShift 15s ease infinite;
+            min-height: 100vh;
+            overflow-x: hidden;
+            overflow-y: auto;
+            position: relative;
+        }
+
+        @keyframes gradientShift {
+            0%, 100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+        }
+
+        /* Particle/Star field */
+        .stars {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        .star {
+            position: absolute;
+            width: 2px;
+            height: 2px;
+            background: white;
+            border-radius: 50%;
+            opacity: 0.6;
+            animation: twinkle 3s ease-in-out infinite;
+        }
+
+        .star:nth-child(odd) {
+            animation-duration: 2s;
+        }
+
+        .star:nth-child(3n) {
+            animation-duration: 4s;
+            opacity: 0.4;
+        }
+
+        @keyframes twinkle {
+            0%, 100% { opacity: 0.3; transform: scale(1); }
+            50% { opacity: 0.9; transform: scale(1.2); }
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-20px); }
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .container {
+            position: relative;
+            z-index: 10;
+            animation: fadeIn 1s ease-out;
+        }
+
+        .title {
+            font-weight: 800;
+            font-size: clamp(3.5rem, 10vw, 6rem);
+            letter-spacing: -0.02em;
+            background: linear-gradient(135deg, #ffffff 0%, #e0e7ff 50%, #c7d2fe 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-shadow: 0 0 40px rgba(199, 210, 254, 0.3),
+                         0 0 80px rgba(199, 210, 254, 0.2),
+                         0 0 120px rgba(199, 210, 254, 0.1);
+            animation: fadeInUp 1s ease-out, float 6s ease-in-out infinite;
+            animation-delay: 0s, 1s;
+            margin-bottom: 1rem;
+        }
+
+        .tagline {
+            font-weight: 300;
+            font-size: clamp(1.125rem, 2.5vw, 1.5rem);
+            color: #a5b4fc;
+            opacity: 0;
+            animation: fadeInUp 1s ease-out 0.5s forwards;
+            letter-spacing: 0.05em;
+            margin-bottom: 3rem;
+        }
+
+        .button {
+            position: relative;
+            padding: 1rem 2.5rem;
+            font-size: 1.125rem;
+            font-weight: 600;
+            color: white;
+            background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+            border: none;
+            border-radius: 0.75rem;
+            cursor: pointer;
+            overflow: hidden;
+            transition: all 0.3s ease;
+            box-shadow: 0 10px 30px rgba(99, 102, 241, 0.3),
+                        0 0 20px rgba(139, 92, 246, 0.2);
+            animation: fadeInUp 1s ease-out 0.8s forwards;
+            opacity: 0;
+        }
+
+        .button::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            transition: left 0.5s;
+        }
+
+        .button:hover::before {
+            left: 100%;
+        }
+
+        .button:hover {
+            transform: translateY(-2px) scale(1.05);
+            box-shadow: 0 15px 40px rgba(99, 102, 241, 0.4),
+                        0 0 30px rgba(139, 92, 246, 0.3);
+        }
+
+        .button:active {
+            transform: translateY(0) scale(1.02);
+        }
+
+        /* Subtle gravity effect - particles that seem to orbit */
+        .gravity-particles {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 2;
+        }
+
+        .gravity-particle {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            background: rgba(199, 210, 254, 0.3);
+            border-radius: 50%;
+            animation: orbit 20s linear infinite;
+        }
+
+        .gravity-particle:nth-child(1) {
+            top: 20%;
+            left: 10%;
+            animation-duration: 25s;
+        }
+
+        .gravity-particle:nth-child(2) {
+            top: 60%;
+            left: 80%;
+            animation-duration: 30s;
+            animation-delay: -5s;
+        }
+
+        .gravity-particle:nth-child(3) {
+            top: 80%;
+            left: 20%;
+            animation-duration: 35s;
+            animation-delay: -10s;
+        }
+
+        @keyframes orbit {
+            0% {
+                transform: rotate(0deg) translateX(100px) rotate(0deg);
+            }
+            100% {
+                transform: rotate(360deg) translateX(100px) rotate(-360deg);
+            }
+        }
+
+        /* Results display */
+        .results-container {
+            max-width: 900px;
+            width: 100%;
+            margin: 2rem auto;
+            padding: 2rem;
+            background: rgba(15, 23, 42, 0.6);
+            backdrop-filter: blur(10px);
+            border-radius: 1rem;
+            border: 1px solid rgba(199, 210, 254, 0.1);
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            animation: fadeInUp 0.5s ease-out;
+        }
+
+        .counter {
+            font-size: 1.25rem;
+            color: #a5b4fc;
+            margin-bottom: 1.5rem;
+            font-weight: 600;
+        }
+
+        .file-list {
+            max-height: 500px;
+            overflow-y: auto;
+            padding-right: 0.5rem;
+        }
+
+        .file-list::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .file-list::-webkit-scrollbar-track {
+            background: rgba(15, 23, 42, 0.5);
+            border-radius: 4px;
+        }
+
+        .file-list::-webkit-scrollbar-thumb {
+            background: rgba(199, 210, 254, 0.3);
+            border-radius: 4px;
+        }
+
+        .file-list::-webkit-scrollbar-thumb:hover {
+            background: rgba(199, 210, 254, 0.5);
+        }
+
+        .file-item {
+            padding: 0.75rem 1rem;
+            margin-bottom: 0.5rem;
+            background: rgba(30, 41, 59, 0.5);
+            border-radius: 0.5rem;
+            border-left: 3px solid #6366f1;
+            color: #e0e7ff;
+            font-family: 'Monaco', 'Menlo', 'Courier New', monospace;
+            font-size: 0.9rem;
+            word-break: break-all;
+            transition: all 0.2s ease;
+            animation: fadeInUp 0.3s ease-out;
+        }
+
+        .file-item:hover {
+            background: rgba(30, 41, 59, 0.8);
+            border-left-color: #8b5cf6;
+            transform: translateX(5px);
+        }
+
+        .progress-container {
+            margin-top: 2rem;
+            padding: 1.5rem;
+            background: rgba(15, 23, 42, 0.6);
+            backdrop-filter: blur(10px);
+            border-radius: 1rem;
+            border: 1px solid rgba(199, 210, 254, 0.1);
+        }
+
+        .progress-text {
+            color: #a5b4fc;
+            font-size: 1rem;
+            margin-bottom: 0.75rem;
+            text-align: center;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: rgba(30, 41, 59, 0.5);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #6366f1 0%, #8b5cf6 100%);
+            border-radius: 4px;
+            transition: width 0.3s ease;
+            box-shadow: 0 0 10px rgba(99, 102, 241, 0.5);
+        }
+
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="stars" id="stars"></div>
+    <div class="gravity-particles">
+        <div class="gravity-particle"></div>
+        <div class="gravity-particle"></div>
+        <div class="gravity-particle"></div>
+    </div>
+    
+    <div class="min-h-screen flex flex-col items-center justify-center container py-8">
+        <div class="text-center space-y-8 px-4 mb-8">
+            <h1 class="title">HELIOS</h1>
+            <p class="tagline">See the gravity of your code</p>
+            <button class="button" id="selectBtn">
+                Select Repository
+            </button>
+        </div>
+
+        <div class="progress-container hidden" id="progressContainer">
+            <div class="progress-text" id="progressText">Scanning files...</div>
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressFill" style="width: 0%"></div>
+            </div>
+        </div>
+
+        <div class="results-container hidden" id="resultsContainer">
+            <div class="counter" id="counter">Found 0 JavaScript files</div>
+            <div class="counter" id="functionsCounter" style="margin-top: 0.5rem; font-size: 1rem; opacity: 0.8;">0 functions extracted</div>
+            <div class="file-list" id="fileList"></div>
+        </div>
+    </div>
+
+    <script type="module">
+        // Import parser modules
+        import { parserManager } from './src/parser/parser.js';
+        import { extractJavaScript } from './src/extractors/javascript.js';
+        import { SymbolTableManager } from './src/extractors/symbol-table.js';
+
+        // Generate random stars
+        const starsContainer = document.getElementById('stars');
+        const starCount = 100;
+
+        for (let i = 0; i < starCount; i++) {
+            const star = document.createElement('div');
+            star.className = 'star';
+            star.style.left = Math.random() * 100 + '%';
+            star.style.top = Math.random() * 100 + '%';
+            star.style.animationDelay = Math.random() * 3 + 's';
+            starsContainer.appendChild(star);
+        }
+
+        // File System Access API implementation
+        const selectBtn = document.getElementById('selectBtn');
+        const progressContainer = document.getElementById('progressContainer');
+        const progressText = document.getElementById('progressText');
+        const progressFill = document.getElementById('progressFill');
+        const resultsContainer = document.getElementById('resultsContainer');
+        const counter = document.getElementById('counter');
+        const functionsCounter = document.getElementById('functionsCounter');
+        const fileList = document.getElementById('fileList');
+
+        let jsFiles = [];
+        let jsFileHandles = new Map(); // Store file handles for reading
+        let totalFiles = 0;
+        let scannedFiles = 0;
+        let allFunctions = [];
+        const symbolTableManager = new SymbolTableManager();
+
+        // Check if File System Access API is supported
+        if (!window.showDirectoryPicker) {
+            selectBtn.textContent = 'File System Access API not supported';
+            selectBtn.disabled = true;
+            selectBtn.style.opacity = '0.5';
+            selectBtn.style.cursor = 'not-allowed';
+        }
+
+        selectBtn.addEventListener('click', async () => {
+            try {
+                // Request directory access
+                const directoryHandle = await window.showDirectoryPicker();
+                
+                // Reset state
+                jsFiles = [];
+                jsFileHandles.clear();
+                allFunctions = [];
+                scannedFiles = 0;
+                totalFiles = 0;
+                fileList.innerHTML = '';
+                resultsContainer.classList.add('hidden');
+                progressContainer.classList.remove('hidden');
+                progressFill.style.width = '0%';
+                progressText.textContent = 'Counting files...';
+
+                // Initialize parser
+                progressText.textContent = 'Initializing parser...';
+                await parserManager.initialize();
+
+                // Count total files first for accurate progress
+                totalFiles = await countFiles(directoryHandle);
+                progressText.textContent = 'Scanning files...';
+
+                // Scan directory recursively
+                await scanDirectory(directoryHandle, '');
+                
+                // Parse JavaScript files
+                progressText.textContent = 'Parsing JavaScript files...';
+                await parseJavaScriptFiles();
+                
+                // Hide progress, show results
+                progressContainer.classList.add('hidden');
+                resultsContainer.classList.remove('hidden');
+                
+                // Update counters
+                counter.textContent = `Found ${jsFiles.length} JavaScript file${jsFiles.length !== 1 ? 's' : ''}`;
+                functionsCounter.textContent = `${allFunctions.length} function${allFunctions.length !== 1 ? 's' : ''} extracted`;
+                
+                // Display files and functions
+                displayResults();
+
+            } catch (error) {
+                if (error.name !== 'AbortError') {
+                    console.error('Error selecting directory:', error);
+                    progressText.textContent = 'Error: ' + error.message;
+                    setTimeout(() => {
+                        progressContainer.classList.add('hidden');
+                    }, 3000);
+                }
+            }
+        });
+
+        async function scanDirectory(directoryHandle, currentPath) {
+            try {
+                for await (const entry of directoryHandle.values()) {
+                    if (entry.kind === 'file') {
+                        scannedFiles++;
+                        const fileName = entry.name;
+                        const fullPath = currentPath ? `${currentPath}/${fileName}` : fileName;
+                        
+                        // Check if it's a JavaScript file
+                        if (fileName.endsWith('.js') || fileName.endsWith('.jsx') || 
+                            fileName.endsWith('.ts') || fileName.endsWith('.tsx')) {
+                            jsFiles.push(fullPath);
+                            jsFileHandles.set(fullPath, entry);
+                        }
+
+                        // Update progress
+                        if (totalFiles > 0) {
+                            const progress = Math.min((scannedFiles / totalFiles) * 100, 100);
+                            progressFill.style.width = `${progress}%`;
+                            progressText.textContent = `Scanning... ${scannedFiles} file${scannedFiles !== 1 ? 's' : ''} scanned`;
+                        }
+                    } else if (entry.kind === 'directory') {
+                        // Skip common directories that shouldn't be scanned
+                        const dirName = entry.name.toLowerCase();
+                        if (dirName === 'node_modules' || dirName === '.git' || dirName === 'dist' || dirName === 'build') {
+                            continue;
+                        }
+                        
+                        const newPath = currentPath ? `${currentPath}/${entry.name}` : entry.name;
+                        await scanDirectory(entry, newPath);
+                    }
+                }
+            } catch (error) {
+                console.error('Error scanning directory:', error);
+            }
+        }
+
+        async function countFiles(directoryHandle) {
+            let count = 0;
+            try {
+                for await (const entry of directoryHandle.values()) {
+                    if (entry.kind === 'file') {
+                        count++;
+                    } else if (entry.kind === 'directory') {
+                        const dirName = entry.name.toLowerCase();
+                        if (dirName === 'node_modules' || dirName === '.git' || dirName === 'dist' || dirName === 'build') {
+                            continue;
+                        }
+                        count += await countFiles(entry);
+                    }
+                }
+            } catch (error) {
+                console.error('Error counting files:', error);
+            }
+            return count;
+        }
+
+        /**
+         * Parse all JavaScript files and extract functions
+         */
+        async function parseJavaScriptFiles() {
+            const language = await parserManager.loadLanguage('javascript');
+            let parsedCount = 0;
+
+            for (const filePath of jsFiles) {
+                try {
+                    const fileHandle = jsFileHandles.get(filePath);
+                    if (!fileHandle) continue;
+
+                    const file = await fileHandle.getFile();
+                    const source = await file.text();
+
+                    // Extract functions, exports, imports, calls
+                    const extracted = await extractJavaScript(source, filePath, language);
+
+                    // Store functions
+                    allFunctions.push(...extracted.functions);
+
+                    // Build symbol table
+                    const symbolTable = symbolTableManager.getTable(filePath);
+                    extracted.exports.forEach(exp => {
+                        symbolTable.addExport(exp.name, { isDefault: exp.isDefault });
+                    });
+                    extracted.imports.forEach(imp => {
+                        symbolTable.addImport(imp.name, imp.from, imp.originalName);
+                    });
+
+                    parsedCount++;
+                    
+                    // Update progress
+                    if (jsFiles.length > 0) {
+                        const progress = Math.min((parsedCount / jsFiles.length) * 100, 100);
+                        progressFill.style.width = `${progress}%`;
+                        progressText.textContent = `Parsing... ${parsedCount}/${jsFiles.length} files`;
+                    }
+                } catch (err) {
+                    console.error(`Failed to parse ${filePath}:`, err);
+                }
+            }
+        }
+
+        /**
+         * Display files and extracted functions in results
+         */
+        function displayResults() {
+            fileList.innerHTML = '';
+
+            // Display files with function counts
+            jsFiles.forEach((filePath, index) => {
+                const fileFunctions = allFunctions.filter(f => f.filePath === filePath);
+                
+                const fileItem = document.createElement('div');
+                fileItem.className = 'file-item';
+                fileItem.innerHTML = `
+                    <div style="font-weight: 600; margin-bottom: 0.25rem;">${filePath}</div>
+                    <div style="font-size: 0.85rem; opacity: 0.7;">
+                        ${fileFunctions.length} function${fileFunctions.length !== 1 ? 's' : ''}
+                    </div>
+                `;
+                fileItem.style.animationDelay = `${index * 0.02}s`;
+                fileList.appendChild(fileItem);
+
+                // Display functions for this file
+                fileFunctions.forEach((func, funcIndex) => {
+                    const funcItem = document.createElement('div');
+                    funcItem.className = 'file-item';
+                    funcItem.style.marginLeft = '1rem';
+                    funcItem.style.marginTop = '0.5rem';
+                    funcItem.style.padding = '0.5rem 0.75rem';
+                    funcItem.style.fontSize = '0.85rem';
+                    funcItem.innerHTML = `
+                        <div style="color: #a5b4fc;">
+                            <span style="font-weight: 600;">${func.name}</span>
+                            <span style="opacity: 0.6; margin-left: 0.5rem;">(${func.startLine}:${func.startColumn})</span>
+                        </div>
+                    `;
+                    funcItem.style.animationDelay = `${(index * 0.02) + (funcIndex * 0.01)}s`;
+                    fileList.appendChild(funcItem);
+                });
+            });
+        }
+    </script>
+</body>
+</html>
