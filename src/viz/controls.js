@@ -48,6 +48,10 @@ export class VisualizationControls {
             <input type="checkbox" id="toggleSimilarityEdges" checked>
             <span>Similarity Edges</span>
           </label>
+          <label class="control-toggle">
+            <input type="checkbox" id="toggleHighlightNeighbors" checked>
+            <span>Highlight Neighborhood</span>
+          </label>
         </div>
         
         <div class="controls-section">
@@ -121,6 +125,21 @@ export class VisualizationControls {
           this.graphViz.toggleSimilarityEdges(e.target.checked);
         }
       });
+    }
+
+    const toggleHighlightNeighbors = this.container.querySelector('#toggleHighlightNeighbors');
+    if (toggleHighlightNeighbors) {
+      const applyHighlightState = (checked) => {
+        if (this.graphViz && typeof this.graphViz.setHighlightNeighbors === 'function') {
+          this.graphViz.setHighlightNeighbors(checked);
+        }
+      };
+
+      toggleHighlightNeighbors.addEventListener('change', (e) => {
+        applyHighlightState(e.target.checked);
+      });
+
+      applyHighlightState(toggleHighlightNeighbors.checked);
     }
 
     // Layout controls

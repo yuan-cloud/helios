@@ -40,6 +40,16 @@ export class GraphVisualization {
     // State
     this.selectedNode = null;
     this.hoveredNode = null;
+    this.hoveredNodeId = null;
+    this.hoveredNeighbors = new Set();
+    this.highlightNeighbors = true;
+    this.adjacency = new Map();
+
+    this.baseLinkOpacity = 0.6;
+    this.minFadeOpacity = 0.12;
+    this.currentNonNeighborOpacity = this.baseLinkOpacity;
+    this.fadeTargetOpacity = this.baseLinkOpacity;
+    this.fadeAnimationFrame = null;
   }
 
   /**
@@ -60,14 +70,18 @@ export class GraphVisualization {
       .nodeLabel(node => this.getNodeLabel(node))
       .nodeColor(node => this.getNodeColor(node))
       .nodeVal(node => this.getNodeSize(node))
-      .linkSource(link => link.source)
-      .linkTarget(link => link.target)
+      .linkSource(link => this.getLinkNodeId(link, 'source'))
+      .linkTarget(link => this.getLinkNodeId(link, 'target'))
       .linkLabel(link => this.getLinkLabel(link))
       .linkColor(link => this.getLinkColor(link))
       .linkWidth(link => this.getLinkWidth(link))
       .linkDirectionalParticles(link => this.getLinkParticles(link))
       .linkDirectionalParticleSpeed(0.01)
       .linkDirectionalParticleWidth(3)
+      .linkDirectionalArrowLength(6)
+      .linkDirectionalArrowRelPos(1)
+      .linkOpacity(link => this.getLinkDisplayOpacity(link))
+      .nodeRelSize(6)
       .onNodeHover(node => this.handleNodeHover(node))
       .onNodeClick(node => this.handleNodeClick(node))
       .onNodeDrag(node => this.handleNodeDrag(node))
@@ -95,25 +109,31 @@ export class GraphVisualization {
       throw new Error('Invalid graph data format');
     }
 
+    const normalizedNodes = data.nodes.map(node => this.normalizeNode(node));
+    const normalizedLinks = data.links.map(link => this.normalizeLink(link));
+
     this.data = {
-      nodes: data.nodes.map(node => this.normalizeNode(node)),
-      links: data.links.map(link => this.normalizeLink(link))
+      nodes: normalizedNodes,
+      links: normalizedLinks
     };
 
-    // Filter links based on options
-    const visibleLinks = this.data.links.filter(link => {
+    this.buildAdjacencyMap(normalizedNodes, normalizedLinks);
+    this.hoveredNeighbors = new Set();
+    this.hoveredNodeId = null;
+    this.setFadeTarget(this.baseLinkOpacity, true);
+
+    const visibleLinks = normalizedLinks.filter(link => {
       if (link.type === 'call' && !this.options.showCallEdges) return false;
       if (link.type === 'similarity' && !this.options.showSimilarityEdges) return false;
       return true;
     });
 
-    // Update graph
     if (this.graph) {
-      this.graph
-        .graphData({
-          nodes: this.data.nodes,
-          links: visibleLinks
-        });
+      this.graph.graphData({
+        nodes: normalizedNodes,
+        links: visibleLinks
+      });
+      this.repaintGraph();
     }
 
     return this;
@@ -123,7 +143,8 @@ export class GraphVisualization {
    * Normalize node data to expected format
    */
   normalizeNode(node) {
-    return {
+    const normalized = {
+      ...node,
       id: node.id || node.fqName || node.name,
       fqName: node.fqName || node.name,
       name: node.name,
@@ -131,27 +152,34 @@ export class GraphVisualization {
       lang: node.lang || 'javascript',
       size: node.size || node.loc || 0,
       metrics: node.metrics || {},
-      community: node.community || 0,
+      community: node.community,
       centrality: node.centrality || 0,
       doc: node.doc || '',
-      // Position (will be set by force simulation)
       x: node.x,
       y: node.y,
-      z: node.z,
-      // Visual properties
-      color: node.color,
-      ...node
+      z: node.z
     };
+
+    const baseColor = this.resolveBaseColor(normalized);
+    normalized.baseColor = baseColor;
+    normalized.color = baseColor;
+
+    return normalized;
   }
 
   /**
    * Normalize link data to expected format
    */
   normalizeLink(link) {
+    const sourceId = this.getLinkNodeId(link, 'source');
+    const targetId = this.getLinkNodeId(link, 'target');
+
     return {
-      source: typeof link.source === 'string' ? link.source : link.source.id,
-      target: typeof link.target === 'string' ? link.target : link.target.id,
-      type: link.type || 'call', // 'call' or 'similarity'
+      source: sourceId,
+      target: targetId,
+      sourceId,
+      targetId,
+      type: link.type || 'call',
       weight: link.weight || link.sim || 1,
       dynamic: link.dynamic || false,
       ...link
@@ -182,22 +210,45 @@ export class GraphVisualization {
    * Get node color (by community or default)
    */
   getNodeColor(node) {
-    if (node.color) return node.color;
-    
-    // Color by community if available
-    if (node.community !== undefined) {
+    const baseColor = node.baseColor || this.resolveBaseColor(node);
+
+    if (!this.highlightNeighbors || !this.hoveredNodeId) {
+      return baseColor;
+    }
+
+    if (node.id === this.hoveredNodeId) {
+      return baseColor;
+    }
+
+    if (this.hoveredNeighbors.has(node.id)) {
+      return baseColor;
+    }
+
+    const fadeRatio = Math.max(0.2, (this.currentNonNeighborOpacity / this.baseLinkOpacity) * 0.5);
+    return `rgba(148, 163, 184, ${fadeRatio.toFixed(2)})`;
+  }
+
+  resolveBaseColor(node) {
+    if (node && typeof node.color === 'string' && node.color.length) {
+      return node.color;
+    }
+
+    if (node && typeof node.baseColor === 'string' && node.baseColor.length) {
+      return node.baseColor;
+    }
+
+    if (node && node.community !== undefined && node.community !== null) {
       return this.getCommunityColor(node.community);
     }
-    
-    // Default color by language
+
     const langColors = {
       javascript: '#fbbf24',
       typescript: '#3178c6',
       python: '#3776ab',
       default: '#8b5cf6'
     };
-    
-    return langColors[node.lang] || langColors.default;
+
+    return langColors[node?.lang] || langColors.default;
   }
 
   /**
@@ -213,17 +264,28 @@ export class GraphVisualization {
    * Get node size (by centrality or default)
    */
   getNodeSize(node) {
-    if (node.size !== undefined) {
-      // Normalize size (assume max 1000 LOC)
-      return Math.max(2, Math.min(20, node.size / 50));
+    let baseSize;
+    if (node.size !== undefined && node.size !== null) {
+      baseSize = Math.max(2, Math.min(20, node.size / 50));
+    } else if (node.centrality !== undefined) {
+      baseSize = Math.max(2, Math.min(20, node.centrality * 100));
+    } else {
+      baseSize = this.options.nodeSize;
     }
-    
-    if (node.centrality !== undefined) {
-      // Scale by centrality
-      return Math.max(2, Math.min(20, node.centrality * 100));
+
+    if (!this.highlightNeighbors || !this.hoveredNodeId) {
+      return baseSize;
     }
-    
-    return this.options.nodeSize;
+
+    if (node.id === this.hoveredNodeId) {
+      return Math.min(baseSize * 1.6, 30);
+    }
+
+    if (this.hoveredNeighbors.has(node.id)) {
+      return Math.min(baseSize * 1.25, 24);
+    }
+
+    return Math.max(2, baseSize * 0.9);
   }
 
   /**
@@ -264,6 +326,35 @@ export class GraphVisualization {
     return baseWidth * Math.min(3, Math.max(0.5, weight));
   }
 
+  getLinkDisplayOpacity(link) {
+    if (!this.highlightNeighbors || !this.hoveredNodeId) {
+      return this.baseLinkOpacity;
+    }
+
+    const sourceId = this.getLinkNodeId(link, 'source');
+    const targetId = this.getLinkNodeId(link, 'target');
+    if (!sourceId || !targetId) {
+      return this.baseLinkOpacity;
+    }
+
+    const isNeighbor = sourceId === this.hoveredNodeId || targetId === this.hoveredNodeId;
+    return isNeighbor ? 1 : this.currentNonNeighborOpacity;
+  }
+
+  /**
+   * Helper to retrieve source/target ids regardless of object mutation
+   */
+  getLinkNodeId(link, key) {
+    if (!link) return undefined;
+    const value = link[key];
+    if (!value) return undefined;
+    if (typeof value === 'string') return value;
+    if (typeof value === 'object') {
+      return value.id || value.fqName || value.name;
+    }
+    return value;
+  }
+
   /**
    * Get directional particles for links
    */
@@ -275,23 +366,37 @@ export class GraphVisualization {
     return 0;
   }
 
+  updateHoverState(node) {
+    if (!this.highlightNeighbors) {
+      this.hoveredNodeId = node ? node.id : null;
+      this.hoveredNeighbors = new Set();
+      this.setFadeTarget(this.baseLinkOpacity, true);
+      return;
+    }
+
+    if (node) {
+      this.hoveredNodeId = node.id;
+      const neighbors = this.adjacency.get(node.id);
+      this.hoveredNeighbors = new Set(neighbors || []);
+      this.setFadeTarget(this.minFadeOpacity);
+    } else {
+      this.hoveredNodeId = null;
+      this.hoveredNeighbors = new Set();
+      this.setFadeTarget(this.baseLinkOpacity);
+    }
+
+    this.repaintGraph();
+  }
+
   /**
    * Handle node hover
    */
   handleNodeHover(node) {
     this.hoveredNode = node;
-    
+    this.updateHoverState(node);
+
     if (this.onNodeHover) {
       this.onNodeHover(node);
-    }
-    
-    // Highlight connected nodes
-    if (node && this.graph) {
-      this.graph.linkOpacity(link => {
-        return (link.source === node.id || link.target === node.id) ? 1 : 0.2;
-      });
-    } else {
-      this.graph.linkOpacity(1);
     }
   }
 
@@ -343,11 +448,8 @@ export class GraphVisualization {
     if (this.onNodeClick) {
       this.onNodeClick(null);
     }
-    
-    // Reset link opacity
-    if (this.graph) {
-      this.graph.linkOpacity(1);
-    }
+
+    this.updateHoverState(null);
   }
 
   /**
@@ -403,7 +505,7 @@ export class GraphVisualization {
    */
   toggleSimilarityEdges(show) {
     this.options.showSimilarityEdges = show;
-    this.refresh();
+    this.repaintGraph();
   }
 
   /**
@@ -411,15 +513,24 @@ export class GraphVisualization {
    */
   toggleCallEdges(show) {
     this.options.showCallEdges = show;
-    this.refresh();
+    this.repaintGraph();
+  }
+
+  setHighlightNeighbors(enabled) {
+    this.highlightNeighbors = enabled;
+    if (!enabled) {
+      this.updateHoverState(null);
+    } else {
+      this.updateHoverState(this.hoveredNode || null);
+    }
   }
 
   /**
    * Refresh graph with current options
    */
-  refresh() {
-    if (this.graph && this.data) {
-      this.loadData(this.data);
+  repaintGraph() {
+    if (this.graph && typeof this.graph.refresh === 'function') {
+      this.graph.refresh();
     }
   }
 
@@ -504,10 +615,72 @@ export class GraphVisualization {
       this.graph.graphData({ nodes: [], links: [] });
       this.graph = null;
     }
-    
+
+    if (this.fadeAnimationFrame) {
+      cancelAnimationFrame(this.fadeAnimationFrame);
+      this.fadeAnimationFrame = null;
+    }
+
     this.data = { nodes: [], links: [] };
     this.selectedNode = null;
     this.hoveredNode = null;
+  }
+
+  buildAdjacencyMap(nodes, links) {
+    this.adjacency = new Map();
+    nodes.forEach(node => {
+      this.adjacency.set(node.id, new Set());
+    });
+
+    links.forEach(link => {
+      const sourceId = link.sourceId || this.getLinkNodeId(link, 'source');
+      const targetId = link.targetId || this.getLinkNodeId(link, 'target');
+      if (!sourceId || !targetId) return;
+      if (!this.adjacency.has(sourceId)) {
+        this.adjacency.set(sourceId, new Set());
+      }
+      if (!this.adjacency.has(targetId)) {
+        this.adjacency.set(targetId, new Set());
+      }
+      this.adjacency.get(sourceId).add(targetId);
+      this.adjacency.get(targetId).add(sourceId);
+    });
+  }
+
+  setFadeTarget(value, immediate = false) {
+    const clamped = Math.max(this.minFadeOpacity, Math.min(this.baseLinkOpacity, value));
+    this.fadeTargetOpacity = clamped;
+
+    if (immediate) {
+      this.currentNonNeighborOpacity = clamped;
+      if (this.fadeAnimationFrame) {
+        cancelAnimationFrame(this.fadeAnimationFrame);
+        this.fadeAnimationFrame = null;
+      }
+      this.repaintGraph();
+      return;
+    }
+
+    if (!this.fadeAnimationFrame) {
+      this.fadeAnimationFrame = requestAnimationFrame(() => this.animateFadeStep());
+    }
+  }
+
+  animateFadeStep() {
+    const diff = this.fadeTargetOpacity - this.currentNonNeighborOpacity;
+    if (Math.abs(diff) < 0.01) {
+      this.currentNonNeighborOpacity = this.fadeTargetOpacity;
+      if (this.fadeAnimationFrame) {
+        cancelAnimationFrame(this.fadeAnimationFrame);
+        this.fadeAnimationFrame = null;
+      }
+      this.repaintGraph();
+      return;
+    }
+
+    this.currentNonNeighborOpacity += diff * 0.2;
+    this.repaintGraph();
+    this.fadeAnimationFrame = requestAnimationFrame(() => this.animateFadeStep());
   }
 }
 
