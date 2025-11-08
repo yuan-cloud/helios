@@ -113,6 +113,9 @@ export class InspectorPanel {
       this.panelEl.classList.remove('hidden');
       this.panelEl.classList.add('visible');
     }
+
+    this.renderEdges(edgeSummary);
+    this.attachEdgeButtonHandlers();
   }
 
   /**
@@ -125,6 +128,7 @@ export class InspectorPanel {
     }
     this.currentNode = null;
     this.sourceCode = null;
+    this.renderEdges(null);
   }
 
   /**

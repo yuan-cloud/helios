@@ -593,8 +593,16 @@ export class GraphVisualization {
    * Handle node hover
    */
   handleNodeHover(node) {
-    this.hoveredNode = node;
-    this.updateHoverState(node);
+    const nextId = node ? node.id : null;
+    const prevId = this.hoveredNodeId;
+    const sameNode =
+      prevId === nextId &&
+      ((node === null && this.hoveredNode === null) ||
+        (node && this.hoveredNode && this.hoveredNode === node));
+
+    if (!sameNode) {
+      this.updateHoverState(node);
+    }
 
     if (this.onNodeHover) {
       this.onNodeHover(node);
