@@ -35,6 +35,9 @@ export class VisualizationControls {
       this.graphViz.onSimilarityStatsChange = (stats = {}, options = {}) => {
         this.updateSimilarityControls(stats, options);
       };
+      this.graphViz.onPerformanceChange = (state = {}) => {
+        this.updatePerformanceControls(state);
+      };
     }
   }
 
@@ -101,6 +104,17 @@ export class VisualizationControls {
           <button class="control-button" id="btnRestoreLayout">Restore Layout</button>
           <button class="control-button" id="btnResetLayout">Reset Layout</button>
           <div class="control-hint" id="layoutStatus" aria-live="polite" style="font-size: 0.75rem; color: #94a3b8; margin-top: 0.35rem;"></div>
+          <div class="controls-subsection">
+            <label class="control-toggle">
+              <input type="checkbox" id="toggleAutoPerformance" checked>
+              <span>Auto Performance Tuning</span>
+            </label>
+            <label class="control-toggle">
+              <input type="checkbox" id="toggleHighPerformance" disabled>
+              <span>High Performance Mode</span>
+            </label>
+            <div class="control-hint" id="performanceStatus" aria-live="polite" style="font-size: 0.72rem; color: #cbd5f5;"></div>
+          </div>
         </div>
         
         ${this.options.showFilters ? `
@@ -177,6 +191,14 @@ export class VisualizationControls {
     this.setHoverInfo(null);
     this.setLayoutStatus('');
     this.updateSimilarityThresholdDisplay(this.similarityThreshold);
+    this.performanceAutoToggle = this.container.querySelector('#toggleAutoPerformance');
+    this.performanceModeToggle = this.container.querySelector('#toggleHighPerformance');
+    this.performanceStatusEl = this.container.querySelector('#performanceStatus');
+    if (this.graphViz && typeof this.graphViz.getPerformanceState === 'function') {
+      this.updatePerformanceControls(this.graphViz.getPerformanceState());
+    } else {
+      this.updatePerformanceControls();
+    }
   }
 
   /**
@@ -326,6 +348,23 @@ export class VisualizationControls {
       });
     }
 
+    const toggleAutoPerformance = this.container.querySelector('#toggleAutoPerformance');
+    if (toggleAutoPerformance) {
+      toggleAutoPerformance.addEventListener('change', (e) => {
+        if (!this.graphViz) return;
+        this.graphViz.setPerformanceAuto(e.target.checked);
+      });
+    }
+
+    const toggleHighPerformance = this.container.querySelector('#toggleHighPerformance');
+    if (toggleHighPerformance) {
+      toggleHighPerformance.addEventListener('change', (e) => {
+        if (!this.graphViz) return;
+        const mode = e.target.checked ? 'performance' : 'balanced';
+        this.graphViz.setPerformanceMode(mode, { reason: 'manual' });
+      });
+    }
+
     // Filters
     if (this.options.showFilters) {
       const btnApplyFilters = this.container.querySelector('#btnApplyFilters');
@@ -415,6 +454,33 @@ export class VisualizationControls {
         this.layoutStatusEl.textContent = '';
         this.layoutStatusTimer = null;
       }, timeout);
+    }
+  }
+
+  updatePerformanceControls(state = null) {
+    if (!state) {
+      state = { mode: 'balanced', auto: true };
+    }
+
+    if (this.performanceAutoToggle) {
+      this.performanceAutoToggle.checked = !!state.auto;
+    }
+
+    if (this.performanceModeToggle) {
+      this.performanceModeToggle.checked = state.mode === 'performance';
+      this.performanceModeToggle.disabled = !!state.auto;
+    }
+
+    if (this.performanceStatusEl) {
+      const modeLabel = state.mode === 'performance' ? 'High performance' : 'Balanced';
+      const autoLabel = state.auto ? 'auto' : 'manual';
+      let statusText = `${modeLabel} (${autoLabel})`;
+      if (Number.isFinite(state.lastSettleMs)) {
+        const seconds = state.lastSettleMs / 1000;
+        const formatted = seconds >= 10 ? seconds.toFixed(0) : seconds.toFixed(1);
+        statusText += ` · settled in ${formatted}s`;
+      }
+      this.performanceStatusEl.textContent = statusText;
     }
   }
 

@@ -70,6 +70,10 @@ export class GraphVisualization {
     this.layoutStorageProvider = null;
     this.lastRestoredLayoutHash = null;
     this.lastLayoutLoadResult = { status: 'idle' };
+    this.pendingAutoSaveTimer = null;
+    this.autoSaveOnStability = true;
+    this.autoSaveDebounceMs = 1500;
+    this.autoFreezeOnStability = true;
 
     this.palettes = {
       languages: {
@@ -96,6 +100,36 @@ export class GraphVisualization {
         unresolved: '#ef4444'
       }
     };
+
+    this.performance = {
+      mode: 'balanced',
+      auto: true,
+      lastReason: 'initial',
+      lastSettleMs: null,
+      runStart: null
+    };
+    this.performanceDirectionalParticles = true;
+    this.performanceAutoFreeze = true;
+    this.performancePresets = {
+      balanced: {
+        cooldownTicks: 140,
+        cooldownTime: 15000,
+        velocityDecay: 0.28,
+        chargeStrength: -130,
+        enableParticles: true,
+        autoFreeze: true
+      },
+      performance: {
+        cooldownTicks: 80,
+        cooldownTime: 9000,
+        velocityDecay: 0.42,
+        chargeStrength: -90,
+        enableParticles: false,
+        autoFreeze: true
+      }
+    };
+
+    this.onPerformanceChange = null;
   }
 
   getResolutionPalette() {
@@ -151,9 +185,14 @@ export class GraphVisualization {
       .showNavInfo(false)
       .cameraPosition({ x: 0, y: 0, z: 1000 });
 
+    if (typeof this.graph.onEngineStop === 'function') {
+      this.graph.onEngineStop(() => this.handleEngineStop());
+    }
+
     // Mount to container
     this.graph(this.container);
 
+    this.applyPerformancePreset(this.performance.mode);
     // Set initial camera
     this.resetCamera();
 
@@ -183,10 +222,13 @@ export class GraphVisualization {
     this.hoveredNodeId = null;
     this.setFadeTarget(this.baseLinkOpacity, true);
 
+    this.cancelPendingAutoSave();
+
     this.filteredLinks = this.filterLinks(normalizedLinks);
     this.buildAdjacencyMap(normalizedNodes, this.filteredLinks);
 
     this.applyGraphData();
+    this.evaluatePerformancePreset(true);
 
     return this;
   }
@@ -209,6 +251,151 @@ export class GraphVisualization {
 
   getLastLayoutLoadResult() {
     return this.lastLayoutLoadResult;
+  }
+
+  getPerformanceState() {
+    return {
+      mode: this.performance.mode,
+      auto: this.performance.auto,
+      lastReason: this.performance.lastReason,
+      lastSettleMs: this.performance.lastSettleMs,
+      directionalParticles: this.performanceDirectionalParticles,
+      autoFreeze: this.performanceAutoFreeze
+    };
+  }
+
+  setPerformanceMode(mode, { reason = 'manual', auto = null } = {}) {
+    if (!['balanced', 'performance'].includes(mode)) {
+      return;
+    }
+    if (auto !== null) {
+      this.performance.auto = !!auto;
+    } else if (reason === 'manual') {
+      this.performance.auto = false;
+    }
+    this.performance.lastReason = reason;
+    if (this.performance.mode !== mode || reason === 'manual') {
+      this.applyPerformancePreset(mode);
+    } else {
+      this.emitPerformanceState();
+    }
+  }
+
+  setPerformanceAuto(enabled) {
+    const next = !!enabled;
+    if (this.performance.auto === next) {
+      return;
+    }
+    this.performance.auto = next;
+    this.performance.lastReason = next ? 'auto' : 'manual';
+    if (next) {
+      this.evaluatePerformancePreset(true);
+    } else {
+      this.emitPerformanceState();
+    }
+  }
+
+  applyPerformancePreset(mode) {
+    const preset = this.performancePresets[mode];
+    if (!preset) {
+      return;
+    }
+
+    if (this.graph) {
+      if (typeof this.graph.cooldownTicks === 'function') {
+        this.graph.cooldownTicks(preset.cooldownTicks);
+      }
+      if (typeof this.graph.cooldownTime === 'function') {
+        this.graph.cooldownTime(preset.cooldownTime);
+      }
+      if (typeof this.graph.d3VelocityDecay === 'function') {
+        this.graph.d3VelocityDecay(preset.velocityDecay);
+      }
+      const chargeForce = this.graph.d3Force && this.graph.d3Force('charge');
+      if (chargeForce && typeof chargeForce.strength === 'function') {
+        chargeForce.strength(preset.chargeStrength);
+      }
+    }
+
+    this.performanceDirectionalParticles = preset.enableParticles !== false;
+    this.performanceAutoFreeze = preset.autoFreeze !== false;
+    this.performance.mode = mode;
+    this.emitPerformanceState();
+  }
+
+  evaluatePerformancePreset(force = false) {
+    if (!this.performance.auto) {
+      if (force) {
+        this.emitPerformanceState();
+      }
+      return;
+    }
+    const nodeCount = Array.isArray(this.data?.nodes) ? this.data.nodes.length : 0;
+    const linkCount = Array.isArray(this.data?.links) ? this.data.links.length : 0;
+    const heavy = nodeCount >= 250 || linkCount >= 700;
+    const moderate = nodeCount >= 150 || linkCount >= 500;
+    const desiredMode = heavy || moderate ? 'performance' : 'balanced';
+
+    if (this.performance.mode !== desiredMode) {
+      this.performance.lastReason = heavy ? 'node-count' : moderate ? 'graph-size' : 'auto';
+      this.applyPerformancePreset(desiredMode);
+    } else if (force) {
+      this.emitPerformanceState();
+    }
+  }
+
+  emitPerformanceState() {
+    if (typeof this.onPerformanceChange === 'function') {
+      this.onPerformanceChange(this.getPerformanceState());
+    }
+  }
+
+  cancelPendingAutoSave() {
+    if (this.pendingAutoSaveTimer) {
+      clearTimeout(this.pendingAutoSaveTimer);
+      this.pendingAutoSaveTimer = null;
+    }
+  }
+
+  scheduleAutoSave() {
+    if (!this.autoSaveOnStability) {
+      return;
+    }
+    if (!this.layoutStorageKey) {
+      return;
+    }
+    if (!Array.isArray(this.data?.nodes) || this.data.nodes.length === 0) {
+      return;
+    }
+    this.cancelPendingAutoSave();
+    this.pendingAutoSaveTimer = setTimeout(async () => {
+      this.pendingAutoSaveTimer = null;
+      try {
+        await this.saveLayoutToStorage();
+      } catch (err) {
+        console.warn('GraphVisualization.autoSave failed:', err);
+      }
+    }, this.autoSaveDebounceMs);
+  }
+
+  getNow() {
+    if (typeof performance !== 'undefined' && typeof performance.now === 'function') {
+      return performance.now();
+    }
+    return Date.now();
+  }
+
+  handleEngineStop() {
+    const now = this.getNow();
+    if (typeof this.performance.runStart === 'number') {
+      this.performance.lastSettleMs = Math.max(0, now - this.performance.runStart);
+      this.performance.runStart = null;
+    }
+    if (this.performanceAutoFreeze && this.autoFreezeOnStability) {
+      this.pauseSimulation(true);
+    }
+    this.scheduleAutoSave();
+    this.emitPerformanceState();
   }
 
   /**
@@ -741,6 +928,9 @@ export class GraphVisualization {
   getLinkParticles(link) {
     // Only show particles on call edges
     if (link.type === 'call') {
+      if (!this.performanceDirectionalParticles) {
+        return 0;
+      }
       if (link.resolutionStatus === 'unresolved') {
         return 0;
       }
@@ -1038,6 +1228,8 @@ export class GraphVisualization {
     if (this.onHoverDetails) {
       this.emitHoverDetails(this.hoveredNode);
     }
+
+    this.performance.runStart = this.getNow();
   }
 
   getNodeById(nodeId) {
@@ -1168,8 +1360,10 @@ export class GraphVisualization {
     if (this.graph) {
       if (pause) {
         this.graph.pauseAnimation();
+        this.performance.runStart = null;
       } else {
         this.graph.resumeAnimation();
+        this.performance.runStart = this.getNow();
       }
     }
   }
@@ -1552,6 +1746,7 @@ export class GraphVisualization {
    * Cleanup and dispose resources
    */
   dispose() {
+    this.cancelPendingAutoSave();
     if (this.graph) {
       // 3d-force-graph doesn't have explicit dispose, but we can clear data
       this.graph.graphData({ nodes: [], links: [] });
