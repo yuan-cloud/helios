@@ -10,10 +10,11 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script type="importmap">
     {
-      "imports": {
-        "web-tree-sitter": "https://cdn.jsdelivr.net/npm/web-tree-sitter@0.20.4/dist/tree-sitter.esm.min.js",
-        "3d-force-graph": "https://cdn.jsdelivr.net/npm/3d-force-graph@1.70.25/dist/3d-force-graph.es.min.js"
-      }
+        "imports": {
+          "web-tree-sitter": "https://cdn.jsdelivr.net/npm/web-tree-sitter@0.20.4/dist/tree-sitter.esm.min.js",
+          "3d-force-graph": "https://cdn.jsdelivr.net/npm/3d-force-graph@1.70.25/dist/3d-force-graph.es.min.js",
+          "@xenova/transformers": "https://cdn.jsdelivr.net/npm/@xenova/transformers@2.8.0/dist/transformers.esm.min.js"
+        }
     }
     </script>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/themes/prism-tomorrow.min.css">
@@ -622,6 +623,7 @@
         import { GraphVisualization } from './src/viz/graph-viz.js';
         import { InspectorPanel } from './src/viz/inspector.js';
         import { VisualizationControls } from './src/viz/controls.js';
+        import { EmbeddingManager } from './src/embeddings/embedding-manager.js';
 
         const starsContainer = document.getElementById('stars');
         const starCount = 120;
@@ -675,8 +677,27 @@
         let controls = null;
         let fullVizData = null;
         let functionMapById = new Map();
+        let embeddingManager = null;
+        let embeddingChunks = [];
+        let embeddingStats = null;
+        let embeddingVectors = [];
+        let embeddingMetadata = {
+            backend: null,
+            modelId: null,
+            dimension: null
+        };
+        let embeddingError = null;
 
         const symbolTableManager = new SymbolTableManager();
+
+        try {
+            embeddingManager = new EmbeddingManager();
+            window.heliosEmbeddingManager = embeddingManager;
+        } catch (err) {
+            console.warn('Embeddings unavailable in this environment:', err);
+            embeddingManager = null;
+            window.heliosEmbeddingManager = null;
+        }
 
         if (!window.showDirectoryPicker) {
             selectBtn.textContent = 'File System Access API not supported';
@@ -698,6 +719,19 @@
                 callGraph = null;
                 fullVizData = null;
                 functionMapById = new Map();
+                embeddingChunks = [];
+                embeddingStats = null;
+                embeddingVectors = [];
+                embeddingMetadata = {
+                    backend: null,
+                    modelId: null,
+                    dimension: null
+                };
+                embeddingError = null;
+                window.heliosEmbeddingChunks = [];
+                window.heliosEmbeddingStats = null;
+                window.heliosEmbeddings = null;
+                window.heliosEmbeddingError = null;
                 scannedFiles = 0;
                 totalFiles = 0;
                 fileList.innerHTML = '';
@@ -723,6 +757,63 @@
 
                 const stats = callGraph?.stats || { totalEdges: 0, staticEdges: 0, dynamicEdges: 0 };
 
+                if (embeddingManager) {
+                    try {
+                        const prepared = embeddingManager.prepareFunctionChunks(allFunctions);
+                        embeddingChunks = prepared.chunks;
+                        embeddingStats = prepared.stats;
+                        window.heliosEmbeddingChunks = embeddingChunks;
+                        window.heliosEmbeddingStats = embeddingStats;
+
+                        if (embeddingChunks.length > 0) {
+                            progressText.textContent = `Initializing embedding model (${embeddingChunks.length.toLocaleString()} chunk${embeddingChunks.length !== 1 ? 's' : ''})...`;
+                            const initInfo = await embeddingManager.initialize();
+                            embeddingMetadata = {
+                                backend: initInfo.backend || null,
+                                modelId: initInfo.modelId || embeddingMetadata.modelId,
+                                dimension: initInfo.dimension || embeddingMetadata.dimension
+                            };
+
+                            progressText.textContent = `Generating embeddings (${embeddingChunks.length.toLocaleString()} chunk${embeddingChunks.length !== 1 ? 's' : ''})...`;
+                            const embeddingResult = await embeddingManager.embedFunctions(allFunctions, {
+                                preparedChunks: prepared
+                            });
+
+                            embeddingVectors = embeddingResult.embeddings || [];
+                            embeddingMetadata = {
+                                backend: embeddingResult.backend || embeddingMetadata.backend,
+                                modelId: embeddingResult.modelId || embeddingMetadata.modelId,
+                                dimension: embeddingResult.dimension || embeddingMetadata.dimension
+                            };
+
+                            window.heliosEmbeddings = {
+                                chunks: embeddingResult.chunks || embeddingChunks,
+                                embeddings: embeddingVectors,
+                                metadata: embeddingMetadata,
+                                stats: embeddingResult.stats || embeddingStats
+                            };
+                            window.heliosEmbeddingError = null;
+                        } else {
+                            embeddingMetadata = {
+                                backend: null,
+                                modelId: embeddingManager?.modelId || null,
+                                dimension: null
+                            };
+                            window.heliosEmbeddings = {
+                                chunks: [],
+                                embeddings: [],
+                                metadata: embeddingMetadata,
+                                stats: embeddingStats
+                            };
+                            window.heliosEmbeddingError = null;
+                        }
+                    } catch (err) {
+                        embeddingError = err;
+                        window.heliosEmbeddingError = err;
+                        console.error('Embedding pipeline failed:', err);
+                    }
+                }
+
                 progressContainer.classList.add('hidden');
                 resultsContainer.classList.remove('hidden');
 
@@ -739,7 +830,16 @@
                 }
                 const resolutionSummary = resolutionDetails.length ? ` · ${resolutionDetails.join(' / ')}` : '';
 
-                functionsCounter.textContent = `${allFunctions.length} function${allFunctions.length !== 1 ? 's' : ''} extracted · ${stats.totalEdges} call edge${stats.totalEdges !== 1 ? 's' : ''} (${stats.staticEdges} static · ${stats.dynamicEdges} dynamic)${resolutionSummary}`;
+                let embeddingSummary = '';
+                if (embeddingManager && embeddingError) {
+                    embeddingSummary = ' · Embeddings failed';
+                } else if (embeddingChunks.length > 0) {
+                    const dim = embeddingMetadata.dimension ? `${embeddingMetadata.dimension}-dim` : 'unknown-dim';
+                    const backendLabel = embeddingMetadata.backend ? embeddingMetadata.backend.toUpperCase() : 'WASM';
+                    embeddingSummary = ` · ${embeddingChunks.length.toLocaleString()} embedding chunk${embeddingChunks.length !== 1 ? 's' : ''} (${dim}, ${backendLabel})`;
+                }
+
+                functionsCounter.textContent = `${allFunctions.length} function${allFunctions.length !== 1 ? 's' : ''} extracted · ${stats.totalEdges} call edge${stats.totalEdges !== 1 ? 's' : ''} (${stats.staticEdges} static · ${stats.dynamicEdges} dynamic)${resolutionSummary}${embeddingSummary}`;
 
                 displayResults();
 

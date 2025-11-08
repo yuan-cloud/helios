@@ -57,14 +57,14 @@ Everything runs from static hosting (GitHub/Cloudflare Pages). To enable threads
 
 ### 3.2 Language Detection and AST Parsing
 
-[PinkMountain - UPDATED - 2025-11-07 12:30]
+[PinkMountain - UPDATED - 2025-11-09 01:45]
 
-✅ Tree-sitter loaded
+✅ Tree-sitter loaded  
 ✅ JS/TS grammar loaded  
-✅ Python grammar loaded
-✅ Extraction queries complete
-⏳ Symbol table resolution (90% done)
-❌ Stack graphs integration (blocked: needs research)
+✅ Python grammar loaded  
+✅ Extraction queries complete  
+✅ Symbol table resolution (module-aware imports/exports complete)  
+❌ Stack graphs integration (blocked: upstream WASM research pending)
 
 - Load web-tree-sitter once; lazy-load grammars per file type. Ship grammar WASMs via CDN (e.g., `tree-sitter-python.wasm`, `tree-sitter-javascript.wasm`).
 - Use Tree-sitter query patterns to extract:
@@ -80,15 +80,15 @@ Tree-sitter's query DSL lets you capture these nodes robustly.
 
 ### 3.3 Call Graph Construction (Static, Best-Effort)
 
-[PinkMountain - UPDATED - 2025-11-09 00:30]
+[PinkMountain - UPDATED - 2025-11-09 01:45]
 
-✅ Static call graph extraction complete (caller→callee edges with call-site metadata)
-✅ Python grammar support added (functions/imports/calls now feed call graph + viz)
-✅ Symbol table implementation complete
-✅ Module resolution logic added
-⏳ Reviewing integration with visualization layer (coord with viz-agent on hover + layout plumbing, 80% done)
-✅ Regression in bcbff97 (edge toggles) reported; fix landed in 6213e89 after review
-⏳ Enhanced name resolution (stack-graphs integration) planned after MVP stabilizes
+✅ Static call graph extraction complete (caller→callee edges with call-site metadata)  
+✅ Python grammar support added (functions/imports/calls feed call graph + viz)  
+✅ Symbol table implementation complete  
+✅ Module resolution logic extended (import/export aware)  
+✅ Resolution metadata surfaced to visualization controls/inspector  
+⏳ Enhanced name resolution (stack-graphs integration) — 0% (planned post-MVP once research unblocks)  
+❌ Similarity edge layer alignment blocked: waiting on embeddings-agent outputs from §§3.4–3.5
 
 - For each `call_expression`, extract callee:
   - Identifiers → resolve via lexical scope + module import table.
@@ -100,6 +100,12 @@ Tree-sitter's query DSL lets you capture these nodes robustly.
 **Note**: Tree-sitter parses files; project-wide call graph needs extra indexing. That's intentional; we build that index here.
 
 ### 3.4 Function Chunking and Embeddings
+
+[BlueBear - UPDATED - 2025-11-09 01:25]
+
+✅ Chunking scaffolding (line-aware splits with source offsets)
+✅ Embedding worker inference (Transformers.js MiniLM via WebGPU/WASM)
+⏳ Vector persistence to SQLite (waiting on storage-agent schema wiring)
 
 - **Chunking**: Within each function, split by syntactic boundaries (statement blocks / loop bodies / logical sections) to keep chunks ~100–200 tokens. Maintain chunk offsets into the source so clicks can highlight text accurately.
 - **Model**: Start with a compact, general-purpose text/code embedding like MiniLM (384-dim) in ONNX via Transformers.js, loading from HF hub through the library's CDN resolver. Models cache in the browser (Cache API/IndexedDB) to avoid re-downloads. Provide a setting to force WebGPU backend when available; fall back to WASM.
