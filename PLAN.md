@@ -158,7 +158,7 @@ Tree-sitter's query DSL lets you capture these nodes robustly.
 ✅ Controls + inspector enhancements (hover sidebar, neighbor quick jumps, call inbound/outbound lists)
 ✅ Call-edge resolution styling (resolved/ambiguous/unresolved cues + inspector badges)
 ✅ Similarity edge layer (dashed styling, weight-aware opacity/width, threshold slider, hover/inspector surfacing)
-⏳ Layout persistence & performance tuning (80% done – OPFS snapshot save/restore wired to storage worker; perf profiling + tuning knobs pending)
+✅ Layout persistence & performance tuning (auto heuristics + perf toggles shipped; continued profiling as needed)
 ✅ Regression fix: call/sim edge toggles restored post hover refactor (`6213e89`)
 
 - Render with 3d-force-graph:
