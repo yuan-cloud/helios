@@ -202,7 +202,7 @@ All steps are cancellable and resumable; show clear privacy note ("Remains on yo
 
 ✅ SQLite-WASM bootstrap module with OPFS fallback scaffolded (`src/storage/sqlite.js`)
 ✅ Schema definition + metadata helpers added (`src/storage/schema.js`, `src/storage/migrations.js`)
-⏳ Worker-based execution + API surface for other agents
+✅ Worker-based execution + API surface for other agents (`src/storage/client.js`, `src/workers/storage-worker.js`)
 ⏳ Automated tests for migrations and persistence
 
 **Tables:**
