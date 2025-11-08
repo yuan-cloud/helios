@@ -53,6 +53,27 @@ export class GraphVisualization {
     this.fadeAnimationFrame = null;
 
     this.onHoverDetails = null;
+
+    this.palettes = {
+      languages: {
+        javascript: '#f59e0b',
+        typescript: '#3b82f6',
+        python: '#22d3ee',
+        default: '#a855f7'
+      },
+      communities: {
+        saturation: 72,
+        lightness: 58
+      },
+      edges: {
+        callStatic: '#60a5fa',
+        callDynamic: '#f97316',
+        similarity: '#c084fc'
+      },
+      neutrals: {
+        faded: '#94a3b8'
+      }
+    };
   }
 
   /**
@@ -79,11 +100,13 @@ export class GraphVisualization {
       .linkColor(link => this.getLinkColor(link))
       .linkWidth(link => this.getLinkWidth(link))
       .linkDirectionalParticles(link => this.getLinkParticles(link))
+      .linkDirectionalParticleColor(link => this.getLinkParticleColor(link))
       .linkDirectionalParticleSpeed(0.01)
       .linkDirectionalParticleWidth(3)
       .linkDirectionalArrowLength(6)
       .linkDirectionalArrowRelPos(1)
       .linkOpacity(link => this.getLinkDisplayOpacity(link))
+      .linkLineDash(link => this.getLinkDashArray(link))
       .nodeRelSize(6)
       .onNodeHover(node => this.handleNodeHover(node))
       .onNodeClick(node => this.handleNodeClick(node))
@@ -153,12 +176,15 @@ export class GraphVisualization {
       size: node.size || node.loc || 0,
       metrics: node.metrics || {},
       community: node.community,
-      centrality: node.centrality || 0,
+      centrality: typeof node.centrality === 'number' ? node.centrality : 0,
       doc: node.doc || '',
       x: node.x,
       y: node.y,
       z: node.z
     };
+
+    normalized.centralityScore = this.computeCentralityScore(normalized);
+    normalized.locSize = this.deriveLocSize(normalized);
 
     const baseColor = this.resolveBaseColor(normalized);
     normalized.baseColor = baseColor;
@@ -241,14 +267,8 @@ export class GraphVisualization {
       return this.getCommunityColor(node.community);
     }
 
-    const langColors = {
-      javascript: '#fbbf24',
-      typescript: '#3178c6',
-      python: '#3776ab',
-      default: '#8b5cf6'
-    };
-
-    return langColors[node?.lang] || langColors.default;
+    const langKey = (node?.lang || '').toLowerCase();
+    return this.palettes.languages[langKey] || this.palettes.languages.default;
   }
 
   /**
@@ -257,21 +277,118 @@ export class GraphVisualization {
   getCommunityColor(communityId) {
     // Simple hash function for consistent colors
     const hue = (communityId * 137.508) % 360;
-    return `hsl(${hue}, 70%, 60%)`;
+    return `hsl(${Math.round(hue)}, ${this.palettes.communities.saturation}%, ${this.palettes.communities.lightness}%)`;
+  }
+
+  computeCentralityScore(node) {
+    if (!node) return null;
+
+    const direct = typeof node.centrality === 'number' ? node.centrality : null;
+    if (direct !== null && Number.isFinite(direct)) {
+      return this.clamp(direct, 0, 1);
+    }
+
+    const metrics = node.metrics || {};
+    const candidates = ['pagerank', 'centrality', 'betweenness', 'degree'];
+
+    const values = candidates
+      .map(key => metrics[key])
+      .filter(value => typeof value === 'number' && Number.isFinite(value));
+
+    if (!values.length) {
+      return null;
+    }
+
+    const maxValue = Math.max(...values);
+    const minValue = Math.min(...values);
+
+    const normalized = this.scaleValue(
+      maxValue,
+      [minValue || 0, minValue === maxValue ? maxValue + 1 : maxValue],
+      [0, 1]
+    );
+
+    return this.clamp(normalized, 0, 1);
+  }
+
+  deriveLocSize(node) {
+    if (!node) return null;
+
+    const loc = typeof node.loc === 'number'
+      ? node.loc
+      : typeof node.size === 'number'
+        ? node.size
+        : null;
+
+    if (loc === null || !Number.isFinite(loc)) {
+      return null;
+    }
+
+    const scaled = Math.log10(Math.max(1, loc));
+    return this.clamp(scaled / 4, 0, 1);
+  }
+
+  scaleValue(value, [inMin, inMax], [outMin, outMax]) {
+    if (value === null || value === undefined || Number.isNaN(value)) {
+      return outMin;
+    }
+
+    const clampedInMax = inMax === inMin ? inMin + 1 : inMax;
+    const ratio = (value - inMin) / (clampedInMax - inMin);
+    const normalized = this.clamp(ratio, 0, 1);
+    return outMin + normalized * (outMax - outMin);
+  }
+
+  colorWithAlpha(hexColor, alpha = 1) {
+    const rgb = this.hexToRgb(hexColor);
+    if (!rgb) {
+      return `rgba(255, 255, 255, ${this.clamp(alpha, 0, 1)})`;
+    }
+    const clampedAlpha = this.clamp(alpha, 0, 1);
+    return `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${clampedAlpha})`;
+  }
+
+  hexToRgb(hexColor) {
+    if (typeof hexColor !== 'string') return null;
+    const sanitized = hexColor.replace('#', '');
+
+    if (![3, 6].includes(sanitized.length)) {
+      return null;
+    }
+
+    const expanded = sanitized.length === 3
+      ? sanitized.split('').map(ch => ch + ch).join('')
+      : sanitized;
+
+    const intVal = parseInt(expanded, 16);
+    if (Number.isNaN(intVal)) {
+      return null;
+    }
+
+    return {
+      r: (intVal >> 16) & 255,
+      g: (intVal >> 8) & 255,
+      b: intVal & 255
+    };
+  }
+
+  clamp(value, min, max) {
+    return Math.min(Math.max(value, min), max);
   }
 
   /**
    * Get node size (by centrality or default)
    */
   getNodeSize(node) {
-    let baseSize;
-    if (node.size !== undefined && node.size !== null) {
-      baseSize = Math.max(2, Math.min(20, node.size / 50));
-    } else if (node.centrality !== undefined) {
-      baseSize = Math.max(2, Math.min(20, node.centrality * 100));
-    } else {
-      baseSize = this.options.nodeSize;
-    }
+    const centralitySize = node.centralityScore !== null
+      ? this.scaleValue(node.centralityScore, [0, 1], [4, 16])
+      : null;
+
+    const locSize = node.locSize !== null
+      ? this.scaleValue(node.locSize, [0, 1], [3, 12])
+      : null;
+
+    const baseSize = centralitySize ?? locSize ?? this.options.nodeSize;
 
     if (!this.highlightNeighbors || !this.hoveredNodeId) {
       return baseSize;
@@ -307,23 +424,31 @@ export class GraphVisualization {
     if (link.type === 'call') {
       // Call edges: solid, color by type
       if (link.dynamic) {
-        return 'rgba(239, 68, 68, 0.6)'; // Red for dynamic
+        return this.colorWithAlpha(this.palettes.edges.callDynamic, 0.78);
       }
-      return 'rgba(99, 102, 241, 0.8)'; // Blue for static
+      return this.colorWithAlpha(this.palettes.edges.callStatic, 0.72);
     } else if (link.type === 'similarity') {
       // Similarity edges: dashed, desaturated
-      return 'rgba(139, 92, 246, 0.4)';
+      return this.colorWithAlpha(this.palettes.edges.similarity, 0.45);
     }
-    return 'rgba(255, 255, 255, 0.3)';
+    return this.colorWithAlpha('#ffffff', 0.3);
   }
 
   /**
    * Get link width
    */
   getLinkWidth(link) {
-    const baseWidth = link.type === 'similarity' ? 1 : 2;
-    const weight = link.weight || 1;
-    return baseWidth * Math.min(3, Math.max(0.5, weight));
+    const weight = Math.max(0, link.weight || link.sim || 1);
+
+    if (link.type === 'similarity') {
+      const scaled = this.scaleValue(weight, [0, 1], [0.4, 1.6]);
+      return Number(scaled.toFixed(2));
+    }
+
+    const logWeight = Math.log2(weight + 1);
+    const scaled = this.scaleValue(logWeight, [0, 4], [1.2, 4.5]);
+
+    return Number(scaled.toFixed(2));
   }
 
   getLinkDisplayOpacity(link) {
@@ -361,9 +486,30 @@ export class GraphVisualization {
   getLinkParticles(link) {
     // Only show particles on call edges
     if (link.type === 'call') {
-      return Math.min(5, Math.max(1, Math.floor(link.weight || 1)));
+      const weight = Math.max(1, link.weight || 1);
+      return Math.min(6, Math.max(link.dynamic ? 2 : 1, Math.floor(Math.log2(weight + 1)) + (link.dynamic ? 1 : 0)));
     }
     return 0;
+  }
+
+  getLinkParticleColor(link) {
+    if (link.type !== 'call') {
+      return this.colorWithAlpha(this.palettes.edges.similarity, 0.5);
+    }
+
+    const base = link.dynamic ? this.palettes.edges.callDynamic : this.palettes.edges.callStatic;
+    const alpha = link.dynamic ? 0.9 : 0.7;
+    return this.colorWithAlpha(base, alpha);
+  }
+
+  getLinkDashArray(link) {
+    if (link.type === 'similarity') {
+      return [2, 6];
+    }
+    if (link.dynamic) {
+      return [4, 6];
+    }
+    return null;
   }
 
   updateHoverState(node) {
