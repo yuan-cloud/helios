@@ -625,7 +625,14 @@
         import { VisualizationControls } from './src/viz/controls.js';
         import { EmbeddingManager } from './src/embeddings/embedding-manager.js';
         import { buildFunctionEmbeddings, computeSimilarityGraph } from './src/embeddings/similarity.js';
-        import { computeFunctionFingerprint, persistEmbeddingRun, tryLoadEmbeddingRun } from './src/embeddings/persistence.js';
+        import {
+            computeFunctionFingerprint,
+            computeFunctionFingerprintMap,
+            loadEmbeddingsForFunctions,
+            loadFunctionFingerprintMap,
+            persistEmbeddingRun,
+            tryLoadEmbeddingRun
+        } from './src/embeddings/persistence.js';
         import { StorageWorkerClient } from './src/storage/client.js';
         import {
             saveLayoutSnapshot,
@@ -698,6 +705,7 @@
         let embeddingError = null;
         let embeddingFingerprint = null;
         let usedCachedEmbeddings = false;
+        let embeddingReuseCounts = { reused: 0, embedded: 0 };
         let functionEmbeddings = [];
         let similarityEdges = [];
         let similarityStats = null;
@@ -711,6 +719,7 @@
         let storageClient = null;
         let storageReady = false;
         let storageClientInitPromise = null;
+        let latestFunctionFingerprintMap = null;
 
         const symbolTableManager = new SymbolTableManager();
 
@@ -752,9 +761,12 @@
                     dimension: null
                 };
                 embeddingError = null;
+                embeddingReuseCounts = { reused: 0, embedded: 0 };
+                latestFunctionFingerprintMap = null;
                 window.heliosEmbeddingChunks = [];
                 window.heliosEmbeddingStats = null;
                 window.heliosEmbeddings = null;
+                window.heliosEmbeddingReuse = null;
                 window.heliosEmbeddingError = null;
                 functionEmbeddings = [];
                 similarityEdges = [];
@@ -826,43 +838,144 @@
                                 dimension: persistedEmbeddingData.metadata?.dimension || null,
                                 quantized: persistedEmbeddingData.metadata?.quantized || false
                             };
+                            latestFunctionFingerprintMap = persistedEmbeddingData.functionFingerprints || null;
+                            embeddingReuseCounts = {
+                                reused: embeddingChunks.length,
+                                embedded: 0
+                            };
                             similarityEdges = persistedEmbeddingData.similarityEdges || [];
                             window.heliosEmbeddings = {
                                 chunks: embeddingChunks,
                                 embeddings: embeddingVectors,
                                 metadata: embeddingMetadata,
                                 stats: embeddingStats,
-                                cached: true
+                                cached: true,
+                                reuse: embeddingReuseCounts
                             };
                             window.heliosEmbeddingError = null;
+                            window.heliosEmbeddingReuse = embeddingReuseCounts;
                         } else if (embeddingChunks.length > 0) {
-                            progressText.textContent = `Initializing embedding model (${embeddingChunks.length.toLocaleString()} chunk${embeddingChunks.length !== 1 ? 's' : ''})...`;
-                            const initInfo = await embeddingManager.initialize();
-                            embeddingMetadata = {
-                                backend: initInfo.backend || null,
-                                modelId: initInfo.modelId || embeddingMetadata.modelId,
-                                dimension: initInfo.dimension || embeddingMetadata.dimension
-                            };
+                            const functionFingerprintMap = computeFunctionFingerprintMap(allFunctions);
+                            latestFunctionFingerprintMap = functionFingerprintMap;
 
-                            progressText.textContent = `Generating embeddings (${embeddingChunks.length.toLocaleString()} chunk${embeddingChunks.length !== 1 ? 's' : ''})...`;
-                            const embeddingResult = await embeddingManager.embedFunctions(allFunctions, {
-                                preparedChunks: prepared
+                            let storedFunctionFingerprints = {};
+                            try {
+                                storedFunctionFingerprints = await loadFunctionFingerprintMap();
+                            } catch (err) {
+                                console.warn('Failed to load stored function fingerprints:', err);
+                            }
+
+                            const unchangedFunctionIds = [];
+                            const changedFunctionIds = [];
+                            allFunctions.forEach(fn => {
+                                const currentFingerprint = functionFingerprintMap[fn.id];
+                                const storedFingerprint = storedFunctionFingerprints?.[fn.id];
+                                if (storedFingerprint && currentFingerprint === storedFingerprint) {
+                                    unchangedFunctionIds.push(fn.id);
+                                } else {
+                                    changedFunctionIds.push(fn.id);
+                                }
                             });
 
-                            embeddingVectors = embeddingResult.embeddings || [];
+                            let reuseEmbeddings = [];
+                            let reuseMetadata = null;
+                            let reuseMissingFunctions = [];
+
+                            if (unchangedFunctionIds.length > 0) {
+                                progressText.textContent = `Reusing cached embeddings (${unchangedFunctionIds.length.toLocaleString()} function${unchangedFunctionIds.length !== 1 ? 's' : ''})...`;
+                                try {
+                                    const reuseResult = await loadEmbeddingsForFunctions({
+                                        functions: allFunctions,
+                                        chunks: embeddingChunks,
+                                        targetFunctionIds: unchangedFunctionIds
+                                    });
+                                    reuseEmbeddings = reuseResult.embeddings || [];
+                                    reuseMetadata = reuseResult.metadata || null;
+                                    reuseMissingFunctions = reuseResult.missingFunctions || [];
+                                } catch (err) {
+                                    console.warn('Failed to reuse cached embeddings:', err);
+                                }
+                            }
+
+                            const changedIdSet = new Set([
+                                ...changedFunctionIds,
+                                ...reuseMissingFunctions
+                            ]);
+
+                            const functionsToEmbed = allFunctions.filter(fn => changedIdSet.has(fn.id));
+                            const chunksToEmbed = embeddingChunks.filter(chunk => changedIdSet.has(chunk.functionId));
+
+                            let embeddingResult = {
+                                chunks: chunksToEmbed,
+                                embeddings: [],
+                                backend: null,
+                                modelId: null,
+                                dimension: null,
+                                stats: null
+                            };
+
+                            if (functionsToEmbed.length > 0) {
+                                progressText.textContent = `Initializing embedding model (${chunksToEmbed.length.toLocaleString()} chunk${chunksToEmbed.length !== 1 ? 's' : ''})...`;
+                                const initInfo = await embeddingManager.initialize();
+                                embeddingMetadata = {
+                                    backend: initInfo.backend || embeddingMetadata.backend,
+                                    modelId: initInfo.modelId || embeddingMetadata.modelId,
+                                    dimension: initInfo.dimension || embeddingMetadata.dimension
+                                };
+
+                                const totalTokens = chunksToEmbed.reduce(
+                                    (sum, chunk) => sum + (chunk.tokenCount ?? 0),
+                                    0
+                                );
+                                const preparedSubset = {
+                                    chunks: chunksToEmbed,
+                                    stats: {
+                                        processedFunctions: functionsToEmbed.length,
+                                        chunkCount: chunksToEmbed.length,
+                                        totalTokens,
+                                        averageTokens: chunksToEmbed.length ? totalTokens / chunksToEmbed.length : 0,
+                                        averageChunksPerFunction: functionsToEmbed.length ? chunksToEmbed.length / functionsToEmbed.length : 0
+                                    }
+                                };
+
+                                progressText.textContent = `Generating embeddings (${chunksToEmbed.length.toLocaleString()} chunk${chunksToEmbed.length !== 1 ? 's' : ''})...`;
+                                embeddingResult = await embeddingManager.embedFunctions(functionsToEmbed, {
+                                    preparedChunks: preparedSubset
+                                });
+                            } else if (reuseMetadata) {
+                                embeddingMetadata = {
+                                    backend: reuseMetadata.backend ?? embeddingMetadata.backend,
+                                    modelId: reuseMetadata.modelId ?? embeddingMetadata.modelId,
+                                    dimension: reuseMetadata.dimension ?? embeddingMetadata.dimension
+                                };
+                            }
+
+                            embeddingVectors = [
+                                ...(reuseEmbeddings || []),
+                                ...(embeddingResult.embeddings || [])
+                            ];
+
                             embeddingMetadata = {
-                                backend: embeddingResult.backend || embeddingMetadata.backend,
-                                modelId: embeddingResult.modelId || embeddingMetadata.modelId,
-                                dimension: embeddingResult.dimension || embeddingMetadata.dimension
+                                backend: embeddingResult.backend || embeddingMetadata.backend || reuseMetadata?.backend || null,
+                                modelId: embeddingResult.modelId || embeddingMetadata.modelId || reuseMetadata?.modelId || null,
+                                dimension: embeddingResult.dimension || embeddingMetadata.dimension || reuseMetadata?.dimension || null
+                            };
+
+                            embeddingReuseCounts = {
+                                reused: reuseEmbeddings.length,
+                                embedded: embeddingResult.embeddings?.length || 0
                             };
 
                             window.heliosEmbeddings = {
-                                chunks: embeddingResult.chunks || embeddingChunks,
+                                chunks: embeddingChunks,
                                 embeddings: embeddingVectors,
                                 metadata: embeddingMetadata,
-                                stats: embeddingResult.stats || embeddingStats
+                                stats: embeddingStats,
+                                reuse: embeddingReuseCounts,
+                                partial: true
                             };
                             window.heliosEmbeddingError = null;
+                            window.heliosEmbeddingReuse = embeddingReuseCounts;
                         } else {
                             embeddingMetadata = {
                                 backend: null,
@@ -873,9 +986,11 @@
                                 chunks: [],
                                 embeddings: [],
                                 metadata: embeddingMetadata,
-                                stats: embeddingStats
+                                stats: embeddingStats,
+                                reuse: embeddingReuseCounts
                             };
                             window.heliosEmbeddingError = null;
+                            window.heliosEmbeddingReuse = embeddingReuseCounts;
                         }
                     } catch (err) {
                         embeddingError = err;
@@ -937,7 +1052,17 @@
                 } else if (embeddingChunks.length > 0) {
                     const dim = embeddingMetadata.dimension ? `${embeddingMetadata.dimension}-dim` : 'unknown-dim';
                     const backendLabel = embeddingMetadata.backend ? embeddingMetadata.backend.toUpperCase() : 'WASM';
-                    embeddingSummary = ` · ${embeddingChunks.length.toLocaleString()} embedding chunk${embeddingChunks.length !== 1 ? 's' : ''} (${dim}, ${backendLabel}${usedCachedEmbeddings ? ', cached' : ''})`;
+                    let reuseLabel = '';
+                    if (usedCachedEmbeddings) {
+                        reuseLabel = ', cached';
+                    } else if (embeddingReuseCounts.reused > 0) {
+                        const reusedLabel = `${embeddingReuseCounts.reused.toLocaleString()} reused`;
+                        const embeddedLabel = embeddingReuseCounts.embedded > 0
+                            ? ` / ${embeddingReuseCounts.embedded.toLocaleString()} new`
+                            : '';
+                        reuseLabel = `, ${reusedLabel}${embeddedLabel}`;
+                    }
+                    embeddingSummary = ` · ${embeddingChunks.length.toLocaleString()} embedding chunk${embeddingChunks.length !== 1 ? 's' : ''} (${dim}, ${backendLabel}${reuseLabel})`;
                 }
 
                 let similaritySummary = '';
@@ -962,6 +1087,8 @@
                                 quantized: embeddingManager?.quantized ?? true
                             },
                             fingerprint: embeddingFingerprint || ''
+                        }, {
+                            functionFingerprints: latestFunctionFingerprintMap
                         });
                     } catch (err) {
                         console.warn('Failed to persist embedding results:', err);
