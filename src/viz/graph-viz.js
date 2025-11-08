@@ -54,6 +54,16 @@ export class GraphVisualization {
 
     this.onHoverDetails = null;
 
+    this.similarityStats = {
+      count: 0,
+      min: null,
+      max: null
+    };
+    this.similarityOptions = {
+      minWeight: 0
+    };
+    this.onSimilarityStatsChange = null;
+
     // Layout persistence metadata
     this.layoutStorageKey = 'helios:layout:last';
     this.lastRestoredLayoutHash = null;
@@ -164,19 +174,14 @@ export class GraphVisualization {
       links: normalizedLinks
     };
 
-    this.buildAdjacencyMap(normalizedNodes, normalizedLinks);
+    this.updateSimilarityStats(normalizedLinks);
     this.hoveredNode = null;
     this.hoveredNeighbors = new Set();
     this.hoveredNodeId = null;
     this.setFadeTarget(this.baseLinkOpacity, true);
 
-    const visibleLinks = normalizedLinks.filter(link => {
-      if (link.type === 'call' && !this.options.showCallEdges) return false;
-      if (link.type === 'similarity' && !this.options.showSimilarityEdges) return false;
-      return true;
-    });
-
-    this.filteredLinks = visibleLinks;
+    this.filteredLinks = this.filterLinks(normalizedLinks);
+    this.buildAdjacencyMap(normalizedNodes, this.filteredLinks);
 
     this.applyGraphData();
 
@@ -229,24 +234,181 @@ export class GraphVisualization {
     const sourceId = this.getLinkNodeId(link, 'source');
     const targetId = this.getLinkNodeId(link, 'target');
     const metadata = link.metadata || {};
-    const resolution = link.resolution || metadata.resolution || null;
-    const resolutionStatus = link.resolutionStatus || resolution?.status || 'resolved';
+    const type = link.type || metadata.type || 'call';
 
-    return {
+    const similarity =
+      typeof link.similarity === 'number'
+        ? link.similarity
+        : typeof metadata.similarity === 'number'
+          ? metadata.similarity
+          : null;
+
+    const normalized = {
       ...link,
       source: sourceId,
       target: targetId,
       sourceId,
       targetId,
-      type: link.type || 'call',
-      weight: link.weight || link.sim || 1,
+      type,
+      weight: typeof link.weight === 'number' ? link.weight : typeof link.sim === 'number' ? link.sim : similarity ?? 1,
       dynamic: link.dynamic || false,
-      resolution,
-      resolutionStatus,
-      resolutionReason: link.resolutionReason || resolution?.reason || '',
-      importInfo: link.importInfo || resolution?.importInfo || null,
+      similarity,
+      method: link.method || metadata.method || null,
+      topPairs: link.topPairs || metadata.topPairs || [],
       metadata
     };
+
+    if (normalized.type === 'call') {
+      const resolution = link.resolution || metadata.resolution || null;
+      const resolutionStatus = link.resolutionStatus || resolution?.status || 'resolved';
+      normalized.resolution = resolution;
+      normalized.resolutionStatus = resolutionStatus;
+      normalized.resolutionReason = link.resolutionReason || resolution?.reason || '';
+      normalized.importInfo = link.importInfo || resolution?.importInfo || null;
+    } else {
+      normalized.resolution = null;
+      normalized.resolutionStatus = null;
+      normalized.resolutionReason = '';
+      normalized.importInfo = null;
+    }
+
+    return normalized;
+  }
+
+  filterLinks(links = []) {
+    return links.filter(link => {
+      if (link.type === 'call') {
+        if (!this.options.showCallEdges) {
+          return false;
+        }
+        return true;
+      }
+      if (link.type === 'similarity') {
+        if (!this.options.showSimilarityEdges) {
+          return false;
+        }
+        if (this.similarityStats.count > 0) {
+          const weight = this.getSimilarityWeight(link);
+          if (!Number.isFinite(weight) || weight < this.similarityOptions.minWeight) {
+            return false;
+          }
+        }
+        return true;
+      }
+      return true;
+    });
+  }
+
+  updateSimilarityStats(links = []) {
+    const similarityLinks = links.filter(link => link.type === 'similarity');
+    const previousThreshold = Number.isFinite(this.similarityOptions.minWeight)
+      ? this.similarityOptions.minWeight
+      : 0;
+
+    if (similarityLinks.length === 0) {
+      this.similarityStats = { count: 0, min: null, max: null };
+      this.similarityOptions.minWeight = 0;
+      if (typeof this.onSimilarityStatsChange === 'function') {
+        this.onSimilarityStatsChange({ ...this.similarityStats }, { minWeight: this.similarityOptions.minWeight });
+      }
+      return;
+    }
+
+    let min = Number.POSITIVE_INFINITY;
+    let max = Number.NEGATIVE_INFINITY;
+
+    similarityLinks.forEach(link => {
+      const weight = this.getSimilarityWeight(link);
+      if (!Number.isFinite(weight)) {
+        return;
+      }
+      if (weight < min) min = weight;
+      if (weight > max) max = weight;
+    });
+
+    if (!Number.isFinite(min)) {
+      min = 0;
+    }
+    if (!Number.isFinite(max)) {
+      max = min === 0 ? 1 : min;
+    }
+
+    this.similarityStats = {
+      count: similarityLinks.length,
+      min,
+      max
+    };
+
+    let nextThreshold = previousThreshold;
+    if (!Number.isFinite(nextThreshold) || nextThreshold < min || nextThreshold > max) {
+      nextThreshold = min;
+    }
+    this.similarityOptions.minWeight = this.clamp(nextThreshold, min, max);
+
+    if (typeof this.onSimilarityStatsChange === 'function') {
+      this.onSimilarityStatsChange({ ...this.similarityStats }, { minWeight: this.similarityOptions.minWeight });
+    }
+  }
+
+  setSimilarityThreshold(value) {
+    if (!this.similarityStats.count) {
+      this.similarityOptions.minWeight = 0;
+      return;
+    }
+    const min = this.similarityStats.min ?? 0;
+    const max = this.similarityStats.max ?? min;
+    let next = Number.isFinite(value) ? value : min;
+    next = this.clamp(next, min, max);
+    if (this.similarityOptions.minWeight === next) {
+      return;
+    }
+    this.similarityOptions.minWeight = next;
+    this.filteredLinks = this.filterLinks(this.data?.links || []);
+    this.buildAdjacencyMap(this.data?.nodes || [], this.filteredLinks);
+    this.applyGraphData();
+    if (typeof this.onSimilarityStatsChange === 'function') {
+      this.onSimilarityStatsChange({ ...this.similarityStats }, { minWeight: this.similarityOptions.minWeight });
+    }
+  }
+
+  getSimilarityWeight(link) {
+    if (!link) {
+      return 0;
+    }
+    if (typeof link.similarity === 'number') {
+      return link.similarity;
+    }
+    if (typeof link.representativeSimilarity === 'number') {
+      return link.representativeSimilarity;
+    }
+    if (typeof link.weight === 'number') {
+      return link.weight;
+    }
+    const similarityMeta = link.metadata && link.metadata.similarity;
+    if (typeof similarityMeta === 'number') {
+      return similarityMeta;
+    }
+    return 0;
+  }
+
+  normalizeSimilarityWeight(weight) {
+    if (!Number.isFinite(weight)) {
+      return 0;
+    }
+    const { min, max } = this.similarityStats;
+    if (!Number.isFinite(min) || !Number.isFinite(max) || min === max) {
+      return weight;
+    }
+    return (weight - min) / (max - min);
+  }
+
+  getSimilarityOpacity(weight) {
+    if (!this.similarityStats.count) {
+      return this.baseLinkOpacity;
+    }
+    const normalized = this.normalizeSimilarityWeight(weight);
+    const alpha = this.scaleValue(normalized, [0, 1], [0.25, 0.85]);
+    return this.clamp(alpha, 0.05, 1);
   }
 
   /**
@@ -486,8 +648,9 @@ export class GraphVisualization {
       }
       return this.colorWithAlpha(this.palettes.edges.callStatic, 0.72);
     } else if (link.type === 'similarity') {
-      // Similarity edges: dashed, desaturated
-      return this.colorWithAlpha(this.palettes.edges.similarity, 0.45);
+      const weight = this.getSimilarityWeight(link);
+      const alpha = this.getSimilarityOpacity(weight);
+      return this.colorWithAlpha(this.palettes.edges.similarity, alpha);
     }
     return this.colorWithAlpha('#ffffff', 0.3);
   }
@@ -499,8 +662,16 @@ export class GraphVisualization {
     const weight = Math.max(0, link.weight || link.sim || 1);
 
     if (link.type === 'similarity') {
-      const scaled = this.scaleValue(weight, [0, 1], [0.4, 1.6]);
-      return Number(scaled.toFixed(2));
+      const similarityWeight = this.getSimilarityWeight(link);
+      if (this.similarityStats.count) {
+        const min = this.similarityStats.min ?? 0;
+        const max = this.similarityStats.max ?? (min === 0 ? 1 : min + 1);
+        const denom = max === min ? max + 1 : max;
+        const scaled = this.scaleValue(similarityWeight, [min, denom], [0.4, 2.4]);
+        return Number(this.clamp(scaled, 0.2, 3).toFixed(2));
+      }
+      const scaled = this.scaleValue(similarityWeight, [0, 1], [0.4, 1.6]);
+      return Number(this.clamp(scaled, 0.2, 2).toFixed(2));
     }
 
     const logWeight = Math.log2(weight + 1);
@@ -511,6 +682,10 @@ export class GraphVisualization {
 
   getLinkDisplayOpacity(link) {
     if (!this.highlightNeighbors || !this.hoveredNodeId) {
+      if (link.type === 'similarity') {
+        const weight = this.getSimilarityWeight(link);
+        return this.getSimilarityOpacity(weight);
+      }
       return this.baseLinkOpacity;
     }
 
@@ -521,6 +696,11 @@ export class GraphVisualization {
     }
 
     const isNeighbor = sourceId === this.hoveredNodeId || targetId === this.hoveredNodeId;
+    if (link.type === 'similarity') {
+      const weight = this.getSimilarityWeight(link);
+      const alpha = this.getSimilarityOpacity(weight);
+      return isNeighbor ? alpha : Math.min(alpha, this.currentNonNeighborOpacity);
+    }
     return isNeighbor ? 1 : this.currentNonNeighborOpacity;
   }
 
@@ -559,7 +739,9 @@ export class GraphVisualization {
   getLinkParticleColor(link) {
     const resolutionPalette = this.getResolutionPalette();
     if (link.type !== 'call') {
-      return this.colorWithAlpha(this.palettes.edges.similarity, 0.5);
+      const weight = this.getSimilarityWeight(link);
+      const alpha = Math.max(0.25, this.getSimilarityOpacity(weight));
+      return this.colorWithAlpha(this.palettes.edges.similarity, alpha);
     }
 
     if (link.resolutionStatus === 'unresolved') {
@@ -640,8 +822,13 @@ export class GraphVisualization {
     let resolvedEdges = 0;
     let ambiguousEdges = 0;
     let unresolvedEdges = 0;
+    const similarityList = [];
 
-    (this.data?.links || []).forEach(link => {
+    const activeLinks = this.filteredLinks && this.filteredLinks.length
+      ? this.filteredLinks
+      : this.data?.links || [];
+
+    activeLinks.forEach(link => {
       const sourceId = this.getLinkNodeId(link, 'source');
       const targetId = this.getLinkNodeId(link, 'target');
       if (sourceId !== node.id && targetId !== node.id) {
@@ -660,8 +847,19 @@ export class GraphVisualization {
         }
       } else if (link.type === 'similarity') {
         similarityEdges += 1;
+        const neighborId = sourceId === node.id ? targetId : sourceId;
+        const neighborNode = this.getNodeById(neighborId);
+        similarityList.push({
+          nodeId: neighborId,
+          node: neighborNode,
+          weight: this.getSimilarityWeight(link),
+          method: link.method || (link.metadata && link.metadata.method) || 'similarity',
+          topPairs: link.topPairs || link.metadata?.topPairs || []
+        });
       }
     });
+
+    similarityList.sort((a, b) => (b.weight || 0) - (a.weight || 0));
 
     this.onHoverDetails({
       node,
@@ -672,10 +870,12 @@ export class GraphVisualization {
         filePath: n.filePath,
         lang: n.lang
       })),
+      similarity: similarityList.slice(0, 8),
       stats: {
         callOutgoing,
         callIncoming,
         similarityEdges,
+        topSimilarity: similarityList.slice(0, 3),
         resolution: {
           resolved: resolvedEdges,
           ambiguous: ambiguousEdges,
@@ -833,21 +1033,24 @@ export class GraphVisualization {
   getEdgeSummary(nodeId) {
     const summary = {
       outbound: [],
-      inbound: []
+      inbound: [],
+      similarity: []
     };
 
     if (!nodeId || !this.data) {
       return summary;
     }
 
-    const links = this.data.links || [];
+    const links = (this.filteredLinks && this.filteredLinks.length)
+      ? this.filteredLinks
+      : this.data.links || [];
 
     links.forEach(link => {
       const sourceId = this.getLinkNodeId(link, 'source');
       const targetId = this.getLinkNodeId(link, 'target');
       if (sourceId === nodeId) {
         const targetNode = this.getNodeById(targetId);
-        summary.outbound.push({
+        const edgeEntry = {
           nodeId: targetId,
           node: targetNode,
           weight: link.weight || 1,
@@ -857,10 +1060,20 @@ export class GraphVisualization {
           resolutionReason: link.resolutionReason || (link.resolution && link.resolution.reason) || '',
           resolution: link.resolution || null,
           importInfo: link.importInfo || null
-        });
+        };
+        if (link.type === 'similarity') {
+          summary.similarity.push({
+            ...edgeEntry,
+            weight: this.getSimilarityWeight(link),
+            method: link.method || link.metadata?.method || 'similarity',
+            topPairs: link.topPairs || link.metadata?.topPairs || []
+          });
+        } else {
+          summary.outbound.push(edgeEntry);
+        }
       } else if (targetId === nodeId) {
         const sourceNode = this.getNodeById(sourceId);
-        summary.inbound.push({
+        const edgeEntry = {
           nodeId: sourceId,
           node: sourceNode,
           weight: link.weight || 1,
@@ -870,9 +1083,21 @@ export class GraphVisualization {
           resolutionReason: link.resolutionReason || (link.resolution && link.resolution.reason) || '',
           resolution: link.resolution || null,
           importInfo: link.importInfo || null
-        });
+        };
+        if (link.type === 'similarity') {
+          summary.similarity.push({
+            ...edgeEntry,
+            weight: this.getSimilarityWeight(link),
+            method: link.method || link.metadata?.method || 'similarity',
+            topPairs: link.topPairs || link.metadata?.topPairs || []
+          });
+        } else {
+          summary.inbound.push(edgeEntry);
+        }
       }
     });
+
+    summary.similarity.sort((a, b) => (b.weight || 0) - (a.weight || 0));
 
     return summary;
   }
@@ -884,12 +1109,8 @@ export class GraphVisualization {
     this.options.showSimilarityEdges = show;
     if (!this.data) return;
 
-    this.filteredLinks = (this.data.links || []).filter(link => {
-      if (link.type === 'call' && !this.options.showCallEdges) return false;
-      if (link.type === 'similarity' && !this.options.showSimilarityEdges) return false;
-      return true;
-    });
-
+    this.filteredLinks = this.filterLinks(this.data.links || []);
+    this.buildAdjacencyMap(this.data.nodes || [], this.filteredLinks);
     this.applyGraphData();
   }
 
@@ -900,12 +1121,8 @@ export class GraphVisualization {
     this.options.showCallEdges = show;
     if (!this.data) return;
 
-    this.filteredLinks = (this.data.links || []).filter(link => {
-      if (link.type === 'call' && !this.options.showCallEdges) return false;
-      if (link.type === 'similarity' && !this.options.showSimilarityEdges) return false;
-      return true;
-    });
-
+    this.filteredLinks = this.filterLinks(this.data.links || []);
+    this.buildAdjacencyMap(this.data.nodes || [], this.filteredLinks);
     this.applyGraphData();
   }
 

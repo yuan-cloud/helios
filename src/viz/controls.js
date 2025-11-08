@@ -26,8 +26,16 @@ export class VisualizationControls {
     };
 
     this.layoutStatusTimer = null;
+    this.similarityStats = null;
+    this.similarityThreshold = 0;
     
     this.init();
+
+    if (this.graphViz) {
+      this.graphViz.onSimilarityStatsChange = (stats = {}, options = {}) => {
+        this.updateSimilarityControls(stats, options);
+      };
+    }
   }
 
   /**
@@ -56,6 +64,10 @@ export class VisualizationControls {
             <span class="hover-info-badge" id="hoverUnresolvedEdges">0 unresolved</span>
           </div>
           <div class="hover-info-neighbors" id="hoverNeighborList"></div>
+          <div class="hover-similarity-section hidden" id="hoverSimilaritySection">
+            <div class="hover-similarity-title">Top Similar Functions</div>
+            <div class="hover-info-neighbors" id="hoverSimilarityList"></div>
+          </div>
         </div>
 
         <div class="controls-section">
@@ -72,6 +84,11 @@ export class VisualizationControls {
             <input type="checkbox" id="toggleHighlightNeighbors" checked>
             <span>Highlight Neighborhood</span>
           </label>
+          <div class="control-filter" id="similarityThresholdContainer">
+            <label for="similarityThreshold">Min Similarity:</label>
+            <input type="range" id="similarityThreshold" min="0" max="1" step="0.01" value="0">
+            <div class="control-hint" id="similarityThresholdValue">≥ 0.00</div>
+          </div>
         </div>
         
         <div class="controls-section">
@@ -139,9 +156,27 @@ export class VisualizationControls {
     this.hoverAmbiguousEdges = this.container.querySelector('#hoverAmbiguousEdges');
     this.hoverUnresolvedEdges = this.container.querySelector('#hoverUnresolvedEdges');
     this.layoutStatusEl = this.container.querySelector('#layoutStatus');
+    this.hoverSimilaritySection = this.container.querySelector('#hoverSimilaritySection');
+    this.hoverSimilarityList = this.container.querySelector('#hoverSimilarityList');
+    this.similarityThresholdInput = this.container.querySelector('#similarityThreshold');
+    this.similarityThresholdValue = this.container.querySelector('#similarityThresholdValue');
+    if (this.similarityThresholdInput) {
+      this.similarityThresholdInput.disabled = true;
+    }
+    if (this.hoverSimilaritySection) {
+      this.hoverSimilaritySection.style.marginTop = '0.75rem';
+    }
+    const similarityTitle = this.hoverSimilaritySection?.querySelector('.hover-similarity-title');
+    if (similarityTitle) {
+      similarityTitle.style.color = '#c7d2fe';
+      similarityTitle.style.fontSize = '0.78rem';
+      similarityTitle.style.fontWeight = '600';
+      similarityTitle.style.marginBottom = '0.35rem';
+    }
 
     this.setHoverInfo(null);
     this.setLayoutStatus('');
+    this.updateSimilarityThresholdDisplay(this.similarityThreshold);
   }
 
   /**
@@ -321,6 +356,14 @@ export class VisualizationControls {
         });
       }
     }
+
+    if (this.similarityThresholdInput) {
+      const handler = (event) => {
+        this.handleSimilarityThresholdChange(event.target.value);
+      };
+      this.similarityThresholdInput.addEventListener('input', handler);
+      this.similarityThresholdInput.addEventListener('change', handler);
+    }
   }
 
   setLayoutStatus(message, { tone = 'info', timeout = 3000 } = {}) {
@@ -349,6 +392,71 @@ export class VisualizationControls {
         this.layoutStatusTimer = null;
       }, timeout);
     }
+  }
+
+  updateSimilarityControls(stats = {}, options = {}) {
+    this.similarityStats = stats;
+    if (!this.similarityThresholdInput || !this.similarityThresholdValue) {
+      return;
+    }
+
+    if (!stats || !stats.count) {
+      this.similarityThresholdInput.disabled = true;
+      this.similarityThresholdInput.value = 0;
+      this.updateSimilarityThresholdDisplay(0, true);
+      return;
+    }
+
+    const min = Number.isFinite(stats.min) ? stats.min : 0;
+    const max = Number.isFinite(stats.max) ? stats.max : (min === 0 ? 1 : min);
+    const range = Math.max(max - min, 0.0001);
+    const step = Math.max(range / 100, 0.0001);
+    const hasRange = max > min + 1e-6;
+
+    this.similarityThresholdInput.disabled = !hasRange;
+    this.similarityThresholdInput.min = min.toFixed(3);
+    this.similarityThresholdInput.max = max.toFixed(3);
+    this.similarityThresholdInput.step = step.toFixed(3);
+
+    const provided = Number.isFinite(options?.minWeight) ? options.minWeight : min;
+    this.similarityThreshold = this.clampThreshold(provided, min, max);
+    this.similarityThresholdInput.value = this.similarityThreshold;
+    this.updateSimilarityThresholdDisplay(this.similarityThreshold);
+  }
+
+  handleSimilarityThresholdChange(rawValue) {
+    if (!this.similarityThresholdInput || !this.graphViz) {
+      return;
+    }
+    const stats = this.similarityStats || {};
+    const min = Number.isFinite(stats.min) ? stats.min : Number.parseFloat(this.similarityThresholdInput.min) || 0;
+    const max = Number.isFinite(stats.max) ? stats.max : Number.parseFloat(this.similarityThresholdInput.max) || 1;
+    let numericValue = Number.parseFloat(rawValue);
+    if (!Number.isFinite(numericValue)) {
+      numericValue = min;
+    }
+    numericValue = this.clampThreshold(numericValue, min, max);
+    this.similarityThreshold = numericValue;
+    this.similarityThresholdInput.value = this.similarityThreshold;
+    this.updateSimilarityThresholdDisplay(numericValue);
+    if (typeof this.graphViz.setSimilarityThreshold === 'function') {
+      this.graphViz.setSimilarityThreshold(numericValue);
+    }
+  }
+
+  updateSimilarityThresholdDisplay(value, noData = false) {
+    if (!this.similarityThresholdValue) {
+      return;
+    }
+    if (noData) {
+      this.similarityThresholdValue.textContent = 'No similarity edges';
+      return;
+    }
+    this.similarityThresholdValue.textContent = `≥ ${value.toFixed(2)}`;
+  }
+
+  clampThreshold(value, min, max) {
+    return Math.min(Math.max(value, min), max);
   }
 
   /**
@@ -462,6 +570,12 @@ export class VisualizationControls {
       if (this.hoverNeighborList) {
         this.hoverNeighborList.innerHTML = '';
       }
+      if (this.hoverSimilarityList) {
+        this.hoverSimilarityList.innerHTML = '';
+      }
+      if (this.hoverSimilaritySection) {
+        this.hoverSimilaritySection.classList.add('hidden');
+      }
       if (this.hoverInfoName) this.hoverInfoName.textContent = 'No node hovered';
       if (this.hoverInfoPath) this.hoverInfoPath.textContent = '';
       if (this.hoverNeighborCount) this.hoverNeighborCount.textContent = '0 neighbors';
@@ -474,7 +588,7 @@ export class VisualizationControls {
       return;
     }
 
-    const { node, neighborCount = 0, neighbors = [], stats = {} } = info;
+    const { node, neighborCount = 0, neighbors = [], stats = {}, similarity = [] } = info;
     const resolutionStats = stats.resolution || {};
 
     this.hoverInfoSection.classList.remove('hidden');
@@ -538,6 +652,38 @@ export class VisualizationControls {
           more.className = 'hover-neighbor-more';
           more.textContent = `+${neighborCount - neighbors.length} more`;
           this.hoverNeighborList.appendChild(more);
+        }
+      }
+    }
+
+    if (this.hoverSimilarityList && this.hoverSimilaritySection) {
+      const similarityEntries = Array.isArray(similarity) ? similarity : [];
+      this.hoverSimilarityList.innerHTML = '';
+      if (similarityEntries.length === 0) {
+        this.hoverSimilaritySection.classList.add('hidden');
+      } else {
+        this.hoverSimilaritySection.classList.remove('hidden');
+        const maxItems = 5;
+        similarityEntries.slice(0, maxItems).forEach(entry => {
+          const button = document.createElement('button');
+          button.type = 'button';
+          button.className = 'hover-neighbor-btn';
+          const label = entry.node?.fqName || entry.node?.name || entry.nodeId || '(unknown)';
+          const weight = Number.isFinite(entry.weight) ? entry.weight : 0;
+          button.textContent = `${label} (${weight.toFixed(2)})`;
+          button.title = entry.node?.filePath || entry.nodeId || label;
+          button.addEventListener('click', () => {
+            if (this.graphViz && typeof this.graphViz.focusNodeById === 'function') {
+              this.graphViz.focusNodeById(entry.nodeId);
+            }
+          });
+          this.hoverSimilarityList.appendChild(button);
+        });
+        if (similarityEntries.length > maxItems) {
+          const more = document.createElement('div');
+          more.className = 'hover-neighbor-more';
+          more.textContent = `+${similarityEntries.length - maxItems} more`;
+          this.hoverSimilarityList.appendChild(more);
         }
       }
     }

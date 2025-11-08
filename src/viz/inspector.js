@@ -49,6 +49,10 @@ export class InspectorPanel {
               <div class="inspector-edges-title">Incoming Calls</div>
               <div class="inspector-edge-list" id="inspectorEdgeIn"></div>
             </div>
+            <div class="inspector-edges-section">
+              <div class="inspector-edges-title">Similar Functions</div>
+              <div class="inspector-edge-list" id="inspectorEdgeSimilarity"></div>
+            </div>
           </div>
           <div class="inspector-code-container">
             <pre class="inspector-code" id="inspectorCode"><code></code></pre>
@@ -62,6 +66,7 @@ export class InspectorPanel {
     this.edgesContainer = this.container.querySelector('#inspectorEdges');
     this.edgeOutList = this.container.querySelector('#inspectorEdgeOut');
     this.edgeInList = this.container.querySelector('#inspectorEdgeIn');
+    this.edgeSimilarityList = this.container.querySelector('#inspectorEdgeSimilarity');
 
     // Close button handler
     const closeBtn = this.container.querySelector('.inspector-close');
@@ -195,12 +200,21 @@ export class InspectorPanel {
       this.edgesContainer.classList.add('hidden');
       this.edgeOutList.innerHTML = '';
       this.edgeInList.innerHTML = '';
+      if (this.edgeSimilarityList) {
+        this.edgeSimilarityList.innerHTML = '';
+      }
       return;
     }
 
     this.edgesContainer.classList.remove('hidden');
     this.edgeOutList.innerHTML = this.renderEdgeList(edgeSummary.outbound || [], 'No outgoing calls');
     this.edgeInList.innerHTML = this.renderEdgeList(edgeSummary.inbound || [], 'No incoming calls');
+    if (this.edgeSimilarityList) {
+      this.edgeSimilarityList.innerHTML = this.renderEdgeList(
+        edgeSummary.similarity || [],
+        'No similar functions'
+      );
+    }
   }
 
   renderEdgeList(edges, emptyMessage) {
@@ -215,18 +229,32 @@ export class InspectorPanel {
       const metaParts = [];
       if (edge.type === 'call') {
         metaParts.push(edge.dynamic ? 'dynamic' : 'static');
+        metaParts.push(`×${edge.weight || 1}`);
+      } else if (edge.type === 'similarity') {
+        metaParts.push('similarity');
+        const weight = Number.isFinite(edge.weight) ? edge.weight : 0;
+        metaParts.push(`sim ${weight.toFixed(2)}`);
+        if (edge.method) {
+          metaParts.push(edge.method);
+        }
       } else {
         metaParts.push(edge.type || 'edge');
+        metaParts.push(`×${edge.weight || 1}`);
       }
-      metaParts.push(`×${edge.weight || 1}`);
-      const resolutionStatus = edge.resolutionStatus || (edge.resolution && edge.resolution.status);
+      const resolutionStatus =
+        edge.type === 'call'
+          ? edge.resolutionStatus || (edge.resolution && edge.resolution.status)
+          : null;
       if (resolutionStatus) {
         metaParts.push(resolutionStatus);
       }
       const meta = metaParts.join(' · ');
       const filePath = this.escapeHtml(target.filePath || '');
       const nodeId = this.escapeHtml(edge.nodeId);
-      const reason = edge.resolutionReason || (edge.resolution && edge.resolution.reason) || '';
+      const reason =
+        edge.type === 'call'
+          ? edge.resolutionReason || (edge.resolution && edge.resolution.reason) || ''
+          : '';
       const reasonLine = reason ? `<span class="inspector-edge-meta">${this.escapeHtml(reason)}</span>` : '';
       return `
         <button class="inspector-edge-btn" data-node-id="${nodeId}">
