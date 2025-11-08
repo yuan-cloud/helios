@@ -138,6 +138,7 @@ Tree-sitter's query DSL lets you capture these nodes robustly.
 ✅ Inspector panel with Prism highlighting and controls sidebar (toggles, filters, export)
 ⏳ Neighborhood highlighting polish & performance tuning (hover spotlight, opacity transitions)
 ❌ Similarity edge layer pending embeddings-agent output (blocked until Section 3.4/3.5 ship vectors)
+✅ [2025-11-08] Restored call/similarity edge toggles after hover refactor regression (commit a1b2c3d)
 
 - Render with 3d-force-graph:
   - Use directional arrows/particles for call edges; labels on hover; click to focus; fit-to-view; pause/resume simulation. The lib supports directional particles and node/link labels out of the box.

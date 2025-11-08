@@ -128,13 +128,9 @@ export class GraphVisualization {
       return true;
     });
 
-    if (this.graph) {
-      this.graph.graphData({
-        nodes: normalizedNodes,
-        links: visibleLinks
-      });
-      this.repaintGraph();
-    }
+    this.filteredLinks = visibleLinks;
+
+    this.applyGraphData();
 
     return this;
   }
@@ -500,12 +496,32 @@ export class GraphVisualization {
     );
   }
 
+  applyGraphData() {
+    if (!this.graph || !this.data) {
+      return;
+    }
+
+    const nodes = this.data.nodes || [];
+    const links = this.filteredLinks || this.data.links || [];
+
+    this.graph.graphData({ nodes, links });
+    this.repaintGraph();
+  }
+
   /**
    * Toggle similarity edges visibility
    */
   toggleSimilarityEdges(show) {
     this.options.showSimilarityEdges = show;
-    this.repaintGraph();
+    if (!this.data) return;
+
+    this.filteredLinks = (this.data.links || []).filter(link => {
+      if (link.type === 'call' && !this.options.showCallEdges) return false;
+      if (link.type === 'similarity' && !this.options.showSimilarityEdges) return false;
+      return true;
+    });
+
+    this.applyGraphData();
   }
 
   /**
@@ -513,7 +529,15 @@ export class GraphVisualization {
    */
   toggleCallEdges(show) {
     this.options.showCallEdges = show;
-    this.repaintGraph();
+    if (!this.data) return;
+
+    this.filteredLinks = (this.data.links || []).filter(link => {
+      if (link.type === 'call' && !this.options.showCallEdges) return false;
+      if (link.type === 'similarity' && !this.options.showSimilarityEdges) return false;
+      return true;
+    });
+
+    this.applyGraphData();
   }
 
   setHighlightNeighbors(enabled) {
