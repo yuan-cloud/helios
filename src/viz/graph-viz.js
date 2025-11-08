@@ -85,6 +85,18 @@ export class GraphVisualization {
     };
   }
 
+  getResolutionPalette() {
+    const defaults = {
+      resolved: this.palettes?.edges?.callStatic || '#60a5fa',
+      ambiguous: '#facc15',
+      unresolved: this.palettes?.edges?.callDynamic || '#ef4444'
+    };
+    return {
+      ...defaults,
+      ...(this.palettes?.resolution || {})
+    };
+  }
+
   /**
    * Initialize the 3D graph visualization
    */
@@ -289,7 +301,8 @@ export class GraphVisualization {
     }
 
     if (node && node.isVirtual) {
-      return this.colorWithAlpha(this.palettes.resolution.unresolved, 0.75);
+      const resolutionPalette = this.getResolutionPalette();
+      return this.colorWithAlpha(resolutionPalette.unresolved, 0.75);
     }
 
     if (node && node.community !== undefined && node.community !== null) {
@@ -460,12 +473,13 @@ export class GraphVisualization {
    * Get link color
    */
   getLinkColor(link) {
+    const resolutionPalette = this.getResolutionPalette();
     if (link.type === 'call') {
       if (link.resolutionStatus === 'unresolved') {
-        return this.colorWithAlpha(this.palettes.resolution.unresolved, link.dynamic ? 0.95 : 0.85);
+        return this.colorWithAlpha(resolutionPalette.unresolved, link.dynamic ? 0.95 : 0.85);
       }
       if (link.resolutionStatus === 'ambiguous') {
-        return this.colorWithAlpha(this.palettes.resolution.ambiguous, 0.8);
+        return this.colorWithAlpha(resolutionPalette.ambiguous, 0.8);
       }
       if (link.dynamic) {
         return this.colorWithAlpha(this.palettes.edges.callDynamic, 0.78);
@@ -543,16 +557,17 @@ export class GraphVisualization {
   }
 
   getLinkParticleColor(link) {
+    const resolutionPalette = this.getResolutionPalette();
     if (link.type !== 'call') {
       return this.colorWithAlpha(this.palettes.edges.similarity, 0.5);
     }
 
     if (link.resolutionStatus === 'unresolved') {
-      return this.colorWithAlpha(this.palettes.resolution.unresolved, 0.8);
+      return this.colorWithAlpha(resolutionPalette.unresolved, 0.8);
     }
 
     if (link.resolutionStatus === 'ambiguous') {
-      return this.colorWithAlpha(this.palettes.resolution.ambiguous, 0.75);
+      return this.colorWithAlpha(resolutionPalette.ambiguous, 0.75);
     }
 
     const base = link.dynamic ? this.palettes.edges.callDynamic : this.palettes.edges.callStatic;
