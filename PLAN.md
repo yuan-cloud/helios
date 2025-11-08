@@ -137,7 +137,7 @@ Tree-sitter's query DSL lets you capture these nodes robustly.
 
 ✅ 3d-force-graph scaffold hooked to call graph output (call edges, arrow particles, camera helpers)
 ✅ Inspector panel with Prism highlighting and controls sidebar (toggles, filters, export)
-⏳ Neighborhood highlighting polish & performance tuning (hover spotlight, opacity transitions)
+✅ Neighborhood highlighting polished (hover sidebar, quick jumps, smoothed fade) — 2025-11-08
 ❌ Similarity edge layer pending embeddings-agent output (blocked until Section 3.4/3.5 ship vectors)
 ✅ [2025-11-08] Restored call/similarity edge toggles after hover refactor regression (commit a1b2c3d)
 

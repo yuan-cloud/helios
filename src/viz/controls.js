@@ -38,6 +38,21 @@ export class VisualizationControls {
 
     this.container.innerHTML = `
       <div class="viz-controls-panel">
+        <div class="controls-section hidden" id="hoverInfoSection">
+          <h4 class="controls-title">Hover</h4>
+          <div class="hover-info-primary">
+            <div class="hover-info-name" id="hoverInfoName">No node hovered</div>
+            <div class="hover-info-path" id="hoverInfoPath"></div>
+          </div>
+          <div class="hover-info-metrics" id="hoverInfoMetrics">
+            <span class="hover-info-badge" id="hoverNeighborCount">0 neighbors</span>
+            <span class="hover-info-badge" id="hoverCallOut">0 out</span>
+            <span class="hover-info-badge" id="hoverCallIn">0 in</span>
+            <span class="hover-info-badge" id="hoverSimilarity">0 sim</span>
+          </div>
+          <div class="hover-info-neighbors" id="hoverNeighborList"></div>
+        </div>
+
         <div class="controls-section">
           <h4 class="controls-title">Edges</h4>
           <label class="control-toggle">
@@ -102,6 +117,17 @@ export class VisualizationControls {
     `;
 
     this.attachEventHandlers();
+
+    this.hoverInfoSection = this.container.querySelector('#hoverInfoSection');
+    this.hoverInfoName = this.container.querySelector('#hoverInfoName');
+    this.hoverInfoPath = this.container.querySelector('#hoverInfoPath');
+    this.hoverNeighborCount = this.container.querySelector('#hoverNeighborCount');
+    this.hoverCallOut = this.container.querySelector('#hoverCallOut');
+    this.hoverCallIn = this.container.querySelector('#hoverCallIn');
+    this.hoverSimilarity = this.container.querySelector('#hoverSimilarity');
+    this.hoverNeighborList = this.container.querySelector('#hoverNeighborList');
+
+    this.setHoverInfo(null);
   }
 
   /**
@@ -314,6 +340,78 @@ export class VisualizationControls {
    */
   getFilters() {
     return { ...this.filters };
+  }
+
+  setHoverInfo(info) {
+    if (!this.hoverInfoSection) {
+      return;
+    }
+
+    if (!info || !info.node) {
+      this.hoverInfoSection.classList.add('hidden');
+      if (this.hoverNeighborList) {
+        this.hoverNeighborList.innerHTML = '';
+      }
+      return;
+    }
+
+    const { node, neighborCount = 0, neighbors = [], stats = {} } = info;
+
+    this.hoverInfoSection.classList.remove('hidden');
+
+    if (this.hoverInfoName) {
+      this.hoverInfoName.textContent = node.fqName || node.name || '(anonymous)';
+    }
+
+    if (this.hoverInfoPath) {
+      const langLabel = node.lang ? ` · ${node.lang}` : '';
+      this.hoverInfoPath.textContent = `${node.filePath || '—'}${langLabel}`;
+    }
+
+    if (this.hoverNeighborCount) {
+      this.hoverNeighborCount.textContent = `${neighborCount} neighbor${neighborCount === 1 ? '' : 's'}`;
+    }
+    if (this.hoverCallOut) {
+      this.hoverCallOut.textContent = `${stats.callOutgoing || 0} out`;
+    }
+    if (this.hoverCallIn) {
+      this.hoverCallIn.textContent = `${stats.callIncoming || 0} in`;
+    }
+    if (this.hoverSimilarity) {
+      this.hoverSimilarity.textContent = `${stats.similarityEdges || 0} sim`;
+    }
+
+    if (this.hoverNeighborList) {
+      this.hoverNeighborList.innerHTML = '';
+
+      if (neighbors.length === 0) {
+        const empty = document.createElement('div');
+        empty.className = 'hover-neighbor-empty';
+        empty.textContent = 'No immediate neighbors';
+        this.hoverNeighborList.appendChild(empty);
+      } else {
+        neighbors.forEach(neighbor => {
+          const button = document.createElement('button');
+          button.type = 'button';
+          button.className = 'hover-neighbor-btn';
+          button.textContent = neighbor.name || neighbor.id;
+          button.title = neighbor.filePath || neighbor.id;
+          button.addEventListener('click', () => {
+            if (this.graphViz && typeof this.graphViz.focusNodeById === 'function') {
+              this.graphViz.focusNodeById(neighbor.id);
+            }
+          });
+          this.hoverNeighborList.appendChild(button);
+        });
+
+        if (neighborCount > neighbors.length) {
+          const more = document.createElement('div');
+          more.className = 'hover-neighbor-more';
+          more.textContent = `+${neighborCount - neighbors.length} more`;
+          this.hoverNeighborList.appendChild(more);
+        }
+      }
+    }
   }
 }
 

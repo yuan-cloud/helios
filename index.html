@@ -409,6 +409,67 @@
             font-size: 0.9rem;
         }
 
+        .hover-info-primary {
+            margin-bottom: 0.75rem;
+        }
+
+        .hover-info-name {
+            font-weight: 600;
+            color: #e0e7ff;
+            font-size: 0.95rem;
+            margin-bottom: 0.25rem;
+        }
+
+        .hover-info-path {
+            font-size: 0.75rem;
+            color: #94a3b8;
+            word-break: break-all;
+        }
+
+        .hover-info-metrics {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.4rem;
+            margin-bottom: 0.65rem;
+        }
+
+        .hover-info-badge {
+            background: rgba(148, 163, 184, 0.2);
+            color: #e2e8f0;
+            padding: 0.25rem 0.5rem;
+            border-radius: 9999px;
+            font-size: 0.72rem;
+            letter-spacing: 0.01em;
+        }
+
+        .hover-info-neighbors {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.35rem;
+        }
+
+        .hover-neighbor-btn {
+            background: rgba(79, 70, 229, 0.2);
+            border: 1px solid rgba(99, 102, 241, 0.4);
+            color: #c7d2fe;
+            border-radius: 9999px;
+            padding: 0.25rem 0.65rem;
+            font-size: 0.72rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .hover-neighbor-btn:hover {
+            background: rgba(99, 102, 241, 0.35);
+            border-color: rgba(99, 102, 241, 0.6);
+        }
+
+        .hover-neighbor-empty,
+        .hover-neighbor-more {
+            font-size: 0.75rem;
+            color: #a5b4fc;
+        }
+
         .viz-close-button {
             position: absolute;
             top: 1.5rem;
@@ -770,6 +831,12 @@
             if (!controls) {
                 controls = new VisualizationControls(vizControls, graphViz);
             }
+
+            graphViz.onHoverDetails = (info) => {
+                if (controls && typeof controls.setHoverInfo === 'function') {
+                    controls.setHoverInfo(info);
+                }
+            };
 
             functionMapById = new Map((callGraph.nodes || []).map(fn => [fn.id, fn]));
             fullVizData = convertCallGraphToVizData(callGraph);

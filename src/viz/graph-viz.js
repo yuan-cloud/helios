@@ -44,12 +44,15 @@ export class GraphVisualization {
     this.hoveredNeighbors = new Set();
     this.highlightNeighbors = true;
     this.adjacency = new Map();
+    this.filteredLinks = [];
 
     this.baseLinkOpacity = 0.6;
     this.minFadeOpacity = 0.12;
     this.currentNonNeighborOpacity = this.baseLinkOpacity;
     this.fadeTargetOpacity = this.baseLinkOpacity;
     this.fadeAnimationFrame = null;
+
+    this.onHoverDetails = null;
   }
 
   /**
@@ -118,6 +121,7 @@ export class GraphVisualization {
     };
 
     this.buildAdjacencyMap(normalizedNodes, normalizedLinks);
+    this.hoveredNode = null;
     this.hoveredNeighbors = new Set();
     this.hoveredNodeId = null;
     this.setFadeTarget(this.baseLinkOpacity, true);
@@ -363,10 +367,13 @@ export class GraphVisualization {
   }
 
   updateHoverState(node) {
+    this.hoveredNode = node || null;
+
     if (!this.highlightNeighbors) {
       this.hoveredNodeId = node ? node.id : null;
       this.hoveredNeighbors = new Set();
       this.setFadeTarget(this.baseLinkOpacity, true);
+      this.emitHoverDetails(node);
       return;
     }
 
@@ -381,7 +388,59 @@ export class GraphVisualization {
       this.setFadeTarget(this.baseLinkOpacity);
     }
 
+    this.emitHoverDetails(node);
     this.repaintGraph();
+  }
+
+  emitHoverDetails(node) {
+    if (!this.onHoverDetails) {
+      return;
+    }
+
+    if (!node) {
+      this.onHoverDetails(null);
+      return;
+    }
+
+    const neighborIds = Array.from(this.adjacency.get(node.id) || []);
+    const neighbors = neighborIds
+      .map(id => this.getNodeById(id))
+      .filter(Boolean);
+
+    let callOutgoing = 0;
+    let callIncoming = 0;
+    let similarityEdges = 0;
+
+    (this.data?.links || []).forEach(link => {
+      const sourceId = this.getLinkNodeId(link, 'source');
+      const targetId = this.getLinkNodeId(link, 'target');
+      if (sourceId !== node.id && targetId !== node.id) {
+        return;
+      }
+
+      if (link.type === 'call') {
+        if (sourceId === node.id) callOutgoing += 1;
+        if (targetId === node.id) callIncoming += 1;
+      } else if (link.type === 'similarity') {
+        similarityEdges += 1;
+      }
+    });
+
+    this.onHoverDetails({
+      node,
+      neighborCount: neighborIds.length,
+      neighbors: neighbors.slice(0, 8).map(n => ({
+        id: n.id,
+        name: n.fqName || n.name,
+        filePath: n.filePath,
+        lang: n.lang
+      })),
+      stats: {
+        callOutgoing,
+        callIncoming,
+        similarityEdges
+      }
+    });
   }
 
   /**
@@ -506,6 +565,18 @@ export class GraphVisualization {
 
     this.graph.graphData({ nodes, links });
     this.repaintGraph();
+
+    // Refresh hover detail listeners with current state
+    if (this.onHoverDetails) {
+      this.emitHoverDetails(this.hoveredNode);
+    }
+  }
+
+  getNodeById(nodeId) {
+    if (!nodeId || !this.data || !Array.isArray(this.data.nodes)) {
+      return null;
+    }
+    return this.data.nodes.find(node => node.id === nodeId) || null;
   }
 
   /**
@@ -648,6 +719,18 @@ export class GraphVisualization {
     this.data = { nodes: [], links: [] };
     this.selectedNode = null;
     this.hoveredNode = null;
+  }
+
+  focusNodeById(nodeId, { hover = true } = {}) {
+    const node = this.getNodeById(nodeId);
+    if (!node) {
+      return;
+    }
+
+    this.handleNodeClick(node);
+    if (hover) {
+      this.updateHoverState(node);
+    }
   }
 
   buildAdjacencyMap(nodes, links) {
