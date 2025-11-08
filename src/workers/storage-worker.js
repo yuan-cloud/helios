@@ -218,6 +218,26 @@ async function processMessage(event) {
         respondSuccess(id, result);
         break;
       }
+      case "layout:save": {
+        const result = saveLayoutSnapshot(payload);
+        respondSuccess(id, result);
+        break;
+      }
+      case "layout:load": {
+        const result = loadLayoutSnapshot(payload?.graphKey);
+        respondSuccess(id, result);
+        break;
+      }
+      case "layout:delete": {
+        const result = deleteLayoutSnapshot(payload?.graphKey);
+        respondSuccess(id, result);
+        break;
+      }
+      case "layout:list": {
+        const result = listLayoutSnapshots(payload);
+        respondSuccess(id, result);
+        break;
+      }
       case "close": {
         closeDatabase();
         respondSuccess(id, { closed: true });
@@ -238,5 +258,166 @@ self.addEventListener("message", (event) => {
 self.addEventListener("close", () => {
   closeDatabase();
 });
+
+function saveLayoutSnapshot(payload = {}) {
+  const { graphKey, graphHash, layout, metadata, layoutVersion = 1, nodeCount } = payload;
+  if (!graphKey || typeof graphKey !== "string") {
+    throw new TypeError("graphKey is required to save a layout snapshot");
+  }
+  if (!Array.isArray(layout)) {
+    throw new TypeError("layout must be an array when saving snapshot");
+  }
+
+  const db = ensureDbReady();
+  const serializedLayout = JSON.stringify(layout);
+  const serializedMetadata = metadata === null || metadata === undefined ? null : JSON.stringify(metadata);
+  const now = new Date().toISOString();
+  const resolvedNodeCount = Number.isFinite(nodeCount) ? Math.max(0, nodeCount) : layout.length;
+  const resolvedLayoutVersion = Number.isFinite(layoutVersion) ? Math.max(1, Math.floor(layoutVersion)) : 1;
+
+  const sql = `
+    INSERT INTO layout_snapshots (graph_key, graph_hash, layout_json, layout_version, node_count, metadata_json, created_at, updated_at)
+    VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?7)
+    ON CONFLICT(graph_key) DO UPDATE SET
+      graph_hash=excluded.graph_hash,
+      layout_json=excluded.layout_json,
+      layout_version=excluded.layout_version,
+      node_count=excluded.node_count,
+      metadata_json=excluded.metadata_json,
+      updated_at=excluded.updated_at
+  `;
+
+  const stmt = db.prepare(sql);
+  try {
+    stmt.bind([
+      graphKey.trim(),
+      typeof graphHash === "string" ? graphHash : null,
+      serializedLayout,
+      resolvedLayoutVersion,
+      resolvedNodeCount,
+      serializedMetadata,
+      now,
+    ]);
+    stmt.step();
+  } finally {
+    stmt.finalize();
+  }
+
+  return {
+    graphKey: graphKey.trim(),
+    updatedAt: now,
+    nodeCount: resolvedNodeCount,
+    layoutVersion: resolvedLayoutVersion,
+  };
+}
+
+function loadLayoutSnapshot(graphKey) {
+  if (!graphKey || typeof graphKey !== "string") {
+    throw new TypeError("graphKey is required to load a layout snapshot");
+  }
+  const db = ensureDbReady();
+  let record = null;
+  db.exec({
+    sql: `SELECT graph_key, graph_hash, layout_json, layout_version, node_count, metadata_json, created_at, updated_at
+          FROM layout_snapshots
+          WHERE graph_key = ?1
+          LIMIT 1`,
+    bind: [graphKey.trim()],
+    rowMode: "object",
+    callback: (row) => {
+      record = row;
+      return false;
+    },
+  });
+
+  if (!record) {
+    return null;
+  }
+
+  let layout = [];
+  if (typeof record.layout_json === "string") {
+    try {
+      layout = JSON.parse(record.layout_json);
+    } catch (error) {
+      console.warn("Failed to parse layout JSON from storage", error);
+      layout = [];
+    }
+  }
+
+  let metadata = null;
+  if (typeof record.metadata_json === "string") {
+    try {
+      metadata = JSON.parse(record.metadata_json);
+    } catch (error) {
+      console.warn("Failed to parse layout metadata JSON from storage", error);
+      metadata = null;
+    }
+  }
+
+  return {
+    graphKey: record.graph_key,
+    graphHash: record.graph_hash,
+    layout,
+    layoutVersion: typeof record.layout_version === "number" ? record.layout_version : 1,
+    nodeCount:
+      typeof record.node_count === "number" ? record.node_count : Array.isArray(layout) ? layout.length : 0,
+    metadata,
+    createdAt: record.created_at,
+    updatedAt: record.updated_at,
+  };
+}
+
+function deleteLayoutSnapshot(graphKey) {
+  if (!graphKey || typeof graphKey !== "string") {
+    throw new TypeError("graphKey is required to delete a layout snapshot");
+  }
+  const db = ensureDbReady();
+  const stmt = db.prepare("DELETE FROM layout_snapshots WHERE graph_key = ?1");
+  try {
+    stmt.bind([graphKey.trim()]);
+    stmt.step();
+  } finally {
+    stmt.finalize();
+  }
+  return { graphKey: graphKey.trim() };
+}
+
+function listLayoutSnapshots(options = {}) {
+  const db = ensureDbReady();
+  const limit = Number.isFinite(options.limit) ? Math.max(1, Math.floor(options.limit)) : 20;
+  const order = typeof options.order === "string" && options.order.toLowerCase() === "asc" ? "ASC" : "DESC";
+  const hasGraphKey = typeof options.graphKey === "string" && options.graphKey.trim().length > 0;
+
+  const rows = [];
+  const sql = hasGraphKey
+    ? `SELECT graph_key, graph_hash, layout_version, node_count, created_at, updated_at
+       FROM layout_snapshots
+       WHERE graph_key = ?1
+       ORDER BY updated_at ${order}
+       LIMIT ?2`
+    : `SELECT graph_key, graph_hash, layout_version, node_count, created_at, updated_at
+       FROM layout_snapshots
+       ORDER BY updated_at ${order}
+       LIMIT ?1`;
+
+  const bind = hasGraphKey ? [options.graphKey.trim(), limit] : [limit];
+  db.exec({
+    sql,
+    bind,
+    rowMode: "object",
+    callback: (row) => {
+      rows.push({
+        graphKey: row.graph_key,
+        graphHash: row.graph_hash,
+        layoutVersion: typeof row.layout_version === "number" ? row.layout_version : 1,
+        nodeCount: typeof row.node_count === "number" ? row.node_count : null,
+        createdAt: row.created_at,
+        updatedAt: row.updated_at,
+      });
+    },
+  });
+
+  return { snapshots: rows };
+}
 
 

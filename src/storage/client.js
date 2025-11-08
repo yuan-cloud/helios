@@ -218,6 +218,67 @@ export class StorageWorkerClient {
     }
   }
 
+  async saveLayoutSnapshot({
+    graphKey,
+    graphHash = null,
+    layout = [],
+    metadata = null,
+    layoutVersion = 1,
+    nodeCount,
+  } = {}) {
+    if (!graphKey || typeof graphKey !== "string") {
+      throw new TypeError("graphKey must be a non-empty string");
+    }
+    if (!Array.isArray(layout)) {
+      throw new TypeError("layout must be an array of node snapshots");
+    }
+
+    await this.ensureInitialized();
+    const payload = {
+      graphKey: graphKey.trim(),
+      graphHash: typeof graphHash === "string" ? graphHash : null,
+      layout,
+      metadata: metadata ?? null,
+      layoutVersion: Number.isFinite(layoutVersion) ? Math.max(1, layoutVersion) : 1,
+      nodeCount: Number.isFinite(nodeCount) ? nodeCount : layout.length,
+    };
+    return this.send("layout:save", payload);
+  }
+
+  async loadLayoutSnapshot(graphKey) {
+    if (!graphKey || typeof graphKey !== "string") {
+      throw new TypeError("graphKey must be a non-empty string");
+    }
+    await this.ensureInitialized();
+    return this.send("layout:load", { graphKey: graphKey.trim() });
+  }
+
+  async deleteLayoutSnapshot(graphKey) {
+    if (!graphKey || typeof graphKey !== "string") {
+      throw new TypeError("graphKey must be a non-empty string");
+    }
+    await this.ensureInitialized();
+    return this.send("layout:delete", { graphKey: graphKey.trim() });
+  }
+
+  async listLayoutSnapshots(options = {}) {
+    await this.ensureInitialized();
+    const payload = {};
+    if (options.graphKey) {
+      if (typeof options.graphKey !== "string") {
+        throw new TypeError("graphKey filter must be a string when provided");
+      }
+      payload.graphKey = options.graphKey.trim();
+    }
+    if (Number.isFinite(options.limit)) {
+      payload.limit = Math.max(1, Math.floor(options.limit));
+    }
+    if (options.order && typeof options.order === "string") {
+      payload.order = options.order;
+    }
+    return this.send("layout:list", payload);
+  }
+
   async close(options = {}) {
     if (!this.worker) {
       return;

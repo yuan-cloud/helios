@@ -120,39 +120,37 @@ test("ensureSchema throws when migrations missing for older version", () => {
   const db = new FakeDb();
   db.metadataValue = String(HELIOS_SCHEMA_VERSION - 1);
 
-  assert.throws(
-    () => ensureSchema(db),
-    /no migrations are registered/i,
-    "should throw when migrations array empty"
-  );
+  const originalMigrations = MIGRATIONS.splice(0, MIGRATIONS.length);
+  try {
+    assert.throws(
+      () => ensureSchema(db),
+      /no migrations are registered/i,
+      "should throw when migrations array empty"
+    );
+  } finally {
+    MIGRATIONS.push(...originalMigrations);
+  }
 });
 
-test("ensureSchema applies migrations when provided", () => {
-  const migration = {
-    id: HELIOS_SCHEMA_VERSION,
-    name: "noop-migration",
-    statements: ["/* migration */"],
-  };
-  MIGRATIONS.push(migration);
+test("ensureSchema applies registered migrations for newer schema versions", () => {
   const db = new FakeDb();
   db.metadataValue = String(HELIOS_SCHEMA_VERSION - 1);
 
-  try {
-    ensureSchema(db);
-  } finally {
-    MIGRATIONS.pop();
-  }
-
-  assert.ok(
-    db.executed.includes("/* migration */"),
-    "migration statement should be executed"
-  );
+  ensureSchema(db);
 
   const updateEntry = db.metadataWrites.find(
     (entry) => entry.key === METADATA_KEYS.SCHEMA_VERSION
   );
   assert.ok(updateEntry, "schema version metadata should be updated after migration");
   assert.equal(updateEntry.value, String(HELIOS_SCHEMA_VERSION));
+
+  const layoutTableStatement = db.executed.find((sql) =>
+    typeof sql === "string" && sql.includes("CREATE TABLE IF NOT EXISTS layout_snapshots")
+  );
+  assert.ok(
+    layoutTableStatement,
+    "layout_snapshots table should be created during migration"
+  );
 });
 
 

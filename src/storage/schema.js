@@ -3,7 +3,7 @@
 // exposes helper utilities for schema management and migrations.
 
 export const HELIOS_DB_NAME = "helios.sqlite3";
-export const HELIOS_SCHEMA_VERSION = 1;
+export const HELIOS_SCHEMA_VERSION = 2;
 
 export const METADATA_KEYS = Object.freeze({
   SCHEMA_VERSION: "schema.version",
@@ -89,6 +89,19 @@ export function getInitialSchemaStatements() {
     `CREATE INDEX IF NOT EXISTS idx_chunks_fn ON chunks(fn_id)`,
     `CREATE INDEX IF NOT EXISTS idx_call_edges_dst ON call_edges(dst_fn_id)`,
     `CREATE INDEX IF NOT EXISTS idx_sim_edges_score ON sim_edges(sim DESC)`,
+    `CREATE TABLE IF NOT EXISTS layout_snapshots (
+      snapshot_id INTEGER PRIMARY KEY,
+      graph_key TEXT NOT NULL,
+      graph_hash TEXT,
+      layout_json TEXT NOT NULL,
+      layout_version INTEGER NOT NULL DEFAULT 1,
+      node_count INTEGER NOT NULL DEFAULT 0,
+      metadata_json TEXT,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL,
+      UNIQUE(graph_key)
+    )`,
+    `CREATE INDEX IF NOT EXISTS idx_layout_snapshots_graph_hash ON layout_snapshots(graph_hash)`
   ];
 }
 

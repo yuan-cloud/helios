@@ -74,6 +74,85 @@ test("init sends init message once and resolves payload", async () => {
   await closePromise;
 });
 
+test("layout snapshot helpers post expected worker messages", async () => {
+  const worker = new MockWorker();
+  const client = new StorageWorkerClient({
+    createWorker: () => worker,
+  });
+
+  const savePromise = client.saveLayoutSnapshot({
+    graphKey: "graph::abc",
+    graphHash: "hash",
+    layout: [{ id: "n1", x: 1 }],
+  });
+
+  await waitForMessages(worker, 1);
+  const initMessage = worker.messages[0];
+  worker.emitMessage({
+    id: initMessage.id,
+    success: true,
+    result: { persistent: true, schemaVersion: 2 },
+  });
+
+  await waitForMessages(worker, 2);
+  const saveMessage = worker.messages[1];
+  assert.equal(saveMessage.type, "layout:save");
+  assert.equal(saveMessage.payload.graphKey, "graph::abc");
+  assert.equal(saveMessage.payload.layout.length, 1);
+
+  worker.emitMessage({
+    id: saveMessage.id,
+    success: true,
+    result: { graphKey: "graph::abc" },
+  });
+  await savePromise;
+
+  const loadPromise = client.loadLayoutSnapshot("graph::abc");
+  await waitForMessages(worker, 3);
+  const loadMessage = worker.messages[2];
+  assert.equal(loadMessage.type, "layout:load");
+  worker.emitMessage({
+    id: loadMessage.id,
+    success: true,
+    result: { graphKey: "graph::abc", layout: [] },
+  });
+  const loadResult = await loadPromise;
+  assert.equal(loadResult.graphKey, "graph::abc");
+
+  const listPromise = client.listLayoutSnapshots({ limit: 5 });
+  await waitForMessages(worker, 4);
+  const listMessage = worker.messages[3];
+  assert.equal(listMessage.type, "layout:list");
+  worker.emitMessage({
+    id: listMessage.id,
+    success: true,
+    result: { snapshots: [] },
+  });
+  await listPromise;
+
+  const deletePromise = client.deleteLayoutSnapshot("graph::abc");
+  await waitForMessages(worker, 5);
+  const deleteMessage = worker.messages[4];
+  assert.equal(deleteMessage.type, "layout:delete");
+  worker.emitMessage({
+    id: deleteMessage.id,
+    success: true,
+    result: { graphKey: "graph::abc" },
+  });
+  await deletePromise;
+
+  const baseCount = worker.messages.length;
+  const closePromise = client.close({ terminate: true });
+  await waitForMessages(worker, baseCount + 1);
+  const closeMessage = worker.messages.at(-1);
+  worker.emitMessage({
+    id: closeMessage.id,
+    success: true,
+    result: { closed: true },
+  });
+  await closePromise;
+});
+
 test("exec auto-initializes when autoInit enabled", async () => {
   const worker = new MockWorker();
   const client = new StorageWorkerClient({
