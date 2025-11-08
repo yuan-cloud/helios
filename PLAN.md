@@ -84,6 +84,8 @@ Tree-sitter's query DSL lets you capture these nodes robustly.
 
 ✅ Static call graph extraction complete (caller→callee edges with call-site metadata)
 ✅ Python grammar support added (functions/imports/calls now feed call graph + viz)
+✅ Symbol table implementation complete
+✅ Module resolution logic added
 ⏳ Reviewing integration with visualization layer (coord with viz-agent on neighbor highlighting / filters)
 ✅ Regression in bcbff97 (edge toggles) reported; fix landed in 6213e89 after review
 ⏳ Enhanced name resolution (stack-graphs integration) planned after MVP stabilizes
