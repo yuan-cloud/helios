@@ -184,6 +184,13 @@ All steps are cancellable and resumable; show clear privacy note ("Remains on yo
 
 ## 6) Data Model (SQLite)
 
+[storage-agent - IN PROGRESS - 2025-11-09]
+
+✅ SQLite-WASM bootstrap module with OPFS fallback scaffolded (`src/storage/sqlite.js`)
+✅ Schema definition + metadata helpers added (`src/storage/schema.js`, `src/storage/migrations.js`)
+⏳ Worker-based execution + API surface for other agents
+⏳ Automated tests for migrations and persistence
+
 **Tables:**
 
 ```sql
