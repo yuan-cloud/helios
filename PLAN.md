@@ -152,13 +152,13 @@ Tree-sitter's query DSL lets you capture these nodes robustly.
 
 ### 3.7 Visualization (3D)
 
-[LilacLake - UPDATED - 2025-11-09 00:20]
+[LilacLake - UPDATED - 2025-11-09 02:58]
 
 ✅ 3d-force-graph scaffold hooked to call graph output (directional call edges, particle arrows, camera helpers)
 ✅ Controls + inspector enhancements (hover sidebar, neighbor quick jumps, call inbound/outbound lists)
 ✅ Call-edge resolution styling (resolved/ambiguous/unresolved cues + inspector badges)
-⏳ Layout persistence & performance tuning (65% done – localStorage save/restore shipped; OPFS persistence waiting on storage-agent)
-❌ Similarity edge layer (blocked: needs embeddings-agent similarity vectors from sections 3.4/3.5)
+✅ Similarity edge layer (dashed styling, weight-aware opacity/width, threshold slider, hover/inspector surfacing)
+⏳ Layout persistence & performance tuning (65% done – localStorage save/restore shipped; OPFS persistence waiting on storage-agent layout endpoints)
 ✅ Regression fix: call/sim edge toggles restored post hover refactor (`6213e89`)
 
 - Render with 3d-force-graph:
@@ -200,12 +200,15 @@ All steps are cancellable and resumable; show clear privacy note ("Remains on yo
 
 ## 6) Data Model (SQLite)
 
-[storage-agent - IN PROGRESS - 2025-11-09]
+[storage-agent - UPDATED - 2025-11-09 02:45]
 
-✅ SQLite-WASM bootstrap module with OPFS fallback scaffolded (`src/storage/sqlite.js`)
-✅ Schema definition + metadata helpers added (`src/storage/schema.js`, `src/storage/migrations.js`)
-✅ Worker-based execution + API surface for other agents (`src/storage/client.js`, `src/workers/storage-worker.js`)
-✅ Automated tests for schema/migration logic (`tests/storage/sqlite-ensure.test.mjs`)
+✅ SQLite-WASM bootstrap w/ OPFS fallback (`src/storage/sqlite.js`)
+✅ Schema definition & metadata helpers (`src/storage/schema.js`, `src/storage/migrations.js`)
+✅ Worker/client API for SQLite access (`src/storage/client.js`, `src/workers/storage-worker.js`)
+✅ Schema + migration unit coverage (`tests/storage/sqlite-ensure.test.mjs`, `tests/storage/client.test.mjs`)
+⏳ Layout snapshot persistence endpoints (30% – worker ready, wiring for viz snapshot/save pending)
+⏳ End-to-end DB resume flow (40% – needs integration with embeddings/viz persistence consumers)
+❌ Multi-session retention policy doc (blocked: awaiting product requirements on data lifespan)
 
 **Tables:**
 
@@ -289,13 +292,13 @@ Persist DB under OPFS (origin-private) so users can reopen the site and continue
 
 ## 11) Visualization Details
 
-[LilacLake - UPDATED - 2025-11-09 00:20]
+[LilacLake - UPDATED - 2025-11-09 02:58]
 
 ✅ Call-edge palette complete (directional particles, arrowheads, color coding)
 ✅ Interaction polish (hover sidebar, inspector call lists, camera/quick-jump syncing)
 ✅ Resolution state surfacing (hover + inspector badges for call-edge status)
+✅ Similarity edge styling (dashed visuals, opacity/width by weight, inspector + hover badges, threshold slider integration)
 ⏳ Layout persistence & freeze UX (65% done – control UX + localStorage snapshotting live; OPFS handoff pending storage-agent)
-❌ Similarity edge styling (blocked: embeddings-agent similarity vectors not yet available)
 
 - **Edge palette**:
   - Call edges: Color by module proximity or "internal vs external"; arrows on direction; use `linkDirectionalParticles` to emphasize direction on hover.
