@@ -225,7 +225,11 @@ export async function persistEmbeddingRun(
     const chunkLookupEntries = [];
 
     chunks.forEach((chunk) => {
-      const fn = functionById.get(chunk.functionId);
+      const functionIdentifier = chunk.functionId ?? chunk.function?.id;
+      if (!functionIdentifier) {
+        return;
+      }
+      const fn = functionById.get(functionIdentifier);
       if (!fn) {
         return;
       }
@@ -406,10 +410,36 @@ export async function tryLoadEmbeddingRun(
     return null;
   }
 
+  const functionBySignature = new Map();
+  functions.forEach((fn) => {
+    const signature = `${fn.filePath}:${fn.start}:${fn.end}`;
+    functionBySignature.set(signature, fn);
+  });
+
+  const chunkBySignature = new Map();
+  const chunkById = new Map();
+  chunks.forEach((chunk) => {
+    const functionIdentifier = chunk.functionId ?? chunk.function?.id;
+    if (!functionIdentifier) {
+      return;
+    }
+    const signature = `${functionIdentifier}:${chunk.start}:${chunk.end}`;
+    chunkBySignature.set(signature, chunk);
+    chunkById.set(chunk.id, chunk);
+  });
+
   const chunkVectorMap = new Map();
   rows.forEach((row) => {
-    const functionId = `${row.file_path}:${row.fn_start}:${row.fn_end}`;
-    const chunkKey = `${functionId}:${row.chunk_start}:${row.chunk_end}`;
+    const functionSignature = `${row.file_path}:${row.fn_start}:${row.fn_end}`;
+    const fn = functionBySignature.get(functionSignature);
+    if (!fn) {
+      return;
+    }
+    const chunkSignature = `${fn.id}:${row.chunk_start}:${row.chunk_end}`;
+    const chunk = chunkBySignature.get(chunkSignature);
+    if (!chunk) {
+      return;
+    }
     const vectorData =
       row.vec instanceof Uint8Array
         ? row.vec
@@ -422,15 +452,13 @@ export async function tryLoadEmbeddingRun(
       vectorData.byteOffset,
       vectorData.byteOffset + vectorData.byteLength
     );
-    chunkVectorMap.set(chunkKey, new Float32Array(aligned));
+    chunkVectorMap.set(chunk.id, new Float32Array(aligned));
   });
 
   const loadedEmbeddings = [];
   let missingChunks = 0;
   chunks.forEach((chunk) => {
-    const functionId = chunk.function.id;
-    const chunkKey = `${functionId}:${chunk.start}:${chunk.end}`;
-    const vector = chunkVectorMap.get(chunkKey);
+    const vector = chunkVectorMap.get(chunk.id);
     if (!vector) {
       missingChunks += 1;
       return;
@@ -466,13 +494,18 @@ export async function tryLoadEmbeddingRun(
   );
 
   const similarityEdges = simRows.map((row) => {
+    const sourceFn = functionBySignature.get(`${row.a_path}:${row.a_start}:${row.a_end}`);
+    const targetFn = functionBySignature.get(`${row.b_path}:${row.b_start}:${row.b_end}`);
+    if (!sourceFn || !targetFn) {
+      return null;
+    }
     return {
-      source: `${row.a_path}:${row.a_start}:${row.a_end}`,
-      target: `${row.b_path}:${row.b_start}:${row.b_end}`,
+      source: sourceFn.id,
+      target: targetFn.id,
       similarity: row.sim,
       method: row.method || 'topk-avg'
     };
-  });
+  }).filter(Boolean);
 
   return {
     metadata,
