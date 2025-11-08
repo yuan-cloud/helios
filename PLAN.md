@@ -101,11 +101,11 @@ Tree-sitter's query DSL lets you capture these nodes robustly.
 
 ### 3.4 Function Chunking and Embeddings
 
-[BlueBear - UPDATED - 2025-11-09 02:15]
+[BlueBear - UPDATED - 2025-11-09 04:07]
 
 ✅ Chunking scaffolding (line-aware splits with source offsets)
 ✅ Embedding worker inference (Transformers.js MiniLM via WebGPU/WASM)
-✅ Persistence to storage worker (chunk vectors + metadata cached in SQLite)
+✅ Persistence to storage worker (chunk vectors + metadata cached in SQLite; transaction flow stabilized)
 ⏳ Incremental delta updates (plans for partial re-embed when files change)
 
 - **Chunking**: Within each function, split by syntactic boundaries (statement blocks / loop bodies / logical sections) to keep chunks ~100–200 tokens. Maintain chunk offsets into the source so clicks can highlight text accurately.
@@ -115,12 +115,12 @@ Tree-sitter's query DSL lets you capture these nodes robustly.
 
 ### 3.5 Embedding Aggregation and Similarity
 
-[BlueBear - UPDATED - 2025-11-09 02:15]
+[BlueBear - UPDATED - 2025-11-09 04:07]
 
 ✅ Representative vector computation (per-function mean + normalization)
 ✅ Top-k bundle similarity with cosine metrics (candidate limit + thresholding)
 ✅ Similarity edge export to visualization layer (undirected, capped neighbors)
-✅ Cached reload path (reuse persisted embeddings/similarity when fingerprint matches)
+✅ Cached reload path (reuse persisted embeddings/similarity when fingerprint matches; resilience fix validated)
 ⏳ Approximate KNN / large-scale optimizations (pending after baseline validation)
 
 - Represent each function by a set `E_f = {e_1 … e_m}` of chunk vectors.
