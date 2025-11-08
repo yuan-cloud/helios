@@ -76,6 +76,11 @@ export class GraphVisualization {
       },
       neutrals: {
         faded: '#94a3b8'
+      },
+      resolution: {
+        resolved: '#60a5fa',
+        ambiguous: '#facc15',
+        unresolved: '#ef4444'
       }
     };
   }
@@ -183,6 +188,8 @@ export class GraphVisualization {
       name: node.name,
       filePath: node.filePath || '',
       lang: node.lang || 'javascript',
+      moduleId: node.moduleId || null,
+      isVirtual: !!node.isVirtual,
       size: node.size || node.loc || 0,
       metrics: node.metrics || {},
       community: node.community,
@@ -209,8 +216,12 @@ export class GraphVisualization {
   normalizeLink(link) {
     const sourceId = this.getLinkNodeId(link, 'source');
     const targetId = this.getLinkNodeId(link, 'target');
+    const metadata = link.metadata || {};
+    const resolution = link.resolution || metadata.resolution || null;
+    const resolutionStatus = link.resolutionStatus || resolution?.status || 'resolved';
 
     return {
+      ...link,
       source: sourceId,
       target: targetId,
       sourceId,
@@ -218,7 +229,11 @@ export class GraphVisualization {
       type: link.type || 'call',
       weight: link.weight || link.sim || 1,
       dynamic: link.dynamic || false,
-      ...link
+      resolution,
+      resolutionStatus,
+      resolutionReason: link.resolutionReason || resolution?.reason || '',
+      importInfo: link.importInfo || resolution?.importInfo || null,
+      metadata
     };
   }
 
@@ -271,6 +286,10 @@ export class GraphVisualization {
 
     if (node && typeof node.baseColor === 'string' && node.baseColor.length) {
       return node.baseColor;
+    }
+
+    if (node && node.isVirtual) {
+      return this.colorWithAlpha(this.palettes.resolution.unresolved, 0.75);
     }
 
     if (node && node.community !== undefined && node.community !== null) {
@@ -420,7 +439,17 @@ export class GraphVisualization {
    */
   getLinkLabel(link) {
     if (link.type === 'call') {
-      return `Call (${link.weight || 1} call${link.weight !== 1 ? 's' : ''})`;
+      const parts = [`Call (${link.weight || 1} call${link.weight !== 1 ? 's' : ''})`];
+      if (link.resolutionStatus) {
+        parts.push(link.resolutionStatus.toUpperCase());
+      }
+      if (link.dynamic) {
+        parts.push('dynamic');
+      }
+      if (link.resolutionReason) {
+        parts.push(link.resolutionReason);
+      }
+      return parts.join('\n');
     } else if (link.type === 'similarity') {
       return `Similarity: ${(link.weight || 0).toFixed(2)}`;
     }
@@ -432,7 +461,12 @@ export class GraphVisualization {
    */
   getLinkColor(link) {
     if (link.type === 'call') {
-      // Call edges: solid, color by type
+      if (link.resolutionStatus === 'unresolved') {
+        return this.colorWithAlpha(this.palettes.resolution.unresolved, link.dynamic ? 0.95 : 0.85);
+      }
+      if (link.resolutionStatus === 'ambiguous') {
+        return this.colorWithAlpha(this.palettes.resolution.ambiguous, 0.8);
+      }
       if (link.dynamic) {
         return this.colorWithAlpha(this.palettes.edges.callDynamic, 0.78);
       }
@@ -496,6 +530,12 @@ export class GraphVisualization {
   getLinkParticles(link) {
     // Only show particles on call edges
     if (link.type === 'call') {
+      if (link.resolutionStatus === 'unresolved') {
+        return 0;
+      }
+      if (link.resolutionStatus === 'ambiguous') {
+        return 1;
+      }
       const weight = Math.max(1, link.weight || 1);
       return Math.min(6, Math.max(link.dynamic ? 2 : 1, Math.floor(Math.log2(weight + 1)) + (link.dynamic ? 1 : 0)));
     }
@@ -507,6 +547,14 @@ export class GraphVisualization {
       return this.colorWithAlpha(this.palettes.edges.similarity, 0.5);
     }
 
+    if (link.resolutionStatus === 'unresolved') {
+      return this.colorWithAlpha(this.palettes.resolution.unresolved, 0.8);
+    }
+
+    if (link.resolutionStatus === 'ambiguous') {
+      return this.colorWithAlpha(this.palettes.resolution.ambiguous, 0.75);
+    }
+
     const base = link.dynamic ? this.palettes.edges.callDynamic : this.palettes.edges.callStatic;
     const alpha = link.dynamic ? 0.9 : 0.7;
     return this.colorWithAlpha(base, alpha);
@@ -516,8 +564,16 @@ export class GraphVisualization {
     if (link.type === 'similarity') {
       return [2, 6];
     }
-    if (link.dynamic) {
-      return [4, 6];
+    if (link.type === 'call') {
+      if (link.resolutionStatus === 'unresolved') {
+        return [2, 2];
+      }
+      if (link.resolutionStatus === 'ambiguous') {
+        return [6, 4];
+      }
+      if (link.dynamic) {
+        return [4, 6];
+      }
     }
     return null;
   }
@@ -566,6 +622,9 @@ export class GraphVisualization {
     let callOutgoing = 0;
     let callIncoming = 0;
     let similarityEdges = 0;
+    let resolvedEdges = 0;
+    let ambiguousEdges = 0;
+    let unresolvedEdges = 0;
 
     (this.data?.links || []).forEach(link => {
       const sourceId = this.getLinkNodeId(link, 'source');
@@ -577,6 +636,13 @@ export class GraphVisualization {
       if (link.type === 'call') {
         if (sourceId === node.id) callOutgoing += 1;
         if (targetId === node.id) callIncoming += 1;
+        if (link.resolutionStatus === 'unresolved') {
+          unresolvedEdges += 1;
+        } else if (link.resolutionStatus === 'ambiguous') {
+          ambiguousEdges += 1;
+        } else {
+          resolvedEdges += 1;
+        }
       } else if (link.type === 'similarity') {
         similarityEdges += 1;
       }
@@ -594,7 +660,12 @@ export class GraphVisualization {
       stats: {
         callOutgoing,
         callIncoming,
-        similarityEdges
+        similarityEdges,
+        resolution: {
+          resolved: resolvedEdges,
+          ambiguous: ambiguousEdges,
+          unresolved: unresolvedEdges
+        }
       }
     });
   }
@@ -766,7 +837,11 @@ export class GraphVisualization {
           node: targetNode,
           weight: link.weight || 1,
           type: link.type || 'call',
-          dynamic: link.dynamic || false
+          dynamic: link.dynamic || false,
+          resolutionStatus: link.resolutionStatus || (link.resolution && link.resolution.status) || null,
+          resolutionReason: link.resolutionReason || (link.resolution && link.resolution.reason) || '',
+          resolution: link.resolution || null,
+          importInfo: link.importInfo || null
         });
       } else if (targetId === nodeId) {
         const sourceNode = this.getNodeById(sourceId);
@@ -775,7 +850,11 @@ export class GraphVisualization {
           node: sourceNode,
           weight: link.weight || 1,
           type: link.type || 'call',
-          dynamic: link.dynamic || false
+          dynamic: link.dynamic || false,
+          resolutionStatus: link.resolutionStatus || (link.resolution && link.resolution.status) || null,
+          resolutionReason: link.resolutionReason || (link.resolution && link.resolution.reason) || '',
+          resolution: link.resolution || null,
+          importInfo: link.importInfo || null
         });
       }
     });

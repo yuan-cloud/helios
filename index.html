@@ -727,7 +727,19 @@
                 resultsContainer.classList.remove('hidden');
 
                 counter.textContent = formatCounterMessage();
-                functionsCounter.textContent = `${allFunctions.length} function${allFunctions.length !== 1 ? 's' : ''} extracted · ${stats.totalEdges} call edge${stats.totalEdges !== 1 ? 's' : ''} (${stats.staticEdges} static · ${stats.dynamicEdges} dynamic)`;
+                const resolutionDetails = [];
+                if (typeof stats.resolvedEdges === 'number') {
+                    resolutionDetails.push(`${stats.resolvedEdges} resolved`);
+                }
+                if (typeof stats.ambiguousEdges === 'number' && stats.ambiguousEdges > 0) {
+                    resolutionDetails.push(`${stats.ambiguousEdges} ambiguous`);
+                }
+                if (typeof stats.unresolvedEdges === 'number' && stats.unresolvedEdges > 0) {
+                    resolutionDetails.push(`${stats.unresolvedEdges} unresolved`);
+                }
+                const resolutionSummary = resolutionDetails.length ? ` · ${resolutionDetails.join(' / ')}` : '';
+
+                functionsCounter.textContent = `${allFunctions.length} function${allFunctions.length !== 1 ? 's' : ''} extracted · ${stats.totalEdges} call edge${stats.totalEdges !== 1 ? 's' : ''} (${stats.staticEdges} static · ${stats.dynamicEdges} dynamic)${resolutionSummary}`;
 
                 displayResults();
 
@@ -1051,6 +1063,8 @@
                 name: fn.name,
                 filePath: fn.filePath,
                 lang: fn.lang || detectLanguageFromPath(fn.filePath),
+                moduleId: fn.moduleId || null,
+                isVirtual: !!fn.isVirtual,
                 size: fn.loc || Math.max(1, (fn.endLine || fn.startLine || 0) - (fn.startLine || 0) + 1),
                 startLine: fn.startLine,
                 endLine: fn.endLine,
@@ -1061,14 +1075,23 @@
                 source: fn.source || ''
             }));
 
-            const links = (graph.edges || []).map(edge => ({
-                source: edge.source,
-                target: edge.target,
-                type: 'call',
-                weight: edge.weight || 1,
-                dynamic: edge.isDynamic || false,
-                metadata: edge.metadata || {}
-            }));
+            const links = (graph.edges || []).map(edge => {
+                const metadata = edge.metadata || {};
+                const resolution = metadata.resolution || null;
+                const resolutionStatus = resolution?.status || 'resolved';
+                return {
+                    source: edge.source,
+                    target: edge.target,
+                    type: 'call',
+                    weight: edge.weight || 1,
+                    dynamic: edge.isDynamic || false,
+                    resolution,
+                    resolutionStatus,
+                    resolutionReason: resolution?.reason || '',
+                    importInfo: resolution?.importInfo || null,
+                    metadata
+                };
+            });
 
             return { nodes, links };
         }

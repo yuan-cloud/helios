@@ -51,6 +51,9 @@ export class VisualizationControls {
             <span class="hover-info-badge" id="hoverCallOut">0 out</span>
             <span class="hover-info-badge" id="hoverCallIn">0 in</span>
             <span class="hover-info-badge" id="hoverSimilarity">0 sim</span>
+            <span class="hover-info-badge" id="hoverResolvedEdges">0 resolved</span>
+            <span class="hover-info-badge" id="hoverAmbiguousEdges">0 ambiguous</span>
+            <span class="hover-info-badge" id="hoverUnresolvedEdges">0 unresolved</span>
           </div>
           <div class="hover-info-neighbors" id="hoverNeighborList"></div>
         </div>
@@ -132,6 +135,9 @@ export class VisualizationControls {
     this.hoverCallIn = this.container.querySelector('#hoverCallIn');
     this.hoverSimilarity = this.container.querySelector('#hoverSimilarity');
     this.hoverNeighborList = this.container.querySelector('#hoverNeighborList');
+    this.hoverResolvedEdges = this.container.querySelector('#hoverResolvedEdges');
+    this.hoverAmbiguousEdges = this.container.querySelector('#hoverAmbiguousEdges');
+    this.hoverUnresolvedEdges = this.container.querySelector('#hoverUnresolvedEdges');
     this.layoutStatusEl = this.container.querySelector('#layoutStatus');
 
     this.setHoverInfo(null);
@@ -299,14 +305,6 @@ export class VisualizationControls {
       this.layoutStatusTimer = null;
     }
 
-    if (message && timeout > 0) {
-      this.layoutStatusTimer = setTimeout(() => {
-        this.layoutStatusEl.textContent = '';
-        this.layoutStatusTimer = null;
-      }, timeout);
-    }
-  }
-
     // Export
     if (this.options.showExport) {
       const btnExportPNG = this.container.querySelector('#btnExportPNG');
@@ -322,6 +320,34 @@ export class VisualizationControls {
           this.exportJSON();
         });
       }
+    }
+  }
+
+  setLayoutStatus(message, { tone = 'info', timeout = 3000 } = {}) {
+    if (!this.layoutStatusEl) {
+      return;
+    }
+
+    const palette = {
+      info: '#94a3b8',
+      success: '#34d399',
+      error: '#f87171'
+    };
+
+    const color = palette[tone] || palette.info;
+    this.layoutStatusEl.textContent = message || '';
+    this.layoutStatusEl.style.color = color;
+
+    if (this.layoutStatusTimer) {
+      clearTimeout(this.layoutStatusTimer);
+      this.layoutStatusTimer = null;
+    }
+
+    if (message && timeout > 0) {
+      this.layoutStatusTimer = setTimeout(() => {
+        this.layoutStatusEl.textContent = '';
+        this.layoutStatusTimer = null;
+      }, timeout);
     }
   }
 
@@ -436,10 +462,20 @@ export class VisualizationControls {
       if (this.hoverNeighborList) {
         this.hoverNeighborList.innerHTML = '';
       }
+      if (this.hoverInfoName) this.hoverInfoName.textContent = 'No node hovered';
+      if (this.hoverInfoPath) this.hoverInfoPath.textContent = '';
+      if (this.hoverNeighborCount) this.hoverNeighborCount.textContent = '0 neighbors';
+      if (this.hoverCallOut) this.hoverCallOut.textContent = '0 out';
+      if (this.hoverCallIn) this.hoverCallIn.textContent = '0 in';
+      if (this.hoverSimilarity) this.hoverSimilarity.textContent = '0 sim';
+      if (this.hoverResolvedEdges) this.hoverResolvedEdges.textContent = '0 resolved';
+      if (this.hoverAmbiguousEdges) this.hoverAmbiguousEdges.textContent = '0 ambiguous';
+      if (this.hoverUnresolvedEdges) this.hoverUnresolvedEdges.textContent = '0 unresolved';
       return;
     }
 
     const { node, neighborCount = 0, neighbors = [], stats = {} } = info;
+    const resolutionStats = stats.resolution || {};
 
     this.hoverInfoSection.classList.remove('hidden');
 
@@ -463,6 +499,15 @@ export class VisualizationControls {
     }
     if (this.hoverSimilarity) {
       this.hoverSimilarity.textContent = `${stats.similarityEdges || 0} sim`;
+    }
+    if (this.hoverResolvedEdges) {
+      this.hoverResolvedEdges.textContent = `${resolutionStats.resolved || 0} resolved`;
+    }
+    if (this.hoverAmbiguousEdges) {
+      this.hoverAmbiguousEdges.textContent = `${resolutionStats.ambiguous || 0} ambiguous`;
+    }
+    if (this.hoverUnresolvedEdges) {
+      this.hoverUnresolvedEdges.textContent = `${resolutionStats.unresolved || 0} unresolved`;
     }
 
     if (this.hoverNeighborList) {

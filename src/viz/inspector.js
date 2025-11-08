@@ -219,13 +219,20 @@ export class InspectorPanel {
         metaParts.push(edge.type || 'edge');
       }
       metaParts.push(`×${edge.weight || 1}`);
+      const resolutionStatus = edge.resolutionStatus || (edge.resolution && edge.resolution.status);
+      if (resolutionStatus) {
+        metaParts.push(resolutionStatus);
+      }
       const meta = metaParts.join(' · ');
       const filePath = this.escapeHtml(target.filePath || '');
       const nodeId = this.escapeHtml(edge.nodeId);
+      const reason = edge.resolutionReason || (edge.resolution && edge.resolution.reason) || '';
+      const reasonLine = reason ? `<span class="inspector-edge-meta">${this.escapeHtml(reason)}</span>` : '';
       return `
         <button class="inspector-edge-btn" data-node-id="${nodeId}">
           <span class="inspector-edge-label">${label}</span>
           <span class="inspector-edge-meta">${meta}</span>
+          ${reasonLine}
           ${filePath ? `<span class="inspector-edge-path">${filePath}</span>` : ''}
         </button>
       `;

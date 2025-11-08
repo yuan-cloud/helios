@@ -1,10 +1,16 @@
 /**
  * Call Graph Construction (Static, Best-Effort)
  * Following PLAN.md section 3.3 specifications
- * 
+ *
  * Builds directed call edges from extracted functions and call expressions
  * Resolves callees using symbol tables and lexical scope
  */
+
+const STATUS_PRIORITY = {
+  resolved: 1,
+  ambiguous: 2,
+  unresolved: 3
+};
 
 /**
  * Build call graph from extracted functions and calls
@@ -14,72 +20,66 @@
  * @returns {Object} - Call graph with nodes and edges
  */
 export function buildCallGraph(functions, allCalls, symbolTableManager) {
-  // Create function index: id → function
-  const functionIndex = new Map();
+  const nodes = [...functions];
+
   const functionByName = new Map(); // name → [functions] (for resolution)
   const functionByFile = new Map(); // filePath → [functions]
 
   functions.forEach(func => {
-    functionIndex.set(func.id, func);
-    
-    // Index by name (for resolution)
     if (!functionByName.has(func.name)) {
       functionByName.set(func.name, []);
     }
     functionByName.get(func.name).push(func);
-    
-    // Index by file
+
     if (!functionByFile.has(func.filePath)) {
       functionByFile.set(func.filePath, []);
     }
     functionByFile.get(func.filePath).push(func);
   });
 
-  // Build edges: Map<edgeKey, edgeData>
-  // edgeKey = "sourceId->targetId"
-  const edgeMap = new Map();
+  const virtualNodeMap = new Map();
+  const edgeMap = new Map(); // Map<edgeKey, edgeData>
 
-  // Process each call expression
   for (const call of allCalls) {
     const callerFile = call.filePath;
     const callerFunctions = functionByFile.get(callerFile) || [];
-    
-    // Find the function that contains this call (caller)
+
     const caller = findContainingFunction(call, callerFunctions);
     if (!caller) {
-      // Call is not inside any function (top-level)
       continue;
     }
 
-    // Resolve callee
-    const callees = resolveCallee(call, callerFile, functionByName, symbolTableManager);
-    
-    // Create edges for each resolved callee
-    for (const callee of callees) {
-      const edgeKey = `${caller.id}->${callee.id}`;
-      
-      if (!edgeMap.has(edgeKey)) {
-        edgeMap.set(edgeKey, {
-          source: caller.id,
-          target: callee.id,
-          weight: 0,
-          isDynamic: call.isDynamic || false,
-          callSites: []
-        });
-      }
-      
-      const edge = edgeMap.get(edgeKey);
-      edge.weight++;
-      edge.callSites.push({
-        file: call.filePath,
-        line: call.startLine,
-        column: call.startColumn,
-        isDynamic: call.isDynamic || false
-      });
+    const resolution = resolveCallee(call, callerFile, functionByName, symbolTableManager);
+
+    if (resolution.status === 'member-expression') {
+      continue;
     }
+
+    if (resolution.status === 'unresolved' || resolution.matches.length === 0) {
+      const virtualNode = getOrCreateVirtualNode(
+        resolution.calleeName,
+        callerFile,
+        virtualNodeMap,
+        nodes
+      );
+      const edge = upsertEdge(edgeMap, caller.id, virtualNode.id, call);
+      edge.resolution = mergeResolution(
+        edge.resolution,
+        buildResolutionMetadata({ ...resolution, status: 'unresolved' })
+      );
+      continue;
+    }
+
+    resolution.matches.forEach(match => {
+      const target = match.func;
+      const edge = upsertEdge(edgeMap, caller.id, target.id, call);
+      edge.resolution = mergeResolution(
+        edge.resolution,
+        buildResolutionMetadata(resolution, match)
+      );
+    });
   }
 
-  // Convert edge map to array
   const edges = Array.from(edgeMap.values()).map(edge => ({
     source: edge.source,
     target: edge.target,
@@ -87,19 +87,18 @@ export function buildCallGraph(functions, allCalls, symbolTableManager) {
     isDynamic: edge.isDynamic,
     metadata: {
       callSites: edge.callSites.length,
-      firstCallSite: edge.callSites[0] || null
+      firstCallSite: edge.callSites[0] || null,
+      callSiteSamples: edge.callSites.slice(0, 10),
+      resolution: edge.resolution || null
     }
   }));
 
+  const stats = computeStats(nodes, edges);
+
   return {
-    nodes: functions,
-    edges: edges,
-    stats: {
-      totalNodes: functions.length,
-      totalEdges: edges.length,
-      staticEdges: edges.filter(e => !e.isDynamic).length,
-      dynamicEdges: edges.filter(e => e.isDynamic).length
-    }
+    nodes,
+    edges,
+    stats
   };
 }
 
@@ -110,7 +109,6 @@ export function buildCallGraph(functions, allCalls, symbolTableManager) {
  * @returns {Object|null} - Containing function or null
  */
 function findContainingFunction(call, functions) {
-  // Find function where call.start is between function.start and function.end
   for (const func of functions) {
     if (call.start >= func.start && call.end <= func.end) {
       return func;
@@ -126,57 +124,132 @@ function findContainingFunction(call, functions) {
  * @param {string} callerFile - File path of the caller
  * @param {Map} functionByName - Map of name → [functions]
  * @param {SymbolTableManager} symbolTableManager - Symbol table manager
- * @returns {Array} - Array of resolved function objects (may be empty or multiple)
+ * @returns {Object} - Resolution summary ({status, matches, ...})
  */
 function resolveCallee(call, callerFile, functionByName, symbolTableManager) {
-  const callees = [];
   const calleeName = call.callee;
+  const summary = {
+    status: 'unresolved',
+    matches: [],
+    callerFile,
+    calleeName,
+    importInfo: null,
+    reason: null
+  };
 
-  // Handle member expressions: object.method
+  if (!calleeName) {
+    summary.reason = 'Anonymous call cannot be resolved';
+    return summary;
+  }
+
   if (call.isMemberCall) {
-    // For now, tag as dynamic (heuristic: if object is a variable, it's dynamic)
-    // Could be enhanced to resolve object types
-    return []; // Member calls are generally dynamic, skip for now
+    summary.status = 'member-expression';
+    summary.reason = 'Member expression treated as dynamic';
+    return summary;
   }
 
-  // Handle identifier calls: functionName()
-  // Try to resolve via symbol table first
-  const resolved = symbolTableManager.resolve(callerFile, calleeName);
-  
-  if (resolved) {
-    // Resolved via symbol table (import or local)
-    // Extract function name from resolved path (e.g., "module.function" → "function")
-    const parts = resolved.split('.');
-    const functionName = parts[parts.length - 1];
-    
-    // Find functions with this name
-    const candidates = functionByName.get(functionName) || [];
-    if (candidates.length > 0) {
-      callees.push(...candidates);
-    }
-  } else {
-    // Try direct name match (local function in same file or global)
-    const candidates = functionByName.get(calleeName) || [];
-    if (candidates.length > 0) {
-      // Prefer functions in the same file
-      const sameFile = candidates.filter(f => f.filePath === callerFile);
-      if (sameFile.length > 0) {
-        callees.push(...sameFile);
-      } else {
-        // Use all candidates (ambiguous, but create edges)
-        callees.push(...candidates);
+  const symbolTable = symbolTableManager.getTable(callerFile);
+  const importInfoRaw = symbolTable ? symbolTable.getImportInfo(calleeName) : null;
+  const importInfo = importInfoRaw
+    ? {
+        from: importInfoRaw.from || '',
+        originalName: importInfoRaw.originalName || calleeName,
+        isDefault: !!importInfoRaw.isDefault,
+        moduleId: importInfoRaw.moduleId || null,
+        resolvedFilePath: importInfoRaw.resolvedFilePath
+          ? normalizePath(importInfoRaw.resolvedFilePath)
+          : null
       }
+    : null;
+
+  summary.importInfo = importInfo;
+
+  const candidates = functionByName.get(calleeName) || [];
+  const resolvedFqn = symbolTableManager.resolve(callerFile, calleeName);
+  const matches = new Map();
+  const normalizedCaller = normalizePath(callerFile);
+
+  const addMatch = (fn, matchType, confidence, details = {}) => {
+    if (!fn || matches.has(fn.id)) {
+      return;
     }
+    matches.set(fn.id, {
+      func: fn,
+      matchType,
+      confidence,
+      details
+    });
+  };
+
+  // Prefer local matches first
+  candidates
+    .filter(fn => normalizePath(fn.filePath) === normalizedCaller)
+    .forEach(fn => addMatch(fn, 'local', 'high', { filePath: fn.filePath }));
+
+  // Import-based matches
+  if (importInfo) {
+    const expectedFq = importInfo.moduleId
+      ? `${importInfo.moduleId}.${importInfo.originalName}`
+      : null;
+
+    candidates
+      .filter(fn => {
+        const fnPath = normalizePath(fn.filePath || '');
+        const moduleMatch = importInfo.moduleId && fn.moduleId === importInfo.moduleId;
+        const fileMatch = importInfo.resolvedFilePath && fnPath === importInfo.resolvedFilePath;
+        const fqMatch = expectedFq && fn.fqName === expectedFq;
+        return moduleMatch || fileMatch || fqMatch;
+      })
+      .forEach(fn => addMatch(fn, 'import', 'high', { moduleMatched: true }));
   }
 
-  // If no resolution found, create a "virtual" node for the callee
-  // This represents an unresolved call (external function, dynamic call, etc.)
-  if (callees.length === 0) {
-    // Return empty - we'll track these as unresolved calls
-    // Could create virtual nodes later if needed
+  // Symbol table resolution (FQN)
+  if (resolvedFqn) {
+    const resolvedName = resolvedFqn.split('.').pop();
+    candidates
+      .filter(fn => {
+        const matchesFqn = fn.fqName === resolvedFqn;
+        const matchesName = fn.name === resolvedName;
+        return matchesFqn || matchesName;
+      })
+      .forEach(fn => addMatch(fn, 'symbol-table', 'high', { resolvedFqn }));
   }
 
-  return callees;
+  // Fallback: other functions with the same name
+  candidates
+    .filter(fn => !matches.has(fn.id))
+    .forEach(fn => {
+      const confidence = fn.moduleId ? 'medium' : 'low';
+      addMatch(fn, 'external', confidence, {});
+    });
+
+  const orderedMatches = Array.from(matches.values()).sort((a, b) => {
+    const rank = { local: 0, 'symbol-table': 1, import: 1, external: 2 };
+    return (rank[a.matchType] || 3) - (rank[b.matchType] || 3);
+  });
+
+  summary.matches = orderedMatches.slice(0, 12);
+
+  if (summary.matches.length === 0) {
+    summary.status = 'unresolved';
+    summary.reason = importInfo
+      ? 'Import could not be resolved to a project function'
+      : 'No matching function found in project';
+    return summary;
+  }
+
+  if (summary.matches.length === 1) {
+    summary.status = 'resolved';
+    summary.reason =
+      summary.matches[0].matchType === 'local'
+        ? 'Resolved to local definition'
+        : 'Resolved via import';
+  } else {
+    summary.status = 'ambiguous';
+    summary.reason = 'Multiple candidate functions match this call';
+  }
+
+  return summary;
 }
 
 /**
@@ -186,15 +259,169 @@ function resolveCallee(call, callerFile, functionByName, symbolTableManager) {
  * @returns {Object} - Virtual function object
  */
 export function createVirtualFunction(name, filePath) {
+  const safeName = name || '<unknown>';
+  const normalizedCaller = normalizePath(filePath || '');
   return {
-    id: `virtual:${name}:${filePath}`,
-    name: name,
+    id: `virtual:${safeName}:${normalizedCaller}`,
+    name: safeName,
+    fqName: `[unresolved] ${safeName}`,
     filePath: filePath,
+    lang: 'unknown',
+    moduleId: null,
     isVirtual: true,
     start: 0,
     end: 0,
     startLine: 0,
-    endLine: 0
+    endLine: 0,
+    loc: 0,
+    doc: '',
+    source: ''
   };
 }
 
+function getOrCreateVirtualNode(name, callerFile, virtualNodeMap, nodes) {
+  const key = `${normalizePath(callerFile)}::${name || '<unknown>'}`;
+  if (!virtualNodeMap.has(key)) {
+    const virtualNode = createVirtualFunction(name, callerFile);
+    nodes.push(virtualNode);
+    virtualNodeMap.set(key, virtualNode);
+  }
+  return virtualNodeMap.get(key);
+}
+
+function upsertEdge(edgeMap, sourceId, targetId, call) {
+  const edgeKey = `${sourceId}->${targetId}`;
+  if (!edgeMap.has(edgeKey)) {
+    edgeMap.set(edgeKey, {
+      source: sourceId,
+      target: targetId,
+      weight: 0,
+      isDynamic: false,
+      callSites: [],
+      resolution: null
+    });
+  }
+
+  const edge = edgeMap.get(edgeKey);
+  edge.weight += 1;
+  edge.isDynamic = edge.isDynamic || !!call.isDynamic;
+  edge.callSites.push({
+    file: call.filePath,
+    line: call.startLine,
+    column: call.startColumn,
+    isDynamic: !!call.isDynamic
+  });
+
+  return edge;
+}
+
+function buildResolutionMetadata(resolution, selectedMatch = null) {
+  const matches = (resolution.matches || []).map(match => ({
+    id: match.func.id,
+    name: match.func.fqName || match.func.name,
+    filePath: match.func.filePath,
+    moduleId: match.func.moduleId || null,
+    matchType: match.matchType,
+    confidence: match.confidence
+  })).slice(0, 12);
+
+  return {
+    status: resolution.status,
+    reason: resolution.reason,
+    importInfo: resolution.importInfo,
+    matchCount: resolution.matches ? resolution.matches.length : 0,
+    matches,
+    selectedMatch: selectedMatch
+      ? {
+          id: selectedMatch.func.id,
+          matchType: selectedMatch.matchType,
+          confidence: selectedMatch.confidence
+        }
+      : null,
+    calleeName: resolution.calleeName
+  };
+}
+
+function mergeResolution(existing, incoming) {
+  if (!incoming) {
+    return existing || null;
+  }
+
+  if (!existing) {
+    return {
+      ...incoming,
+      matches: incoming.matches ? [...incoming.matches] : []
+    };
+  }
+
+  if (STATUS_PRIORITY[incoming.status] > STATUS_PRIORITY[existing.status]) {
+    existing.status = incoming.status;
+    existing.reason = incoming.reason;
+  }
+
+  existing.matchCount = Math.max(existing.matchCount || 0, incoming.matchCount || 0);
+  existing.matches = mergeMatches(existing.matches, incoming.matches);
+  existing.importInfo = existing.importInfo || incoming.importInfo || null;
+
+  if (incoming.selectedMatch) {
+    existing.selectedMatch = incoming.selectedMatch;
+  }
+  if (incoming.calleeName && !existing.calleeName) {
+    existing.calleeName = incoming.calleeName;
+  }
+
+  return existing;
+}
+
+function mergeMatches(current = [], incoming = []) {
+  const map = new Map();
+  [...current, ...incoming].forEach(match => {
+    if (!match) {
+      return;
+    }
+    const key = match.id || `${match.filePath}:${match.name}`;
+    if (!map.has(key)) {
+      map.set(key, match);
+    }
+  });
+  return Array.from(map.values()).slice(0, 12);
+}
+
+function computeStats(nodes, edges) {
+  let staticEdges = 0;
+  let dynamicEdges = 0;
+  let resolvedEdges = 0;
+  let ambiguousEdges = 0;
+  let unresolvedEdges = 0;
+
+  edges.forEach(edge => {
+    if (edge.isDynamic) {
+      dynamicEdges += 1;
+    } else {
+      staticEdges += 1;
+    }
+
+    const status = edge.metadata?.resolution?.status;
+    if (status === 'resolved') {
+      resolvedEdges += 1;
+    } else if (status === 'ambiguous') {
+      ambiguousEdges += 1;
+    } else if (status === 'unresolved') {
+      unresolvedEdges += 1;
+    }
+  });
+
+  return {
+    totalNodes: nodes.length,
+    totalEdges: edges.length,
+    staticEdges,
+    dynamicEdges,
+    resolvedEdges,
+    ambiguousEdges,
+    unresolvedEdges
+  };
+}
+
+function normalizePath(path = '') {
+  return path.replace(/\\/g, '/');
+}

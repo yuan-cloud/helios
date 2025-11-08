@@ -184,6 +184,23 @@ export class SymbolTable {
   getImportInfo(localName) {
     return this.imports.get(localName) || null;
   }
+
+  /**
+   * Retrieve a stored function definition by local name
+   * @param {string} localName
+   * @returns {Object|null}
+   */
+  getFunction(localName) {
+    return this.functions.get(localName) || null;
+  }
+
+  /**
+   * Retrieve all function definitions registered for this file
+   * @returns {Array<Object>}
+   */
+  getAllFunctions() {
+    return Array.from(this.functions.values());
+  }
 }
 
 /**
