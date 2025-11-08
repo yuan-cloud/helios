@@ -80,13 +80,13 @@ Tree-sitter's query DSL lets you capture these nodes robustly.
 
 ### 3.3 Call Graph Construction (Static, Best-Effort)
 
-[parser-agent - ✅ COMPLETED - 2025-11-07]
+[PinkMountain - UPDATED - 2025-11-09 00:30]
 
 ✅ Static call graph extraction complete (caller→callee edges with call-site metadata)
 ✅ Python grammar support added (functions/imports/calls now feed call graph + viz)
 ✅ Symbol table implementation complete
 ✅ Module resolution logic added
-⏳ Reviewing integration with visualization layer (coord with viz-agent on neighbor highlighting / filters)
+⏳ Reviewing integration with visualization layer (coord with viz-agent on hover + layout plumbing, 80% done)
 ✅ Regression in bcbff97 (edge toggles) reported; fix landed in 6213e89 after review
 ⏳ Enhanced name resolution (stack-graphs integration) planned after MVP stabilizes
 
@@ -141,7 +141,7 @@ Tree-sitter's query DSL lets you capture these nodes robustly.
 
 ✅ 3d-force-graph scaffold hooked to call graph output (directional call edges, particle arrows, camera helpers)
 ✅ Controls + inspector enhancements (hover sidebar, neighbor quick jumps, call inbound/outbound lists)
-⏳ Layout persistence & performance tuning (60% done – localStorage snapshot/restore live; OPFS snapshot flow pending storage-agent)
+⏳ Layout persistence & performance tuning (65% done – localStorage save/restore shipped; OPFS persistence waiting on storage-agent)
 ❌ Similarity edge layer (blocked: needs embeddings-agent similarity vectors from sections 3.4/3.5)
 ✅ Regression fix: call/sim edge toggles restored post hover refactor (`6213e89`)
 
@@ -270,7 +270,7 @@ Persist DB under OPFS (origin-private) so users can reopen the site and continue
 
 ✅ Call-edge palette complete (directional particles, arrowheads, color coding)
 ✅ Interaction polish (hover sidebar, inspector call lists, camera/quick-jump syncing)
-⏳ Layout persistence & freeze UX (60% done – UI save/restore/reset wired; OPFS-backed persistence blocked on storage-agent)
+⏳ Layout persistence & freeze UX (65% done – control UX + localStorage snapshotting live; OPFS handoff pending storage-agent)
 ❌ Similarity edge styling (blocked: embeddings-agent similarity vectors not yet available)
 
 - **Edge palette**:
