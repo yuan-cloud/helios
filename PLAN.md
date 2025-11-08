@@ -57,12 +57,14 @@ Everything runs from static hosting (GitHub/Cloudflare Pages). To enable threads
 
 ### 3.2 Language Detection and AST Parsing
 
-[parser-agent - ✅ COMPLETED - 2025-11-07]
+[PinkMountain - UPDATED - 2025-11-07 12:30]
 
-✅ web-tree-sitter initialization with lazy grammar loading (JS/TS)
-✅ Extraction queries capturing functions, imports/exports, call expressions
-✅ Per-file symbol tables populated for cross-file name resolution
-❌ Python grammar deferred (blocked: waiting until JS/TS flow validated end-to-end)
+✅ Tree-sitter loaded
+✅ JS/TS grammar loaded  
+✅ Python grammar loaded
+✅ Extraction queries complete
+⏳ Symbol table resolution (90% done)
+❌ Stack graphs integration (blocked: needs research)
 
 - Load web-tree-sitter once; lazy-load grammars per file type. Ship grammar WASMs via CDN (e.g., `tree-sitter-python.wasm`, `tree-sitter-javascript.wasm`).
 - Use Tree-sitter query patterns to extract:
