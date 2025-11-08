@@ -958,9 +958,28 @@
 
             functionMapById = new Map((callGraph.nodes || []).map(fn => [fn.id, fn]));
             fullVizData = convertCallGraphToVizData(callGraph);
-            applyVisualizationFilters(controls ? controls.getFilters() : {});
+            const layoutKey = computeLayoutStorageKey(callGraph);
+            graphViz.setLayoutStorageKey(layoutKey);
 
-            setTimeout(() => graphViz.fitToView(), 400);
+            const initialFilters = controls ? controls.getFilters() : {};
+            applyVisualizationFilters(initialFilters);
+
+            const restored = graphViz.restoreLayoutFromStorage({ freeze: true });
+            if (controls && typeof controls.setLayoutStatus === 'function') {
+                if (restored) {
+                    controls.setLayoutStatus('Layout restored from browser storage.', { tone: 'success' });
+                } else if (graphViz.hasStoredLayout()) {
+                    controls.setLayoutStatus('Saved layout found but incompatible with current graph.', { tone: 'error', timeout: 5000 });
+                } else {
+                    controls.setLayoutStatus('Layout will auto-save when you choose “Save Layout”.', { tone: 'info', timeout: 5000 });
+                }
+            }
+
+            if (!restored) {
+                setTimeout(() => graphViz.fitToView(), 400);
+            } else {
+                graphViz.fitToView();
+            }
         }
 
         function groupFilesByLanguage(files) {
@@ -986,12 +1005,16 @@
             }
         }
 
-        function annotateFunctions(functions = [], languageId) {
-            return (functions || []).map(fn => ({
-                ...fn,
-                lang: fn.lang || languageId,
-                fqName: fn.fqName || fn.name
-            }));
+        function annotateFunctions(functions = [], languageId, moduleId = null) {
+            return (functions || []).map(fn => {
+                const resolvedModuleId = fn.moduleId || moduleId || null;
+                return {
+                    ...fn,
+                    lang: fn.lang || languageId,
+                    moduleId: resolvedModuleId,
+                    fqName: fn.fqName || buildFunctionFqName(resolvedModuleId, fn.name)
+                };
+            });
         }
 
         function annotateCalls(calls = [], languageId) {
@@ -1135,6 +1158,232 @@
                 console.error('Failed to read function source', err);
                 return '';
             }
+        }
+
+        function buildFunctionFqName(moduleId, name) {
+            if (!name) {
+                return name;
+            }
+            if (!moduleId) {
+                return name;
+            }
+            return `${moduleId}.${name}`;
+        }
+
+        function registerSourceFile(fileMeta) {
+            if (!fileMeta || !fileMeta.path) {
+                return;
+            }
+
+            const normalized = {
+                ...fileMeta,
+                path: normalizeSlashes(fileMeta.path)
+            };
+
+            sourceFileIndex.set(normalized.path, normalized);
+
+            if (normalized.moduleId) {
+                const entry = ensureModuleIndexEntry(normalized.moduleId);
+                entry.files.add(normalized.path);
+                (normalized.moduleAliases || []).forEach(alias => {
+                    if (alias) {
+                        entry.aliases.add(alias);
+                    }
+                });
+            }
+        }
+
+        function ensureModuleIndexEntry(moduleId) {
+            if (!moduleId) {
+                return { files: new Set(), aliases: new Set() };
+            }
+            if (!moduleIndex.has(moduleId)) {
+                moduleIndex.set(moduleId, { files: new Set(), aliases: new Set([moduleId]) });
+            }
+            return moduleIndex.get(moduleId);
+        }
+
+        function createModuleMetadata(filePath, languageId) {
+            const normalizedPath = normalizeSlashes(filePath);
+            const fileName = normalizedPath.split('/').pop() || '';
+            const dirName = getDirname(normalizedPath);
+            const lowerFileName = fileName.toLowerCase();
+            const aliases = new Set();
+
+            let moduleId = stripExtension(normalizedPath);
+            const isJavaScriptLike = ['javascript', 'typescript', 'jsx', 'tsx'].includes(languageId);
+
+            if (isJavaScriptLike) {
+                if (JS_INDEX_FILENAMES.includes(lowerFileName)) {
+                    moduleId = dirName || moduleId;
+                }
+                aliases.add(normalizeSlashes(moduleId));
+                aliases.add(stripExtension(fileName));
+            } else if (languageId === 'python') {
+                if (PY_PACKAGE_FILENAMES.includes(lowerFileName)) {
+                    moduleId = dirName;
+                }
+                const dotted = (moduleId || '').replace(/\//g, '.').replace(/^\.+/, '');
+                const packageAlias = (dirName || '').replace(/\//g, '.').replace(/^\.+/, '');
+                if (dotted) aliases.add(dotted);
+                if (packageAlias) aliases.add(packageAlias);
+                if (moduleId) aliases.add(moduleId);
+            } else {
+                aliases.add(moduleId);
+            }
+
+            const aliasList = Array.from(aliases).filter(Boolean);
+
+            return {
+                moduleId: moduleId || normalizedPath,
+                aliases: aliasList
+            };
+        }
+
+        function normalizeSlashes(path = '') {
+            return path.replace(/\\/g, '/');
+        }
+
+        function stripExtension(path = '') {
+            const normalized = normalizeSlashes(path);
+            const lastDot = normalized.lastIndexOf('.');
+            if (lastDot <= normalized.lastIndexOf('/')) {
+                return normalized;
+            }
+            return normalized.slice(0, lastDot);
+        }
+
+        function getDirname(path = '') {
+            const normalized = normalizeSlashes(path);
+            const idx = normalized.lastIndexOf('/');
+            if (idx === -1) {
+                return '';
+            }
+            return normalized.slice(0, idx);
+        }
+
+        function resolveRelativePath(fromPath, specifier) {
+            const fromDir = getDirname(fromPath);
+            const segments = fromDir ? fromDir.split('/') : [];
+            const specSegments = normalizeSlashes(specifier).split('/');
+
+            for (const segment of specSegments) {
+                if (!segment || segment === '.') {
+                    continue;
+                }
+                if (segment === '..') {
+                    if (segments.length) {
+                        segments.pop();
+                    }
+                } else {
+                    segments.push(segment);
+                }
+            }
+
+            return segments.join('/');
+        }
+
+        function enumeratePossibleModuleFiles(basePath, languageId) {
+            const possibilities = [];
+            const baseWithoutExt = stripExtension(basePath);
+
+            if (['javascript', 'typescript', 'jsx', 'tsx'].includes(languageId)) {
+                JS_FILE_EXTENSIONS.forEach(ext => {
+                    possibilities.push(`${baseWithoutExt}${ext}`);
+                });
+                JS_FILE_EXTENSIONS.forEach(ext => {
+                    possibilities.push(`${baseWithoutExt}/index${ext}`);
+                });
+            } else if (languageId === 'python') {
+                possibilities.push(`${baseWithoutExt}.py`);
+                possibilities.push(`${baseWithoutExt}/__init__.py`);
+            } else {
+                possibilities.push(basePath);
+            }
+
+            return Array.from(new Set(possibilities.map(normalizeSlashes)));
+        }
+
+        function resolveImportModule(fileMeta, specifier, languageId) {
+            if (!specifier) {
+                return null;
+            }
+
+            const normalizedSpec = normalizeSlashes(specifier);
+
+            const trySourceFile = (candidatePath) => {
+                const meta = sourceFileIndex.get(candidatePath);
+                if (meta) {
+                    return {
+                        moduleId: meta.moduleId || null,
+                        filePath: meta.path
+                    };
+                }
+                return null;
+            };
+
+            if (normalizedSpec.startsWith('.')) {
+                const basePath = resolveRelativePath(fileMeta.path, normalizedSpec);
+                const candidates = enumeratePossibleModuleFiles(basePath, languageId);
+                for (const candidate of candidates) {
+                    const resolved = trySourceFile(candidate);
+                    if (resolved) {
+                        return resolved;
+                    }
+                }
+            } else {
+                for (const [moduleId, entry] of moduleIndex.entries()) {
+                    if (moduleId === normalizedSpec || entry.aliases.has(normalizedSpec)) {
+                        const files = Array.from(entry.files);
+                        if (files.length) {
+                            return {
+                                moduleId,
+                                filePath: files[0]
+                            };
+                        }
+                    }
+                }
+
+                if (languageId === 'python') {
+                    const candidateBase = normalizedSpec.replace(/\./g, '/');
+                    const candidates = enumeratePossibleModuleFiles(candidateBase, languageId);
+                    for (const candidate of candidates) {
+                        const resolved = trySourceFile(candidate);
+                        if (resolved) {
+                            return resolved;
+                        }
+                    }
+                }
+            }
+
+            return null;
+        }
+
+        function computeLayoutStorageKey(graph) {
+            const prefix = 'helios:v1:layout';
+            if (!graph || !Array.isArray(graph.nodes)) {
+                return `${prefix}:default`;
+            }
+
+            const nodeCount = graph.nodes.length;
+            const edgeCount = Array.isArray(graph.edges) ? graph.edges.length : 0;
+            const signatureSample = (graph.nodes || [])
+                .slice(0, 64)
+                .map(node => node.id || node.fqName || node.name || '')
+                .sort()
+                .join('|');
+
+            const hash = hashString(`${nodeCount}:${edgeCount}:${signatureSample}`);
+            return `${prefix}:${hash}`;
+        }
+
+        function hashString(value = '') {
+            let hash = 0;
+            for (let i = 0; i < value.length; i += 1) {
+                hash = ((hash << 5) - hash) + value.charCodeAt(i);
+                hash |= 0;
+            }
+            return Math.abs(hash).toString(16);
         }
     </script>
 </body>

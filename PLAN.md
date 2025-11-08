@@ -137,11 +137,11 @@ Tree-sitter's query DSL lets you capture these nodes robustly.
 
 ### 3.7 Visualization (3D)
 
-[LilacLake - UPDATED - 2025-11-08 07:32]
+[LilacLake - UPDATED - 2025-11-09 00:20]
 
 ✅ 3d-force-graph scaffold hooked to call graph output (directional call edges, particle arrows, camera helpers)
 ✅ Controls + inspector enhancements (hover sidebar, neighbor quick jumps, call inbound/outbound lists)
-⏳ Layout persistence & performance tuning (25% done – awaiting storage-agent OPFS snapshot flow)
+⏳ Layout persistence & performance tuning (60% done – localStorage snapshot/restore live; OPFS snapshot flow pending storage-agent)
 ❌ Similarity edge layer (blocked: needs embeddings-agent similarity vectors from sections 3.4/3.5)
 ✅ Regression fix: call/sim edge toggles restored post hover refactor (`6213e89`)
 
@@ -266,11 +266,11 @@ Persist DB under OPFS (origin-private) so users can reopen the site and continue
 
 ## 11) Visualization Details
 
-[LilacLake - UPDATED - 2025-11-08 07:32]
+[LilacLake - UPDATED - 2025-11-09 00:20]
 
 ✅ Call-edge palette complete (directional particles, arrowheads, color coding)
 ✅ Interaction polish (hover sidebar, inspector call lists, camera/quick-jump syncing)
-⏳ Layout persistence & freeze UX (20% done – awaiting storage-agent OPFS snapshot flow)
+⏳ Layout persistence & freeze UX (60% done – UI save/restore/reset wired; OPFS-backed persistence blocked on storage-agent)
 ❌ Similarity edge styling (blocked: embeddings-agent similarity vectors not yet available)
 
 - **Edge palette**:

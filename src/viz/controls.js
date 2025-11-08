@@ -24,6 +24,8 @@ export class VisualizationControls {
       minSize: 0,
       maxSize: Infinity
     };
+
+    this.layoutStatusTimer = null;
     
     this.init();
   }
@@ -75,6 +77,10 @@ export class VisualizationControls {
           <button class="control-button" id="btnFitToView">Fit to View</button>
           <button class="control-button" id="btnFreezePositions">Freeze Positions</button>
           <button class="control-button" id="btnResumeSimulation">Resume Simulation</button>
+          <button class="control-button" id="btnSaveLayout">Save Layout</button>
+          <button class="control-button" id="btnRestoreLayout">Restore Layout</button>
+          <button class="control-button" id="btnResetLayout">Reset Layout</button>
+          <div class="control-hint" id="layoutStatus" aria-live="polite" style="font-size: 0.75rem; color: #94a3b8; margin-top: 0.35rem;"></div>
         </div>
         
         ${this.options.showFilters ? `
@@ -126,8 +132,10 @@ export class VisualizationControls {
     this.hoverCallIn = this.container.querySelector('#hoverCallIn');
     this.hoverSimilarity = this.container.querySelector('#hoverSimilarity');
     this.hoverNeighborList = this.container.querySelector('#hoverNeighborList');
+    this.layoutStatusEl = this.container.querySelector('#layoutStatus');
 
     this.setHoverInfo(null);
+    this.setLayoutStatus('');
   }
 
   /**
@@ -202,7 +210,54 @@ export class VisualizationControls {
         if (this.graphViz) {
           this.graphViz.freezePositions(false);
           this.graphViz.pauseSimulation(false);
+          this.setLayoutStatus('Simulation resumed.', { tone: 'info' });
         }
+      });
+    }
+
+    const btnSaveLayout = this.container.querySelector('#btnSaveLayout');
+    if (btnSaveLayout) {
+      btnSaveLayout.addEventListener('click', () => {
+        if (!this.graphViz) return;
+        const ok = this.graphViz.saveLayoutToStorage();
+        this.setLayoutStatus(
+          ok ? 'Layout saved to browser storage.' : 'Unable to save layout.',
+          { tone: ok ? 'success' : 'error' }
+        );
+      });
+    }
+
+    const btnRestoreLayout = this.container.querySelector('#btnRestoreLayout');
+    if (btnRestoreLayout) {
+      btnRestoreLayout.addEventListener('click', () => {
+        if (!this.graphViz) return;
+        const restored = this.graphViz.restoreLayoutFromStorage({ freeze: true });
+        if (restored) {
+          this.graphViz.fitToView();
+        }
+        const hasLayout = restored || this.graphViz.hasStoredLayout();
+        this.setLayoutStatus(
+          restored
+            ? 'Saved layout restored.'
+            : hasLayout
+              ? 'Stored layout found but could not be applied.'
+              : 'No saved layout available.',
+          { tone: restored ? 'success' : hasLayout ? 'error' : 'info' }
+        );
+      });
+    }
+
+    const btnResetLayout = this.container.querySelector('#btnResetLayout');
+    if (btnResetLayout) {
+      btnResetLayout.addEventListener('click', () => {
+        if (!this.graphViz) return;
+        const hadStored = this.graphViz.hasStoredLayout();
+        this.graphViz.resetLayoutToDefault({ clearStored: true });
+        this.graphViz.fitToView();
+        this.setLayoutStatus(
+          hadStored ? 'Saved layout cleared. Simulation reset.' : 'Simulation reset to defaults.',
+          { tone: 'info' }
+        );
       });
     }
 
@@ -222,6 +277,35 @@ export class VisualizationControls {
         });
       }
     }
+  }
+
+  setLayoutStatus(message, { tone = 'info', timeout = 3000 } = {}) {
+    if (!this.layoutStatusEl) {
+      return;
+    }
+
+    const palette = {
+      info: '#94a3b8',
+      success: '#34d399',
+      error: '#f87171'
+    };
+
+    const color = palette[tone] || palette.info;
+    this.layoutStatusEl.textContent = message || '';
+    this.layoutStatusEl.style.color = color;
+
+    if (this.layoutStatusTimer) {
+      clearTimeout(this.layoutStatusTimer);
+      this.layoutStatusTimer = null;
+    }
+
+    if (message && timeout > 0) {
+      this.layoutStatusTimer = setTimeout(() => {
+        this.layoutStatusEl.textContent = '';
+        this.layoutStatusTimer = null;
+      }, timeout);
+    }
+  }
 
     // Export
     if (this.options.showExport) {

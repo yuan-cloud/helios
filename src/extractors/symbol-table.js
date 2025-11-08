@@ -16,6 +16,10 @@ export class SymbolTable {
     this.exports = new Map();
     // Imported symbols: localName → { from: modulePath, originalName }
     this.imports = new Map();
+    // Functions defined in this file (used for auto-export + metadata)
+    this.functions = new Map();
+    // Optional module identifier associated with the file
+    this.moduleId = null;
   }
 
   /**
@@ -25,6 +29,35 @@ export class SymbolTable {
    */
   addSymbol(localName, fullyQualifiedName) {
     this.symbols.set(localName, fullyQualifiedName);
+  }
+
+  /**
+   * Register a function definition (for lookup + optional auto-export)
+   * @param {Object} func - Function metadata from extractor
+   * @param {Object} options - { autoExport?: boolean }
+   */
+  registerFunction(func, options = {}) {
+    if (!func || !func.name) {
+      return;
+    }
+
+    const localName = func.name;
+    const fqName = func.fqName || func.name;
+
+    this.functions.set(localName, {
+      ...func,
+      fqName
+    });
+
+    this.addSymbol(localName, fqName);
+
+    if (options.autoExport) {
+      this.addExport(localName, {
+        isDefault: false,
+        kind: 'function',
+        symbolId: func.id || null
+      });
+    }
   }
 
   /**
@@ -51,24 +84,42 @@ export class SymbolTable {
 
   /**
    * Add an import
-   * @param {string} localName - Local name (may be aliased)
-   * @param {string} from - Module path being imported from
-   * @param {string} originalName - Original name in the source module
+   * Supports legacy signature (localName, from, originalName)
+   * or a richer metadata object per PLAN §3.3.
    */
-  addImport(localName, from, originalName = null) {
-    this.imports.set(localName, {
-      from,
-      originalName: originalName || localName,
-      localName
-    });
-    
-    // If importing a default export, map it
-    if (!originalName) {
-      // Default import - use module path as FQN
-      this.addSymbol(localName, `${from}.${localName}`);
+  addImport(localName, fromOrInfo, originalName = null) {
+    if (!localName) {
+      return;
+    }
+
+    let info;
+    if (typeof fromOrInfo === 'object' && fromOrInfo !== null) {
+      info = {
+        from: fromOrInfo.from || '',
+        originalName: fromOrInfo.originalName || localName,
+        isDefault: !!fromOrInfo.isDefault,
+        moduleId: fromOrInfo.moduleId || null,
+        resolvedFilePath: fromOrInfo.resolvedFilePath || null,
+        localName
+      };
     } else {
-      // Named import - use original name from source
-      this.addSymbol(localName, `${from}.${originalName}`);
+      info = {
+        from: fromOrInfo,
+        originalName: originalName || localName,
+        isDefault: !originalName,
+        moduleId: null,
+        resolvedFilePath: null,
+        localName
+      };
+    }
+
+    this.imports.set(localName, info);
+
+    const namespace = info.moduleId || info.from || '';
+    const resolvedName = info.originalName || localName;
+
+    if (namespace) {
+      this.addSymbol(localName, `${namespace}.${resolvedName}`);
     }
   }
 
@@ -105,6 +156,34 @@ export class SymbolTable {
   isImported(name) {
     return this.imports.has(name);
   }
+
+  /**
+   * Associate table with a module identifier
+   */
+  setModuleId(moduleId) {
+    this.moduleId = moduleId;
+  }
+
+  /**
+   * Retrieve associated module id
+   */
+  getModuleId() {
+    return this.moduleId;
+  }
+
+  /**
+   * Retrieve export metadata (if present)
+   */
+  getExport(name) {
+    return this.exports.get(name) || null;
+  }
+
+  /**
+   * Retrieve import metadata
+   */
+  getImportInfo(localName) {
+    return this.imports.get(localName) || null;
+  }
 }
 
 /**
@@ -115,6 +194,8 @@ export class SymbolTableManager {
   constructor() {
     // Map: filePath → SymbolTable
     this.tables = new Map();
+    // Map: moduleId → Set<filePath>
+    this.moduleToFiles = new Map();
   }
 
   /**
@@ -151,9 +232,68 @@ export class SymbolTableManager {
     // Check if it's an import
     const importInfo = table.imports.get(localName);
     if (importInfo) {
-      // For now, return the import path
-      // Full cross-file resolution would require resolving the imported module
-      return `${importInfo.from}.${importInfo.originalName}`;
+      const moduleId = importInfo.moduleId || importInfo.from;
+      const symbol = importInfo.originalName || localName;
+
+      if (moduleId) {
+        const resolvedExport = this.findExportedSymbol(moduleId, symbol);
+        if (resolvedExport) {
+          return resolvedExport.fullyQualifiedName || `${moduleId}.${symbol}`;
+        }
+      }
+
+      if (importInfo.from) {
+        return `${importInfo.from}.${symbol}`;
+      }
+    }
+
+    return null;
+  }
+
+  /**
+   * Register module → filePath relationship
+   */
+  registerModule(filePath, moduleId) {
+    if (!filePath || !moduleId) {
+      return;
+    }
+
+    if (!this.moduleToFiles.has(moduleId)) {
+      this.moduleToFiles.set(moduleId, new Set());
+    }
+    this.moduleToFiles.get(moduleId).add(filePath);
+  }
+
+  /**
+   * Get file paths associated with a module id
+   */
+  getModuleFilePaths(moduleId) {
+    if (!moduleId || !this.moduleToFiles.has(moduleId)) {
+      return [];
+    }
+    return Array.from(this.moduleToFiles.get(moduleId));
+  }
+
+  /**
+   * Attempt to locate an exported symbol by module id + name
+   */
+  findExportedSymbol(moduleId, symbolName) {
+    if (!moduleId || !symbolName) {
+      return null;
+    }
+
+    const files = this.getModuleFilePaths(moduleId);
+    for (const filePath of files) {
+      const table = this.tables.get(filePath);
+      if (!table) continue;
+      const exportInfo = table.getExport(symbolName);
+      if (exportInfo) {
+        return {
+          ...exportInfo,
+          moduleId,
+          fullyQualifiedName: `${moduleId}.${symbolName}`
+        };
+      }
     }
 
     return null;
@@ -172,6 +312,7 @@ export class SymbolTableManager {
    */
   clear() {
     this.tables.clear();
+    this.moduleToFiles.clear();
   }
 }
 

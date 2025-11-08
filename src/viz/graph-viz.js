@@ -54,6 +54,10 @@ export class GraphVisualization {
 
     this.onHoverDetails = null;
 
+    // Layout persistence metadata
+    this.layoutStorageKey = 'helios:layout:last';
+    this.lastRestoredLayoutHash = null;
+
     this.palettes = {
       languages: {
         javascript: '#f59e0b',
@@ -160,6 +164,12 @@ export class GraphVisualization {
     this.applyGraphData();
 
     return this;
+  }
+
+  setLayoutStorageKey(key) {
+    if (typeof key === 'string' && key.trim().length > 0) {
+      this.layoutStorageKey = key.trim();
+    }
   }
 
   /**
@@ -860,6 +870,178 @@ export class GraphVisualization {
         });
       }
     }
+  }
+
+  captureLayoutSnapshot() {
+    if (!this.data || !Array.isArray(this.data.nodes)) {
+      return [];
+    }
+    return this.data.nodes.map(node => ({
+      id: node.id,
+      x: typeof node.x === 'number' ? node.x : null,
+      y: typeof node.y === 'number' ? node.y : null,
+      z: typeof node.z === 'number' ? node.z : null,
+      fx: typeof node.fx === 'number' ? node.fx : null,
+      fy: typeof node.fy === 'number' ? node.fy : null,
+      fz: typeof node.fz === 'number' ? node.fz : null
+    }));
+  }
+
+  applyLayoutSnapshot(snapshot, { freeze = true, refresh = true } = {}) {
+    if (!Array.isArray(snapshot) || !this.data || !Array.isArray(this.data.nodes)) {
+      return 0;
+    }
+
+    const layoutMap = new Map(snapshot.map(entry => [entry.id, entry]));
+    let applied = 0;
+
+    this.data.nodes.forEach(node => {
+      const entry = layoutMap.get(node.id);
+      if (!entry) {
+        return;
+      }
+
+      if (typeof entry.x === 'number') node.x = entry.x;
+      if (typeof entry.y === 'number') node.y = entry.y;
+      if (typeof entry.z === 'number') node.z = entry.z;
+
+      if (freeze) {
+        node.fx = typeof entry.fx === 'number' ? entry.fx : entry.x;
+        node.fy = typeof entry.fy === 'number' ? entry.fy : entry.y;
+        node.fz = typeof entry.fz === 'number' ? entry.fz : entry.z;
+      } else {
+        node.fx = undefined;
+        node.fy = undefined;
+        node.fz = undefined;
+      }
+
+      applied += 1;
+    });
+
+    if (applied > 0 && refresh) {
+      this.applyGraphData();
+    }
+
+    return applied;
+  }
+
+  saveLayoutToStorage({ key = this.layoutStorageKey } = {}) {
+    if (!key || typeof localStorage === 'undefined') {
+      return false;
+    }
+
+    try {
+      const snapshot = {
+        version: 1,
+        nodes: this.captureLayoutSnapshot(),
+        savedAt: Date.now()
+      };
+      localStorage.setItem(key, JSON.stringify(snapshot));
+      return true;
+    } catch (err) {
+      console.warn('GraphVisualization.saveLayoutToStorage failed:', err);
+      return false;
+    }
+  }
+
+  loadLayoutFromStorage({ key = this.layoutStorageKey } = {}) {
+    if (!key || typeof localStorage === 'undefined') {
+      return null;
+    }
+
+    try {
+      const raw = localStorage.getItem(key);
+      if (!raw) return null;
+      const parsed = JSON.parse(raw);
+      if (!parsed || !Array.isArray(parsed.nodes)) {
+        return null;
+      }
+      return parsed;
+    } catch (err) {
+      console.warn('GraphVisualization.loadLayoutFromStorage failed:', err);
+      return null;
+    }
+  }
+
+  restoreLayoutFromStorage({ key = this.layoutStorageKey, freeze = true } = {}) {
+    const snapshot = this.loadLayoutFromStorage({ key });
+    if (!snapshot || !Array.isArray(snapshot.nodes) || snapshot.nodes.length === 0) {
+      return false;
+    }
+
+    const applied = this.applyLayoutSnapshot(snapshot.nodes, { freeze, refresh: true });
+    if (applied > 0) {
+      this.lastRestoredLayoutHash = this.hashLayout(snapshot.nodes);
+      this.pauseSimulation(true);
+      return true;
+    }
+    return false;
+  }
+
+  hasStoredLayout({ key = this.layoutStorageKey } = {}) {
+    if (!key || typeof localStorage === 'undefined') {
+      return false;
+    }
+    try {
+      return localStorage.getItem(key) !== null;
+    } catch {
+      return false;
+    }
+  }
+
+  clearStoredLayout({ key = this.layoutStorageKey } = {}) {
+    if (!key || typeof localStorage === 'undefined') {
+      return false;
+    }
+    try {
+      localStorage.removeItem(key);
+      if (this.lastRestoredLayoutHash && key === this.layoutStorageKey) {
+        this.lastRestoredLayoutHash = null;
+      }
+      return true;
+    } catch (err) {
+      console.warn('GraphVisualization.clearStoredLayout failed:', err);
+      return false;
+    }
+  }
+
+  resetLayoutToDefault({ clearStored = false } = {}) {
+    if (clearStored) {
+      this.clearStoredLayout({});
+    }
+    this.freezePositions(false);
+    this.pauseSimulation(false);
+    this.lastRestoredLayoutHash = null;
+  }
+
+  hashLayout(nodes) {
+    if (!Array.isArray(nodes) || nodes.length === 0) {
+      return '0';
+    }
+
+    let hash = 0;
+    const prime = 31;
+    nodes.forEach(node => {
+      const x = typeof node.x === 'number' ? node.x : 0;
+      const y = typeof node.y === 'number' ? node.y : 0;
+      const z = typeof node.z === 'number' ? node.z : 0;
+      const idHash = this.simpleStringHash(node.id || '');
+      hash = (hash * prime + Math.floor(x * 1000)) | 0;
+      hash = (hash * prime + Math.floor(y * 1000)) | 0;
+      hash = (hash * prime + Math.floor(z * 1000)) | 0;
+      hash = (hash * prime + idHash) | 0;
+    });
+    return hash.toString(16);
+  }
+
+  simpleStringHash(value) {
+    if (!value) return 0;
+    let hash = 0;
+    for (let i = 0; i < value.length; i += 1) {
+      hash = ((hash << 5) - hash) + value.charCodeAt(i);
+      hash |= 0;
+    }
+    return hash;
   }
 
   /**
