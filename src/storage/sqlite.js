@@ -144,7 +144,7 @@ function upsertMetadata(db, entries) {
 /**
  * Apply base schema and record metadata.
  */
-function ensureSchema(db) {
+export function ensureSchema(db) {
   executeStatements(db, getBootstrapStatements());
 
   const metadataVersion = selectScalar(
