@@ -114,6 +114,13 @@ Tree-sitter's query DSL lets you capture these nodes robustly.
 
 ### 3.5 Embedding Aggregation and Similarity
 
+[BlueBear - UPDATED - 2025-11-09 01:55]
+
+✅ Representative vector computation (per-function mean + normalization)
+✅ Top-k bundle similarity with cosine metrics (candidate limit + thresholding)
+✅ Similarity edge export to visualization layer (undirected, capped neighbors)
+⏳ Approximate KNN / large-scale optimizations (pending after baseline validation)
+
 - Represent each function by a set `E_f = {e_1 … e_m}` of chunk vectors.
 - **Function-to-function correlation**: Default metric = cosine similarity.
 - **Bundle similarity** = average of top-k (k=3..5) pairwise similarities between chunks of two functions:

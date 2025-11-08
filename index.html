@@ -624,6 +624,7 @@
         import { InspectorPanel } from './src/viz/inspector.js';
         import { VisualizationControls } from './src/viz/controls.js';
         import { EmbeddingManager } from './src/embeddings/embedding-manager.js';
+        import { buildFunctionEmbeddings, computeSimilarityGraph } from './src/embeddings/similarity.js';
 
         const starsContainer = document.getElementById('stars');
         const starCount = 120;
@@ -687,6 +688,15 @@
             dimension: null
         };
         let embeddingError = null;
+        let functionEmbeddings = [];
+        let similarityEdges = [];
+        let similarityStats = null;
+        const similarityConfig = {
+            maxNeighbors: 8,
+            candidateLimit: 20,
+            bundleTopK: 3,
+            similarityThreshold: 0.65
+        };
 
         const symbolTableManager = new SymbolTableManager();
 
@@ -732,6 +742,11 @@
                 window.heliosEmbeddingStats = null;
                 window.heliosEmbeddings = null;
                 window.heliosEmbeddingError = null;
+                functionEmbeddings = [];
+                similarityEdges = [];
+                similarityStats = null;
+                window.heliosFunctionEmbeddings = null;
+                window.heliosSimilarity = null;
                 scannedFiles = 0;
                 totalFiles = 0;
                 fileList.innerHTML = '';
@@ -814,6 +829,25 @@
                     }
                 }
 
+                if (embeddingVectors.length > 0 && embeddingMetadata.dimension) {
+                    functionEmbeddings = buildFunctionEmbeddings({
+                        functions: allFunctions,
+                        embeddings: embeddingVectors,
+                        dimension: embeddingMetadata.dimension
+                    });
+                    const similarityResult = computeSimilarityGraph(functionEmbeddings, similarityConfig);
+                    similarityEdges = similarityResult.edges || [];
+                    similarityStats = similarityResult.stats || null;
+                    window.heliosFunctionEmbeddings = functionEmbeddings;
+                    window.heliosSimilarity = similarityResult;
+                } else {
+                    functionEmbeddings = [];
+                    similarityEdges = [];
+                    similarityStats = null;
+                    window.heliosFunctionEmbeddings = null;
+                    window.heliosSimilarity = null;
+                }
+
                 progressContainer.classList.add('hidden');
                 resultsContainer.classList.remove('hidden');
 
@@ -839,7 +873,12 @@
                     embeddingSummary = ` · ${embeddingChunks.length.toLocaleString()} embedding chunk${embeddingChunks.length !== 1 ? 's' : ''} (${dim}, ${backendLabel})`;
                 }
 
-                functionsCounter.textContent = `${allFunctions.length} function${allFunctions.length !== 1 ? 's' : ''} extracted · ${stats.totalEdges} call edge${stats.totalEdges !== 1 ? 's' : ''} (${stats.staticEdges} static · ${stats.dynamicEdges} dynamic)${resolutionSummary}${embeddingSummary}`;
+                let similaritySummary = '';
+                if (similarityEdges.length > 0) {
+                    similaritySummary = ` · ${similarityEdges.length.toLocaleString()} similarity edge${similarityEdges.length !== 1 ? 's' : ''}`;
+                }
+
+                functionsCounter.textContent = `${allFunctions.length} function${allFunctions.length !== 1 ? 's' : ''} extracted · ${stats.totalEdges} call edge${stats.totalEdges !== 1 ? 's' : ''} (${stats.staticEdges} static · ${stats.dynamicEdges} dynamic)${resolutionSummary}${embeddingSummary}${similaritySummary}`;
 
                 displayResults();
 
@@ -1192,6 +1231,21 @@
                     metadata
                 };
             });
+
+            if (similarityEdges.length > 0) {
+                similarityEdges.forEach(edge => {
+                    links.push({
+                        source: edge.source,
+                        target: edge.target,
+                        type: 'similarity',
+                        weight: edge.similarity || edge.representativeSimilarity || 0,
+                        similarity: edge.similarity || 0,
+                        method: edge.method || 'topk-avg',
+                        representativeSimilarity: edge.representativeSimilarity ?? null,
+                        topPairs: edge.topPairs || []
+                    });
+                });
+            }
 
             return { nodes, links };
         }
