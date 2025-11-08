@@ -141,6 +141,7 @@ Tree-sitter's query DSL lets you capture these nodes robustly.
 
 ✅ 3d-force-graph scaffold hooked to call graph output (directional call edges, particle arrows, camera helpers)
 ✅ Controls + inspector enhancements (hover sidebar, neighbor quick jumps, call inbound/outbound lists)
+✅ Call-edge resolution styling (resolved/ambiguous/unresolved cues + inspector badges)
 ⏳ Layout persistence & performance tuning (65% done – localStorage save/restore shipped; OPFS persistence waiting on storage-agent)
 ❌ Similarity edge layer (blocked: needs embeddings-agent similarity vectors from sections 3.4/3.5)
 ✅ Regression fix: call/sim edge toggles restored post hover refactor (`6213e89`)
@@ -277,6 +278,7 @@ Persist DB under OPFS (origin-private) so users can reopen the site and continue
 
 ✅ Call-edge palette complete (directional particles, arrowheads, color coding)
 ✅ Interaction polish (hover sidebar, inspector call lists, camera/quick-jump syncing)
+✅ Resolution state surfacing (hover + inspector badges for call-edge status)
 ⏳ Layout persistence & freeze UX (65% done – control UX + localStorage snapshotting live; OPFS handoff pending storage-agent)
 ❌ Similarity edge styling (blocked: embeddings-agent similarity vectors not yet available)
 
