@@ -625,6 +625,7 @@
         import { VisualizationControls } from './src/viz/controls.js';
         import { EmbeddingManager } from './src/embeddings/embedding-manager.js';
         import { buildFunctionEmbeddings, computeSimilarityGraph } from './src/embeddings/similarity.js';
+        import { computeFunctionFingerprint, persistEmbeddingRun, tryLoadEmbeddingRun } from './src/embeddings/persistence.js';
 
         const starsContainer = document.getElementById('stars');
         const starCount = 120;
@@ -688,6 +689,8 @@
             dimension: null
         };
         let embeddingError = null;
+        let embeddingFingerprint = null;
+        let usedCachedEmbeddings = false;
         let functionEmbeddings = [];
         let similarityEdges = [];
         let similarityStats = null;
@@ -774,13 +777,54 @@
 
                 if (embeddingManager) {
                     try {
+                        embeddingFingerprint = await computeFunctionFingerprint(allFunctions);
+                    } catch (err) {
+                        console.warn('Failed to compute embedding fingerprint:', err);
+                        embeddingFingerprint = null;
+                    }
+
+                    try {
                         const prepared = embeddingManager.prepareFunctionChunks(allFunctions);
                         embeddingChunks = prepared.chunks;
                         embeddingStats = prepared.stats;
                         window.heliosEmbeddingChunks = embeddingChunks;
                         window.heliosEmbeddingStats = embeddingStats;
 
-                        if (embeddingChunks.length > 0) {
+                        usedCachedEmbeddings = false;
+                        let persistedEmbeddingData = null;
+
+                        if (embeddingChunks.length > 0 && embeddingFingerprint) {
+                            try {
+                                progressText.textContent = 'Checking cached embeddings...';
+                                persistedEmbeddingData = await tryLoadEmbeddingRun({
+                                    functions: allFunctions,
+                                    chunks: embeddingChunks,
+                                    fingerprint: embeddingFingerprint
+                                });
+                            } catch (err) {
+                                console.warn('Failed to load persisted embeddings:', err);
+                            }
+                        }
+
+                        if (persistedEmbeddingData) {
+                            usedCachedEmbeddings = true;
+                            embeddingVectors = persistedEmbeddingData.embeddings || [];
+                            embeddingMetadata = {
+                                backend: persistedEmbeddingData.metadata?.backend || null,
+                                modelId: persistedEmbeddingData.metadata?.modelId || null,
+                                dimension: persistedEmbeddingData.metadata?.dimension || null,
+                                quantized: persistedEmbeddingData.metadata?.quantized || false
+                            };
+                            similarityEdges = persistedEmbeddingData.similarityEdges || [];
+                            window.heliosEmbeddings = {
+                                chunks: embeddingChunks,
+                                embeddings: embeddingVectors,
+                                metadata: embeddingMetadata,
+                                stats: embeddingStats,
+                                cached: true
+                            };
+                            window.heliosEmbeddingError = null;
+                        } else if (embeddingChunks.length > 0) {
                             progressText.textContent = `Initializing embedding model (${embeddingChunks.length.toLocaleString()} chunk${embeddingChunks.length !== 1 ? 's' : ''})...`;
                             const initInfo = await embeddingManager.initialize();
                             embeddingMetadata = {
@@ -835,11 +879,23 @@
                         embeddings: embeddingVectors,
                         dimension: embeddingMetadata.dimension
                     });
-                    const similarityResult = computeSimilarityGraph(functionEmbeddings, similarityConfig);
-                    similarityEdges = similarityResult.edges || [];
-                    similarityStats = similarityResult.stats || null;
+                    if (!usedCachedEmbeddings) {
+                        const similarityResult = computeSimilarityGraph(functionEmbeddings, similarityConfig);
+                        similarityEdges = similarityResult.edges || [];
+                        similarityStats = similarityResult.stats || null;
+                        window.heliosSimilarity = similarityResult;
+                    } else {
+                        similarityStats = {
+                            functionsWithEmbeddings: functionEmbeddings.length,
+                            finalEdges: similarityEdges.length,
+                            cached: true
+                        };
+                        window.heliosSimilarity = {
+                            edges: similarityEdges,
+                            stats: similarityStats
+                        };
+                    }
                     window.heliosFunctionEmbeddings = functionEmbeddings;
-                    window.heliosSimilarity = similarityResult;
                 } else {
                     functionEmbeddings = [];
                     similarityEdges = [];
@@ -870,7 +926,7 @@
                 } else if (embeddingChunks.length > 0) {
                     const dim = embeddingMetadata.dimension ? `${embeddingMetadata.dimension}-dim` : 'unknown-dim';
                     const backendLabel = embeddingMetadata.backend ? embeddingMetadata.backend.toUpperCase() : 'WASM';
-                    embeddingSummary = ` · ${embeddingChunks.length.toLocaleString()} embedding chunk${embeddingChunks.length !== 1 ? 's' : ''} (${dim}, ${backendLabel})`;
+                    embeddingSummary = ` · ${embeddingChunks.length.toLocaleString()} embedding chunk${embeddingChunks.length !== 1 ? 's' : ''} (${dim}, ${backendLabel}${usedCachedEmbeddings ? ', cached' : ''})`;
                 }
 
                 let similaritySummary = '';
@@ -879,6 +935,27 @@
                 }
 
                 functionsCounter.textContent = `${allFunctions.length} function${allFunctions.length !== 1 ? 's' : ''} extracted · ${stats.totalEdges} call edge${stats.totalEdges !== 1 ? 's' : ''} (${stats.staticEdges} static · ${stats.dynamicEdges} dynamic)${resolutionSummary}${embeddingSummary}${similaritySummary}`;
+
+                if (!usedCachedEmbeddings && embeddingVectors.length > 0) {
+                    try {
+                        progressText.textContent = 'Persisting embeddings...';
+                        await persistEmbeddingRun({
+                            functions: allFunctions,
+                            chunks: embeddingChunks,
+                            embeddings: embeddingVectors,
+                            similarityEdges,
+                            metadata: {
+                                backend: embeddingMetadata.backend,
+                                modelId: embeddingMetadata.modelId,
+                                dimension: embeddingMetadata.dimension,
+                                quantized: embeddingManager?.quantized ?? true
+                            },
+                            fingerprint: embeddingFingerprint || ''
+                        });
+                    } catch (err) {
+                        console.warn('Failed to persist embedding results:', err);
+                    }
+                }
 
                 displayResults();
 
