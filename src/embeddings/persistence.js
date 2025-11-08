@@ -173,6 +173,15 @@ export async function loadFunctionFingerprintMap(options = {}) {
   return map;
 }
 
+async function execStatements(client, statements) {
+  if (!statements?.length) {
+    return;
+  }
+  for (const stmt of statements) {
+    await client.exec(stmt.sql, stmt.params);
+  }
+}
+
 export async function persistEmbeddingRun(
   {
     functions = [],
@@ -215,179 +224,186 @@ export async function persistEmbeddingRun(
       ? options.functionFingerprints
       : computeFunctionFingerprintMap(functions);
 
-  if (fileStatements.length) {
-    await client.batch(fileStatements);
-  }
-
-  const fileIdMap = await fetchFileIds(client, Array.from(fileEntries.keys()), opts.fileChunkSize);
-  const fileIds = Array.from(fileIdMap.values());
-
-  if (fileIds.length) {
-    const placeholders = buildPlaceholders(fileIds.length);
-    await client.exec(
-      `DELETE FROM functions WHERE file_id IN (${placeholders})`,
-      fileIds
-    );
-  }
-
-  const functionStatements = functions.map((fn) => {
-    const fileId = fileIdMap.get(fn.filePath);
-    if (!fileId) {
-      throw new Error(`Missing file_id for path ${fn.filePath}`);
+  await client.exec('BEGIN IMMEDIATE');
+  let fileIdMap;
+  let functionIdLookup;
+  let chunkIdLookup;
+  try {
+    if (fileStatements.length) {
+      await execStatements(client, fileStatements);
     }
-    const doc = fn.doc || null;
-    const loc = fn.loc ?? (fn.endLine && fn.startLine ? fn.endLine - fn.startLine + 1 : null);
-    return {
-      sql: `INSERT INTO functions (file_id, name, fq_name, start, "end", loc, doc, metrics_json)
-            VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)`,
-      params: [
-        fileId,
-        fn.name,
-        fn.fqName || fn.name,
-        fn.start,
-        fn.end,
-        loc,
-        doc,
-        serializeMetrics(fn.metrics)
-      ]
-    };
-  });
 
-  if (functionStatements.length) {
-    await client.batch(functionStatements);
-  }
+    fileIdMap = await fetchFileIds(client, Array.from(fileEntries.keys()), opts.fileChunkSize);
+    const fileIds = Array.from(fileIdMap.values());
 
-  const functionIdMap = await fetchFunctionIds(client, fileIds, opts.fileChunkSize);
-  const functionIdLookup = new Map();
-  functions.forEach((fn) => {
-    const fileId = fileIdMap.get(fn.filePath);
-    if (!fileId) {
-      return;
+    if (fileIds.length) {
+      const placeholders = buildPlaceholders(fileIds.length);
+      await client.exec(
+        `DELETE FROM functions WHERE file_id IN (${placeholders})`,
+        fileIds
+      );
     }
-    const key = buildFunctionKey(fn, fileId);
-    const fnId = functionIdMap.get(key);
-    if (fnId) {
-      functionIdLookup.set(fn.id, fnId);
-    }
-  });
 
-  const chunkStatements = [];
-  const chunkLookupEntries = [];
-
-  chunks.forEach((chunk) => {
-    const functionIdentifier = chunk.functionId ?? chunk.function?.id;
-    if (!functionIdentifier) {
-      return;
-    }
-    const fn = functionById.get(functionIdentifier);
-    if (!fn) {
-      return;
-    }
-    const fnId = functionIdLookup.get(fn.id);
-    if (!fnId) {
-      return;
-    }
-    chunkStatements.push({
-      sql: `INSERT INTO chunks (fn_id, start, "end", tok_count)
-            VALUES (?1, ?2, ?3, ?4)`,
-      params: [fnId, chunk.start, chunk.end, chunk.tokenCount ?? null]
-    });
-    chunkLookupEntries.push({ chunk, fnId });
-  });
-
-  if (chunkStatements.length) {
-    await client.batch(chunkStatements);
-  }
-
-  const chunkIdMap = await fetchChunkIds(
-    client,
-    Array.from(new Set(chunkLookupEntries.map((info) => info.fnId))),
-    opts.fileChunkSize
-  );
-  const chunkIdLookup = new Map();
-  chunkLookupEntries.forEach(({ chunk, fnId }) => {
-    const key = buildChunkKey(fnId, chunk);
-    const chunkId = chunkIdMap.get(key);
-    if (chunkId) {
-      chunkIdLookup.set(chunk.id, chunkId);
-    }
-  });
-
-  const embeddingStatements = embeddings
-    .map((entry) => {
-      const chunkMeta = entry.chunk;
-      const chunkId = chunkIdLookup.get(chunkMeta.id);
-      if (!chunkId) {
-        return null;
+    const functionStatements = functions.map((fn) => {
+      const fileId = fileIdMap.get(fn.filePath);
+      if (!fileId) {
+        throw new Error(`Missing file_id for path ${fn.filePath}`);
       }
-      const vectorBlob = toUint8(entry.vector);
+      const doc = fn.doc || null;
+      const loc = fn.loc ?? (fn.endLine && fn.startLine ? fn.endLine - fn.startLine + 1 : null);
       return {
-        sql: `INSERT INTO embeddings (chunk_id, vec, dim, quant, backend, model)
-              VALUES (?1, ?2, ?3, ?4, ?5, ?6)
-              ON CONFLICT(chunk_id) DO UPDATE SET
-                vec=excluded.vec,
-                dim=excluded.dim,
-                quant=excluded.quant,
-                backend=excluded.backend,
-                model=excluded.model`,
+        sql: `INSERT INTO functions (file_id, name, fq_name, start, "end", loc, doc, metrics_json)
+              VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)`,
         params: [
-          chunkId,
-          vectorBlob,
-          metadata.dimension ?? entry.vector.length ?? null,
-          metadata.quantization ?? (metadata.quantized ? 'int8' : 'float32'),
-          metadata.backend ?? null,
-          metadata.modelId ?? null
+          fileId,
+          fn.name,
+          fn.fqName || fn.name,
+          fn.start,
+          fn.end,
+          loc,
+          doc,
+          serializeMetrics(fn.metrics)
         ]
       };
-    })
-    .filter(Boolean);
+    });
 
-  if (embeddingStatements.length) {
-    await client.batch(embeddingStatements);
-  }
+    await execStatements(client, functionStatements);
 
-  if (similarityEdges?.length) {
-    const simStatements = similarityEdges
-      .map((edge) => {
-        const sourceFn = functionById.get(edge.source);
-        const targetFn = functionById.get(edge.target);
-        if (!sourceFn || !targetFn) {
+    const functionIdMap = await fetchFunctionIds(client, Array.from(fileIdMap.values()), opts.fileChunkSize);
+    functionIdLookup = new Map();
+    functions.forEach((fn) => {
+      const fileId = fileIdMap.get(fn.filePath);
+      if (!fileId) {
+        return;
+      }
+      const key = buildFunctionKey(fn, fileId);
+      const fnId = functionIdMap.get(key);
+      if (fnId) {
+        functionIdLookup.set(fn.id, fnId);
+      }
+    });
+
+    const chunkStatements = [];
+    const chunkLookupEntries = [];
+
+    chunks.forEach((chunk) => {
+      const functionIdentifier = chunk.functionId ?? chunk.function?.id;
+      if (!functionIdentifier) {
+        return;
+      }
+      const fn = functionById.get(functionIdentifier);
+      if (!fn) {
+        return;
+      }
+      const fnId = functionIdLookup.get(fn.id);
+      if (!fnId) {
+        return;
+      }
+      chunkStatements.push({
+        sql: `INSERT INTO chunks (fn_id, start, "end", tok_count)
+              VALUES (?1, ?2, ?3, ?4)`,
+        params: [fnId, chunk.start, chunk.end, chunk.tokenCount ?? null]
+      });
+      chunkLookupEntries.push({ chunk, fnId });
+    });
+
+    await execStatements(client, chunkStatements);
+
+    const chunkIdMap = await fetchChunkIds(
+      client,
+      Array.from(new Set(chunkLookupEntries.map((info) => info.fnId))),
+      opts.fileChunkSize
+    );
+    chunkIdLookup = new Map();
+    chunkLookupEntries.forEach(({ chunk, fnId }) => {
+      const key = buildChunkKey(fnId, chunk);
+      const chunkId = chunkIdMap.get(key);
+      if (chunkId) {
+        chunkIdLookup.set(chunk.id, chunkId);
+      }
+    });
+
+    const embeddingStatements = embeddings
+      .map((entry) => {
+        const chunkMeta = entry.chunk;
+        const chunkId = chunkIdLookup.get(chunkMeta.id);
+        if (!chunkId) {
           return null;
         }
-        const sourceFnId = functionIdLookup.get(sourceFn.id);
-        const targetFnId = functionIdLookup.get(targetFn.id);
-        if (!sourceFnId || !targetFnId) {
-          return null;
-        }
-        const [aId, bId] =
-          sourceFnId < targetFnId ? [sourceFnId, targetFnId] : [targetFnId, sourceFnId];
+        const vectorBlob = toUint8(entry.vector);
         return {
-          sql: `INSERT INTO sim_edges (a_fn_id, b_fn_id, sim, method)
-                VALUES (?1, ?2, ?3, ?4)
-                ON CONFLICT(a_fn_id, b_fn_id) DO UPDATE SET
-                  sim=excluded.sim,
-                  method=excluded.method`,
-          params: [aId, bId, edge.similarity ?? 0, edge.method || 'topk-avg']
+          sql: `INSERT INTO embeddings (chunk_id, vec, dim, quant, backend, model)
+                VALUES (?1, ?2, ?3, ?4, ?5, ?6)
+                ON CONFLICT(chunk_id) DO UPDATE SET
+                  vec=excluded.vec,
+                  dim=excluded.dim,
+                  quant=excluded.quant,
+                  backend=excluded.backend,
+                  model=excluded.model`,
+          params: [
+            chunkId,
+            vectorBlob,
+            metadata.dimension ?? entry.vector.length ?? null,
+            metadata.quantization ?? (metadata.quantized ? 'int8' : 'float32'),
+            metadata.backend ?? null,
+            metadata.modelId ?? null
+          ]
         };
       })
       .filter(Boolean);
-    if (simStatements.length) {
-      await client.batch(simStatements);
-    }
-  }
 
-  await client.setKv(KV_KEYS.FINGERPRINT, fingerprint);
-  await client.setKv(KV_KEYS.METADATA, {
-    backend: metadata.backend ?? null,
-    modelId: metadata.modelId ?? null,
-    dimension: metadata.dimension ?? null,
-    quantized: metadata.quantized ?? false,
-    chunkCount: chunks.length,
-    embeddingCount: embeddings.length,
-    edgeCount: similarityEdges?.length ?? 0,
-    updatedAt: new Date().toISOString()
-  });
-  await client.setKv(KV_KEYS.FUNCTION_FINGERPRINTS, functionFingerprintMap);
+    await execStatements(client, embeddingStatements);
+
+    if (similarityEdges?.length) {
+      const simStatements = similarityEdges
+        .map((edge) => {
+          const sourceFn = functionById.get(edge.source);
+          const targetFn = functionById.get(edge.target);
+          if (!sourceFn || !targetFn) {
+            return null;
+          }
+          const sourceFnId = functionIdLookup.get(sourceFn.id);
+          const targetFnId = functionIdLookup.get(targetFn.id);
+          if (!sourceFnId || !targetFnId) {
+            return null;
+          }
+          const [aId, bId] =
+            sourceFnId < targetFnId ? [sourceFnId, targetFnId] : [targetFnId, sourceFnId];
+          return {
+            sql: `INSERT INTO sim_edges (a_fn_id, b_fn_id, sim, method)
+                  VALUES (?1, ?2, ?3, ?4)
+                  ON CONFLICT(a_fn_id, b_fn_id) DO UPDATE SET
+                    sim=excluded.sim,
+                    method=excluded.method`,
+            params: [aId, bId, edge.similarity ?? 0, edge.method || 'topk-avg']
+          };
+        })
+        .filter(Boolean);
+      await execStatements(client, simStatements);
+    }
+
+    await client.setKv(KV_KEYS.FINGERPRINT, fingerprint);
+    await client.setKv(KV_KEYS.METADATA, {
+      backend: metadata.backend ?? null,
+      modelId: metadata.modelId ?? null,
+      dimension: metadata.dimension ?? null,
+      quantized: metadata.quantized ?? false,
+      chunkCount: chunks.length,
+      embeddingCount: embeddings.length,
+      edgeCount: similarityEdges?.length ?? 0,
+      updatedAt: new Date().toISOString()
+    });
+    await client.setKv(KV_KEYS.FUNCTION_FINGERPRINTS, functionFingerprintMap);
+
+    await client.exec('COMMIT');
+  } catch (error) {
+    try {
+      await client.exec('ROLLBACK');
+    } catch (rollbackError) {
+      console.warn('Failed to rollback embedding persistence transaction', rollbackError);
+    }
+    throw error;
+  }
 
   return {
     fileCount: fileEntries.size,
