@@ -6,7 +6,8 @@ const DEFAULT_OPTIONS = {
 
 const KV_KEYS = Object.freeze({
   FINGERPRINT: 'embeddings.fingerprint',
-  METADATA: 'embeddings.metadata'
+  METADATA: 'embeddings.metadata',
+  FUNCTION_FINGERPRINTS: 'embeddings.functionFingerprints'
 });
 
 let singletonClient = null;
@@ -126,6 +127,52 @@ function buildChunkKey(fnId, chunk) {
   return `${fnId}:${chunk.start}:${chunk.end}`;
 }
 
+function stableHash(input) {
+  if (!input) {
+    return 'h0';
+  }
+  let hash = 0;
+  for (let i = 0; i < input.length; i += 1) {
+    hash = (hash << 5) - hash + input.charCodeAt(i);
+    hash |= 0;
+  }
+  return `h${Math.abs(hash)}`;
+}
+
+function computeFunctionEntryFingerprint(fn) {
+  const sourceHash = stableHash(fn.source || '');
+  const basis = [
+    fn.id || '',
+    fn.filePath || '',
+    fn.lang || '',
+    fn.start ?? '',
+    fn.end ?? '',
+    fn.loc ?? '',
+    sourceHash
+  ].join('|');
+  return stableHash(basis);
+}
+
+export function computeFunctionFingerprintMap(functions = []) {
+  const map = {};
+  functions.forEach(fn => {
+    if (fn?.id) {
+      map[fn.id] = computeFunctionEntryFingerprint(fn);
+    }
+  });
+  return map;
+}
+
+export async function loadFunctionFingerprintMap(options = {}) {
+  const client = getClient(options);
+  await client.ensureInitialized();
+  const map = await client.getKv(KV_KEYS.FUNCTION_FINGERPRINTS);
+  if (!map || typeof map !== 'object') {
+    return {};
+  }
+  return map;
+}
+
 export async function persistEmbeddingRun(
   {
     functions = [],
@@ -162,6 +209,11 @@ export async function persistEmbeddingRun(
           ON CONFLICT(path) DO UPDATE SET lang=excluded.lang`,
     params: [path, info.lang]
   }));
+
+  const functionFingerprintMap =
+    options.functionFingerprints && typeof options.functionFingerprints === 'object'
+      ? options.functionFingerprints
+      : computeFunctionFingerprintMap(functions);
 
   if (fileStatements.length) {
     await client.batch(fileStatements);
@@ -335,6 +387,7 @@ export async function persistEmbeddingRun(
     edgeCount: similarityEdges?.length ?? 0,
     updatedAt: new Date().toISOString()
   });
+  await client.setKv(KV_KEYS.FUNCTION_FINGERPRINTS, functionFingerprintMap);
 
   return {
     fileCount: fileEntries.size,
@@ -496,10 +549,13 @@ export async function tryLoadEmbeddingRun(
     };
   }).filter(Boolean);
 
+  const functionFingerprints = await loadFunctionFingerprintMap({ client });
+
   return {
     metadata,
     embeddings: loadedEmbeddings,
-    similarityEdges
+    similarityEdges,
+    functionFingerprints
   };
 }
 
@@ -531,6 +587,177 @@ export async function computeFunctionFingerprint(functions = []) {
 
 export function __setStorageClient(client) {
   singletonClient = client;
+}
+
+export async function loadEmbeddingsForFunctions(
+  {
+    functions = [],
+    chunks = [],
+    targetFunctionIds = []
+  },
+  options = {}
+) {
+  if (!targetFunctionIds?.length) {
+    return { embeddings: [], missingFunctions: [], metadata: null };
+  }
+
+  const targetIdSet = new Set(targetFunctionIds);
+  const targetFunctions = functions.filter(fn => targetIdSet.has(fn.id));
+  if (!targetFunctions.length) {
+    return { embeddings: [], missingFunctions: [...targetIdSet], metadata: null };
+  }
+
+  const client = getClient(options);
+  await client.ensureInitialized();
+
+  const opts = { ...DEFAULT_OPTIONS, ...options };
+
+  const filePaths = Array.from(
+    new Set(targetFunctions.map(fn => fn.filePath).filter(Boolean))
+  );
+  if (!filePaths.length) {
+    return { embeddings: [], missingFunctions: [...targetIdSet], metadata: null };
+  }
+
+  const fileIdMap = await fetchFileIds(client, filePaths, opts.fileChunkSize);
+  const fileIds = Array.from(fileIdMap.values());
+  if (!fileIds.length) {
+    return { embeddings: [], missingFunctions: [...targetIdSet], metadata: null };
+  }
+
+  const functionIdMap = await fetchFunctionIds(client, fileIds, opts.fileChunkSize);
+  const functionIdLookup = new Map();
+  targetFunctions.forEach(fn => {
+    const fileId = fileIdMap.get(fn.filePath);
+    if (!fileId) {
+      return;
+    }
+    const key = buildFunctionKey(fn, fileId);
+    const fnId = functionIdMap.get(key);
+    if (fnId) {
+      functionIdLookup.set(fn.id, fnId);
+    }
+  });
+
+  if (!functionIdLookup.size) {
+    return { embeddings: [], missingFunctions: [...targetIdSet], metadata: null };
+  }
+
+  const dbFunctionIds = Array.from(functionIdLookup.values());
+  const placeholders = buildPlaceholders(dbFunctionIds.length);
+  const { rows = [] } = await client.query(
+    `SELECT
+       files.path AS file_path,
+       functions.fn_id,
+       functions.start AS fn_start,
+       functions."end" AS fn_end,
+       chunks.chunk_id,
+       chunks.start AS chunk_start,
+       chunks."end" AS chunk_end,
+       chunks.tok_count,
+       embeddings.vec,
+       embeddings.dim,
+       embeddings.backend,
+       embeddings.model
+     FROM embeddings
+     JOIN chunks ON chunks.chunk_id = embeddings.chunk_id
+     JOIN functions ON functions.fn_id = chunks.fn_id
+     JOIN files ON files.file_id = functions.file_id
+     WHERE functions.fn_id IN (${placeholders})`,
+    dbFunctionIds
+  );
+
+  const chunkMap = new Map();
+  chunks.forEach(chunk => {
+    if (targetIdSet.has(chunk.functionId)) {
+      const key = `${chunk.functionId}:${chunk.start}:${chunk.end}`;
+      chunkMap.set(key, chunk);
+    }
+  });
+
+  const functionBySignature = new Map();
+  targetFunctions.forEach(fn => {
+    const signature = `${fn.filePath}:${fn.start}:${fn.end}`;
+    functionBySignature.set(signature, fn);
+  });
+
+  const chunkBySignature = new Map();
+  chunks.forEach(chunk => {
+    if (targetIdSet.has(chunk.functionId)) {
+      const signature = `${chunk.functionId}:${chunk.start}:${chunk.end}`;
+      chunkBySignature.set(signature, chunk);
+    }
+  });
+
+  const vectorByChunkSignature = new Map();
+  rows.forEach(row => {
+    const functionSignature = `${row.file_path}:${row.fn_start}:${row.fn_end}`;
+    const fn = functionBySignature.get(functionSignature);
+    if (!fn) {
+      return;
+    }
+    const chunkSignature = `${fn.id}:${row.chunk_start}:${row.chunk_end}`;
+    const chunk = chunkBySignature.get(chunkSignature);
+    if (!chunk) {
+      return;
+    }
+    const vectorData =
+      row.vec instanceof Uint8Array
+        ? row.vec
+        : row.vec?.data instanceof Uint8Array
+          ? row.vec.data
+          : typeof row.vec === 'string'
+            ? Uint8Array.from(atob(row.vec), c => c.charCodeAt(0))
+            : new Uint8Array(row.vec);
+    const aligned = vectorData.buffer.slice(
+      vectorData.byteOffset,
+      vectorData.byteOffset + vectorData.byteLength
+    );
+    vectorByChunkSignature.set(chunkSignature, new Float32Array(aligned));
+  });
+
+  const loadedEmbeddings = [];
+  const fulfilledFunctions = new Set();
+
+  targetFunctions.forEach(fn => {
+    const fnChunks = chunks.filter(chunk => chunk.functionId === fn.id);
+    if (!fnChunks.length) {
+      return;
+    }
+    let hasAllChunks = true;
+    fnChunks.forEach(chunk => {
+      const signature = `${fn.id}:${chunk.start}:${chunk.end}`;
+      const vector = vectorByChunkSignature.get(signature);
+      if (!vector) {
+        hasAllChunks = false;
+        return;
+      }
+      loadedEmbeddings.push({
+        chunk,
+        vector
+      });
+    });
+    if (hasAllChunks) {
+      fulfilledFunctions.add(fn.id);
+    }
+  });
+
+  const missingFunctions = targetFunctionIds.filter(id => !fulfilledFunctions.has(id));
+
+  let metadata = null;
+  if (rows.length) {
+    metadata = {
+      backend: rows[0]?.backend ?? null,
+      modelId: rows[0]?.model ?? null,
+      dimension: rows[0]?.dim ?? null
+    };
+  }
+
+  return {
+    embeddings: loadedEmbeddings,
+    missingFunctions,
+    metadata
+  };
 }
 
 

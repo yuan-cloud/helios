@@ -66,7 +66,10 @@ export class GraphVisualization {
 
     // Layout persistence metadata
     this.layoutStorageKey = 'helios:layout:last';
+    this.layoutGraphHash = null;
+    this.layoutStorageProvider = null;
     this.lastRestoredLayoutHash = null;
+    this.lastLayoutLoadResult = { status: 'idle' };
 
     this.palettes = {
       languages: {
@@ -188,10 +191,24 @@ export class GraphVisualization {
     return this;
   }
 
-  setLayoutStorageKey(key) {
+  setLayoutStorageKey(key, graphHash = null) {
     if (typeof key === 'string' && key.trim().length > 0) {
       this.layoutStorageKey = key.trim();
     }
+    this.layoutGraphHash =
+      typeof graphHash === 'string' && graphHash.trim().length > 0 ? graphHash.trim() : null;
+  }
+
+  setLayoutStorageProvider(provider) {
+    if (provider && typeof provider === 'object') {
+      this.layoutStorageProvider = provider;
+    } else {
+      this.layoutStorageProvider = null;
+    }
+  }
+
+  getLastLayoutLoadResult() {
+    return this.lastLayoutLoadResult;
   }
 
   /**
@@ -1236,18 +1253,46 @@ export class GraphVisualization {
     return applied;
   }
 
-  saveLayoutToStorage({ key = this.layoutStorageKey } = {}) {
-    if (!key || typeof localStorage === 'undefined') {
+  async saveLayoutToStorage({ key = this.layoutStorageKey } = {}) {
+    if (!key) {
+      return false;
+    }
+
+    const snapshotNodes = this.captureLayoutSnapshot();
+    const metadata = {
+      savedAt: new Date().toISOString(),
+      nodeCount: snapshotNodes.length
+    };
+
+    if (this.layoutStorageProvider?.save) {
+      try {
+        await this.layoutStorageProvider.save({
+          key,
+          graphHash: this.layoutGraphHash,
+          snapshot: snapshotNodes,
+          metadata
+        });
+        this.lastLayoutLoadResult = { status: 'saved', metadata };
+        return true;
+      } catch (err) {
+        console.warn('GraphVisualization.saveLayoutToStorage provider failed:', err);
+      }
+    }
+
+    if (typeof localStorage === 'undefined') {
       return false;
     }
 
     try {
-      const snapshot = {
+      const payload = {
         version: 1,
-        nodes: this.captureLayoutSnapshot(),
-        savedAt: Date.now()
+        nodes: snapshotNodes,
+        savedAt: metadata.savedAt,
+        metadata,
+        graphHash: this.layoutGraphHash
       };
-      localStorage.setItem(key, JSON.stringify(snapshot));
+      localStorage.setItem(key, JSON.stringify(payload));
+      this.lastLayoutLoadResult = { status: 'saved-local', metadata };
       return true;
     } catch (err) {
       console.warn('GraphVisualization.saveLayoutToStorage failed:', err);
@@ -1255,27 +1300,100 @@ export class GraphVisualization {
     }
   }
 
-  loadLayoutFromStorage({ key = this.layoutStorageKey } = {}) {
-    if (!key || typeof localStorage === 'undefined') {
+  async loadLayoutFromStorage({ key = this.layoutStorageKey } = {}) {
+    this.lastLayoutLoadResult = { status: 'idle' };
+
+    if (!key) {
+      return null;
+    }
+
+    if (this.layoutStorageProvider?.load) {
+      try {
+        const result = await this.layoutStorageProvider.load({ key });
+        if (!result) {
+          this.lastLayoutLoadResult = { status: 'missing' };
+          return null;
+        }
+        if (
+          result.graphHash &&
+          this.layoutGraphHash &&
+          result.graphHash !== this.layoutGraphHash
+        ) {
+          this.lastLayoutLoadResult = {
+            status: 'mismatch',
+            graphHash: result.graphHash,
+            expected: this.layoutGraphHash
+          };
+          return null;
+        }
+        const snapshot = {
+          version: result.layoutVersion ?? 1,
+          nodes: Array.isArray(result.layout) ? result.layout : [],
+          savedAt: result.updatedAt || result.createdAt || null,
+          metadata: result.metadata ?? null,
+          graphHash: result.graphHash ?? null
+        };
+        this.lastLayoutLoadResult = {
+          status: 'ok',
+          metadata: snapshot.metadata,
+          savedAt: snapshot.savedAt
+        };
+        return snapshot;
+      } catch (err) {
+        console.warn('GraphVisualization.loadLayoutFromStorage provider failed:', err);
+        this.lastLayoutLoadResult = { status: 'error', error: err };
+      }
+    }
+
+    if (typeof localStorage === 'undefined') {
       return null;
     }
 
     try {
       const raw = localStorage.getItem(key);
-      if (!raw) return null;
-      const parsed = JSON.parse(raw);
-      if (!parsed || !Array.isArray(parsed.nodes)) {
+      if (!raw) {
+        this.lastLayoutLoadResult = { status: 'missing' };
         return null;
       }
-      return parsed;
+      const parsed = JSON.parse(raw);
+      if (!parsed || !Array.isArray(parsed.nodes)) {
+        this.lastLayoutLoadResult = { status: 'invalid' };
+        return null;
+      }
+      if (
+        this.layoutGraphHash &&
+        parsed.graphHash &&
+        parsed.graphHash !== this.layoutGraphHash
+      ) {
+        this.lastLayoutLoadResult = {
+          status: 'mismatch',
+          graphHash: parsed.graphHash,
+          expected: this.layoutGraphHash
+        };
+        return null;
+      }
+      const snapshot = {
+        version: parsed.version ?? 1,
+        nodes: parsed.nodes,
+        savedAt: parsed.savedAt ?? parsed.metadata?.savedAt ?? null,
+        metadata: parsed.metadata ?? null,
+        graphHash: parsed.graphHash ?? null
+      };
+      this.lastLayoutLoadResult = {
+        status: 'ok-local',
+        metadata: snapshot.metadata,
+        savedAt: snapshot.savedAt
+      };
+      return snapshot;
     } catch (err) {
       console.warn('GraphVisualization.loadLayoutFromStorage failed:', err);
+      this.lastLayoutLoadResult = { status: 'error', error: err };
       return null;
     }
   }
 
-  restoreLayoutFromStorage({ key = this.layoutStorageKey, freeze = true } = {}) {
-    const snapshot = this.loadLayoutFromStorage({ key });
+  async restoreLayoutFromStorage({ key = this.layoutStorageKey, freeze = true } = {}) {
+    const snapshot = await this.loadLayoutFromStorage({ key });
     if (!snapshot || !Array.isArray(snapshot.nodes) || snapshot.nodes.length === 0) {
       return false;
     }
@@ -1284,15 +1402,41 @@ export class GraphVisualization {
     if (applied > 0) {
       this.lastRestoredLayoutHash = this.hashLayout(snapshot.nodes);
       this.pauseSimulation(true);
+      this.lastLayoutLoadResult = {
+        ...this.lastLayoutLoadResult,
+        status: 'restored'
+      };
       return true;
     }
     return false;
   }
 
-  hasStoredLayout({ key = this.layoutStorageKey } = {}) {
-    if (!key || typeof localStorage === 'undefined') {
+  async hasStoredLayout({ key = this.layoutStorageKey } = {}) {
+    if (!key) {
       return false;
     }
+
+    if (this.layoutStorageProvider?.has) {
+      try {
+        return await this.layoutStorageProvider.has({ key });
+      } catch (err) {
+        console.warn('GraphVisualization.hasStoredLayout provider failed:', err);
+      }
+    }
+
+    if (this.layoutStorageProvider?.load) {
+      try {
+        const result = await this.layoutStorageProvider.load({ key });
+        return !!(result && Array.isArray(result.layout) && result.layout.length > 0);
+      } catch (err) {
+        console.warn('GraphVisualization.hasStoredLayout provider load failed:', err);
+      }
+    }
+
+    if (typeof localStorage === 'undefined') {
+      return false;
+    }
+
     try {
       return localStorage.getItem(key) !== null;
     } catch {
@@ -1300,25 +1444,41 @@ export class GraphVisualization {
     }
   }
 
-  clearStoredLayout({ key = this.layoutStorageKey } = {}) {
-    if (!key || typeof localStorage === 'undefined') {
+  async clearStoredLayout({ key = this.layoutStorageKey } = {}) {
+    if (!key) {
       return false;
     }
-    try {
-      localStorage.removeItem(key);
-      if (this.lastRestoredLayoutHash && key === this.layoutStorageKey) {
-        this.lastRestoredLayoutHash = null;
+
+    let cleared = false;
+
+    if (this.layoutStorageProvider?.delete) {
+      try {
+        await this.layoutStorageProvider.delete({ key });
+        cleared = true;
+      } catch (err) {
+        console.warn('GraphVisualization.clearStoredLayout provider failed:', err);
       }
-      return true;
-    } catch (err) {
-      console.warn('GraphVisualization.clearStoredLayout failed:', err);
-      return false;
     }
+
+    if (!cleared && typeof localStorage !== 'undefined') {
+      try {
+        localStorage.removeItem(key);
+        cleared = true;
+      } catch (err) {
+        console.warn('GraphVisualization.clearStoredLayout failed:', err);
+      }
+    }
+
+    if (cleared && this.lastRestoredLayoutHash && key === this.layoutStorageKey) {
+      this.lastRestoredLayoutHash = null;
+    }
+
+    return cleared;
   }
 
-  resetLayoutToDefault({ clearStored = false } = {}) {
+  async resetLayoutToDefault({ clearStored = false } = {}) {
     if (clearStored) {
-      this.clearStoredLayout({});
+      await this.clearStoredLayout({});
     }
     this.freezePositions(false);
     this.pauseSimulation(false);

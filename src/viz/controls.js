@@ -258,43 +258,67 @@ export class VisualizationControls {
 
     const btnSaveLayout = this.container.querySelector('#btnSaveLayout');
     if (btnSaveLayout) {
-      btnSaveLayout.addEventListener('click', () => {
+      btnSaveLayout.addEventListener('click', async () => {
         if (!this.graphViz) return;
-        const ok = this.graphViz.saveLayoutToStorage();
+        const ok = await this.graphViz.saveLayoutToStorage();
+        const info = this.graphViz.getLastLayoutLoadResult
+          ? this.graphViz.getLastLayoutLoadResult()
+          : null;
+        const tone = ok ? 'success' : 'error';
+        const target =
+          info?.status === 'saved'
+            ? 'OPFS storage'
+            : info?.status === 'saved-local'
+              ? 'browser storage'
+              : 'storage';
         this.setLayoutStatus(
-          ok ? 'Layout saved to browser storage.' : 'Unable to save layout.',
-          { tone: ok ? 'success' : 'error' }
+          ok ? `Layout saved to ${target}.` : 'Unable to save layout.',
+          { tone }
         );
       });
     }
 
     const btnRestoreLayout = this.container.querySelector('#btnRestoreLayout');
     if (btnRestoreLayout) {
-      btnRestoreLayout.addEventListener('click', () => {
+      btnRestoreLayout.addEventListener('click', async () => {
         if (!this.graphViz) return;
-        const restored = this.graphViz.restoreLayoutFromStorage({ freeze: true });
+        const restored = await this.graphViz.restoreLayoutFromStorage({ freeze: true });
         if (restored) {
-          this.graphViz.fitToView();
+          await this.graphViz.fitToView();
         }
-        const hasLayout = restored || this.graphViz.hasStoredLayout();
-        this.setLayoutStatus(
-          restored
-            ? 'Saved layout restored.'
-            : hasLayout
-              ? 'Stored layout found but could not be applied.'
-              : 'No saved layout available.',
-          { tone: restored ? 'success' : hasLayout ? 'error' : 'info' }
-        );
+
+        const info = this.graphViz.getLastLayoutLoadResult
+          ? this.graphViz.getLastLayoutLoadResult()
+          : null;
+
+        let tone = 'info';
+        let message = 'No saved layout available.';
+
+        if (restored) {
+          tone = 'success';
+          message = 'Saved layout restored.';
+        } else if (info?.status === 'mismatch') {
+          tone = 'error';
+          message = 'Saved layout found but incompatible with current graph.';
+        } else if (info?.status === 'error') {
+          tone = 'error';
+          message = 'Unable to load saved layout.';
+        } else if (await this.graphViz.hasStoredLayout()) {
+          tone = 'error';
+          message = 'Stored layout found but could not be applied.';
+        }
+
+        this.setLayoutStatus(message, { tone });
       });
     }
 
     const btnResetLayout = this.container.querySelector('#btnResetLayout');
     if (btnResetLayout) {
-      btnResetLayout.addEventListener('click', () => {
+      btnResetLayout.addEventListener('click', async () => {
         if (!this.graphViz) return;
-        const hadStored = this.graphViz.hasStoredLayout();
-        this.graphViz.resetLayoutToDefault({ clearStored: true });
-        this.graphViz.fitToView();
+        const hadStored = await this.graphViz.hasStoredLayout();
+        await this.graphViz.resetLayoutToDefault({ clearStored: true });
+        await this.graphViz.fitToView();
         this.setLayoutStatus(
           hadStored ? 'Saved layout cleared. Simulation reset.' : 'Simulation reset to defaults.',
           { tone: 'info' }

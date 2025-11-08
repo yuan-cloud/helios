@@ -626,6 +626,13 @@
         import { EmbeddingManager } from './src/embeddings/embedding-manager.js';
         import { buildFunctionEmbeddings, computeSimilarityGraph } from './src/embeddings/similarity.js';
         import { computeFunctionFingerprint, persistEmbeddingRun, tryLoadEmbeddingRun } from './src/embeddings/persistence.js';
+        import { StorageWorkerClient } from './src/storage/client.js';
+        import {
+            saveLayoutSnapshot,
+            loadLayoutSnapshot,
+            deleteLayoutSnapshot,
+            listLayoutSnapshots
+        } from './src/storage/layout-persistence.js';
 
         const starsContainer = document.getElementById('stars');
         const starCount = 120;
@@ -700,6 +707,10 @@
             bundleTopK: 3,
             similarityThreshold: 0.65
         };
+
+        let storageClient = null;
+        let storageReady = false;
+        let storageClientInitPromise = null;
 
         const symbolTableManager = new SymbolTableManager();
 
@@ -1187,20 +1198,30 @@
             functionMapById = new Map((callGraph.nodes || []).map(fn => [fn.id, fn]));
             fullVizData = convertCallGraphToVizData(callGraph);
             const layoutKey = computeLayoutStorageKey(callGraph);
-            graphViz.setLayoutStorageKey(layoutKey);
+            const layoutHash = extractLayoutHash(layoutKey);
+            graphViz.setLayoutStorageKey(layoutKey, layoutHash);
+
+            if (await ensureStorageClient()) {
+                const provider = createLayoutPersistenceProvider(layoutKey, layoutHash);
+                graphViz.setLayoutStorageProvider(provider);
+            } else {
+                graphViz.setLayoutStorageProvider(null);
+            }
 
             const initialFilters = controls ? controls.getFilters() : {};
             applyVisualizationFilters(initialFilters);
 
-            const restored = graphViz.restoreLayoutFromStorage({ freeze: true });
+            const restored = await graphViz.restoreLayoutFromStorage({ freeze: true });
+            const loadInfo = graphViz.getLastLayoutLoadResult
+                ? graphViz.getLastLayoutLoadResult()
+                : null;
+
             if (controls && typeof controls.setLayoutStatus === 'function') {
-                if (restored) {
-                    controls.setLayoutStatus('Layout restored from browser storage.', { tone: 'success' });
-                } else if (graphViz.hasStoredLayout()) {
-                    controls.setLayoutStatus('Saved layout found but incompatible with current graph.', { tone: 'error', timeout: 5000 });
-                } else {
-                    controls.setLayoutStatus('Layout will auto-save when you choose “Save Layout”.', { tone: 'info', timeout: 5000 });
-                }
+                const { message, tone, timeout } = describeLayoutStatus(loadInfo, restored);
+                controls.setLayoutStatus(message, {
+                    tone,
+                    timeout: tone === 'success' ? undefined : timeout ?? 5000
+                });
             }
 
             if (!restored) {
@@ -1611,6 +1632,88 @@
             }
 
             return null;
+        }
+
+        async function ensureStorageClient() {
+            if (storageReady && storageClient) {
+                return true;
+            }
+            if (storageClientInitPromise) {
+                return storageClientInitPromise;
+            }
+            storageClientInitPromise = (async () => {
+                try {
+                    const client = new StorageWorkerClient();
+                    await client.ensureInitialized();
+                    storageClient = client;
+                    storageReady = true;
+                    return true;
+                } catch (err) {
+                    console.warn('Storage worker unavailable; falling back to browser storage.', err);
+                    storageClient = null;
+                    storageReady = false;
+                    return false;
+                } finally {
+                    storageClientInitPromise = null;
+                }
+            })();
+            return storageClientInitPromise;
+        }
+
+        function createLayoutPersistenceProvider(layoutKey, layoutHash) {
+            if (!storageReady || !storageClient) {
+                return null;
+            }
+            return {
+                async save({ key, snapshot, metadata }) {
+                    await saveLayoutSnapshot(storageClient, {
+                        graphKey: key,
+                        graphHash: layoutHash,
+                        snapshot,
+                        metadata: {
+                            ...(metadata || {}),
+                            graphKey: key,
+                            graphHash: layoutHash
+                        }
+                    });
+                },
+                async load({ key }) {
+                    return loadLayoutSnapshot(storageClient, key);
+                },
+                async delete({ key }) {
+                    await deleteLayoutSnapshot(storageClient, key);
+                },
+                async has({ key }) {
+                    const response = await listLayoutSnapshots(storageClient, { graphKey: key, limit: 1 });
+                    return Array.isArray(response?.snapshots) && response.snapshots.length > 0;
+                }
+            };
+        }
+
+        function describeLayoutStatus(loadInfo, restored) {
+            const target = storageReady ? 'OPFS storage' : 'browser storage';
+            if (restored) {
+                return { message: `Layout restored from ${target}.`, tone: 'success', timeout: undefined };
+            }
+            switch (loadInfo?.status) {
+                case 'mismatch':
+                    return { message: 'Saved layout found but incompatible with current graph.', tone: 'error', timeout: 5000 };
+                case 'error':
+                    return { message: 'Unable to load saved layout.', tone: 'error', timeout: 5000 };
+                case 'ok':
+                case 'ok-local':
+                    return { message: 'Saved layout found but could not be applied.', tone: 'error', timeout: 5000 };
+                default:
+                    return { message: 'Layout will auto-save when you choose “Save Layout”.', tone: 'info', timeout: 5000 };
+            }
+        }
+
+        function extractLayoutHash(layoutKey = '') {
+            if (typeof layoutKey !== 'string') {
+                return null;
+            }
+            const parts = layoutKey.split(':');
+            return parts.length ? parts[parts.length - 1] || null : null;
         }
 
         function computeLayoutStorageKey(graph) {

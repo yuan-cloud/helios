@@ -1,6 +1,8 @@
 import assert from 'node:assert/strict';
 import {
   computeFunctionFingerprint,
+  computeFunctionFingerprintMap,
+  loadEmbeddingsForFunctions,
   tryLoadEmbeddingRun
 } from '../../src/embeddings/persistence.js';
 
@@ -48,7 +50,27 @@ assert.notEqual(
   'Fingerprint should change when function sources change'
 );
 
-console.log('persistence.test.mjs passed');
+const fingerprintMapA = computeFunctionFingerprintMap(baseFunctions);
+assert.ok(fingerprintMapA['src/app.js:0:120'], 'Expected per-function fingerprint for fnA');
+const fingerprintMapB = computeFunctionFingerprintMap(baseFunctions);
+assert.deepEqual(
+  fingerprintMapA,
+  fingerprintMapB,
+  'Per-function fingerprint map should be deterministic'
+);
+const updatedSampleFunctions = [
+  {
+    ...baseFunctions[0],
+    source: `${baseFunctions[0].source}\nreturn 2;`
+  },
+  baseFunctions[1]
+];
+const fingerprintMapChanged = computeFunctionFingerprintMap(updatedSampleFunctions);
+assert.notEqual(
+  fingerprintMapA['src/app.js:0:120'],
+  fingerprintMapChanged['src/app.js:0:120'],
+  'Fingerprint should change when function source mutates'
+);
 
 class MockStorageClient {
   constructor(data) {
@@ -66,6 +88,9 @@ class MockStorageClient {
     if (key === 'embeddings.fingerprint') {
       return this.data.fingerprint ?? null;
     }
+    if (key === 'embeddings.functionFingerprints') {
+      return this.data.functionFingerprints ?? null;
+    }
     return null;
   }
 
@@ -74,6 +99,14 @@ class MockStorageClient {
       const requestedPaths = params;
       const rows = (this.data.files || []).filter((row) =>
         requestedPaths.includes(row.path)
+      );
+      return { rows };
+    }
+
+    if (sql.includes('FROM functions WHERE file_id IN')) {
+      const requestedFiles = params;
+      const rows = (this.data.functionsByFile || []).filter((row) =>
+        requestedFiles.includes(row.file_id)
       );
       return { rows };
     }
@@ -150,6 +183,10 @@ const mockClient = new MockStorageClient({
     { file_id: 1, path: 'src/app.js' },
     { file_id: 2, path: 'src/util.js' }
   ],
+  functionsByFile: [
+    { fn_id: 1, file_id: 1, name: 'alpha', start: 0 },
+    { fn_id: 2, file_id: 2, name: 'beta', start: 50 }
+  ],
   embeddings: [
     {
       file_path: 'src/app.js',
@@ -185,7 +222,11 @@ const mockClient = new MockStorageClient({
       b_start: 50,
       b_end: 180
     }
-  ]
+  ],
+  functionFingerprints: {
+    fnA: 'hashA',
+    fnB: 'hashB'
+  }
 });
 
 const cached = await tryLoadEmbeddingRun(
@@ -224,4 +265,41 @@ assert.equal(
   'fnB',
   'Similarity edge should resolve target function id'
 );
+assert.deepEqual(
+  cached.functionFingerprints,
+  mockClient.data.functionFingerprints,
+  'Expected per-function fingerprint map in cached payload'
+);
+
+const reuseResult = await loadEmbeddingsForFunctions(
+  {
+    functions: sampleFunctions,
+    chunks: sampleChunks,
+    targetFunctionIds: ['fnA']
+  },
+  { client: mockClient }
+);
+
+assert.equal(
+  reuseResult.embeddings.length,
+  1,
+  'Should load embeddings for requested function subset'
+);
+assert.deepEqual(
+  Array.from(reuseResult.embeddings[0].vector),
+  Array.from(vectorA),
+  'Subset reuse should provide matching vector payload'
+);
+assert.deepEqual(
+  reuseResult.missingFunctions,
+  [],
+  'No missing functions expected when cached data exists'
+);
+assert.equal(
+  reuseResult.metadata?.dimension,
+  4,
+  'Metadata should include embedding dimension for reused vectors'
+);
+
+console.log('persistence.test.mjs passed');
 
