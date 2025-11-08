@@ -460,9 +460,10 @@ export class GraphVisualization {
    */
   handleNodeClick(node) {
     this.selectedNode = node;
-    
+    const edgeSummary = node ? this.getEdgeSummary(node.id) : null;
+
     if (this.onNodeClick) {
-      this.onNodeClick(node);
+      this.onNodeClick(node, edgeSummary);
     }
     
     // Focus camera on node
@@ -577,6 +578,45 @@ export class GraphVisualization {
       return null;
     }
     return this.data.nodes.find(node => node.id === nodeId) || null;
+  }
+
+  getEdgeSummary(nodeId) {
+    const summary = {
+      outbound: [],
+      inbound: []
+    };
+
+    if (!nodeId || !this.data) {
+      return summary;
+    }
+
+    const links = this.data.links || [];
+
+    links.forEach(link => {
+      const sourceId = this.getLinkNodeId(link, 'source');
+      const targetId = this.getLinkNodeId(link, 'target');
+      if (sourceId === nodeId) {
+        const targetNode = this.getNodeById(targetId);
+        summary.outbound.push({
+          nodeId: targetId,
+          node: targetNode,
+          weight: link.weight || 1,
+          type: link.type || 'call',
+          dynamic: link.dynamic || false
+        });
+      } else if (targetId === nodeId) {
+        const sourceNode = this.getNodeById(sourceId);
+        summary.inbound.push({
+          nodeId: sourceId,
+          node: sourceNode,
+          weight: link.weight || 1,
+          type: link.type || 'call',
+          dynamic: link.dynamic || false
+        });
+      }
+    });
+
+    return summary;
   }
 
   /**

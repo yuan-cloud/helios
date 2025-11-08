@@ -19,6 +19,7 @@ export class InspectorPanel {
     
     this.currentNode = null;
     this.sourceCode = null;
+    this.onNavigate = null;
     
     this.init();
   }
@@ -39,6 +40,16 @@ export class InspectorPanel {
         </div>
         <div class="inspector-content">
           <div class="inspector-info" id="inspectorInfo"></div>
+          <div class="inspector-edges" id="inspectorEdges">
+            <div class="inspector-edges-section">
+              <div class="inspector-edges-title">Outgoing Calls</div>
+              <div class="inspector-edge-list" id="inspectorEdgeOut"></div>
+            </div>
+            <div class="inspector-edges-section">
+              <div class="inspector-edges-title">Incoming Calls</div>
+              <div class="inspector-edge-list" id="inspectorEdgeIn"></div>
+            </div>
+          </div>
           <div class="inspector-code-container">
             <pre class="inspector-code" id="inspectorCode"><code></code></pre>
           </div>
@@ -48,6 +59,9 @@ export class InspectorPanel {
     
     // Store panel element for visibility toggling
     this.panelEl = this.container.querySelector('.inspector-panel');
+    this.edgesContainer = this.container.querySelector('#inspectorEdges');
+    this.edgeOutList = this.container.querySelector('#inspectorEdgeOut');
+    this.edgeInList = this.container.querySelector('#inspectorEdgeIn');
 
     // Close button handler
     const closeBtn = this.container.querySelector('.inspector-close');
@@ -64,7 +78,7 @@ export class InspectorPanel {
    * @param {Object} node - Graph node data
    * @param {string} sourceCode - Function source code
    */
-  show(node, sourceCode = null) {
+  show(node, sourceCode = null, edgeSummary = null) {
     if (!node) {
       this.hide();
       return;
@@ -168,6 +182,58 @@ export class InspectorPanel {
     return parts.join('');
   }
 
+  renderEdges(edgeSummary) {
+    if (!this.edgesContainer || !this.edgeOutList || !this.edgeInList) {
+      return;
+    }
+
+    if (!edgeSummary) {
+      this.edgesContainer.classList.add('hidden');
+      this.edgeOutList.innerHTML = '';
+      this.edgeInList.innerHTML = '';
+      return;
+    }
+
+    this.edgesContainer.classList.remove('hidden');
+    this.edgeOutList.innerHTML = this.renderEdgeList(edgeSummary.outbound || [], 'No outgoing calls');
+    this.edgeInList.innerHTML = this.renderEdgeList(edgeSummary.inbound || [], 'No incoming calls');
+  }
+
+  renderEdgeList(edges, emptyMessage) {
+    if (!edges.length) {
+      return `<div class="inspector-edge-empty">${emptyMessage}</div>`;
+    }
+
+    const limited = edges.slice(0, 8);
+    const html = limited.map(edge => {
+      const target = edge.node || {};
+      const label = this.escapeHtml(target.fqName || target.name || edge.nodeId || '(unknown)');
+      const metaParts = [];
+      if (edge.type === 'call') {
+        metaParts.push(edge.dynamic ? 'dynamic' : 'static');
+      } else {
+        metaParts.push(edge.type || 'edge');
+      }
+      metaParts.push(`×${edge.weight || 1}`);
+      const meta = metaParts.join(' · ');
+      const filePath = this.escapeHtml(target.filePath || '');
+      const nodeId = this.escapeHtml(edge.nodeId);
+      return `
+        <button class="inspector-edge-btn" data-node-id="${nodeId}">
+          <span class="inspector-edge-label">${label}</span>
+          <span class="inspector-edge-meta">${meta}</span>
+          ${filePath ? `<span class="inspector-edge-path">${filePath}</span>` : ''}
+        </button>
+      `;
+    }).join('');
+
+    const extra = edges.length > limited.length
+      ? `<div class="inspector-edge-more">+${edges.length - limited.length} more</div>`
+      : '';
+
+    return html + extra;
+  }
+
   /**
    * Get language for syntax highlighting
    */
@@ -217,6 +283,22 @@ export class InspectorPanel {
   highlightLines(startLine, endLine) {
     // TODO: Implement line highlighting
     // This would require line number rendering and CSS
+  }
+
+  attachEdgeButtonHandlers() {
+    if (!this.panelEl) {
+      return;
+    }
+
+    const buttons = this.panelEl.querySelectorAll('.inspector-edge-btn');
+    buttons.forEach(btn => {
+      btn.addEventListener('click', () => {
+        const nodeId = btn.getAttribute('data-node-id');
+        if (nodeId && typeof this.onNavigate === 'function') {
+          this.onNavigate(nodeId);
+        }
+      });
+    });
   }
 }
 

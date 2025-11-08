@@ -316,13 +316,85 @@
             padding: 0.25rem 0.5rem;
         }
 
-        .inspector-info {
+        .inspector-content {
             color: #e0e7ff;
-            font-size: 0.9rem;
+        }
+
+        .inspector-info {
+            margin-bottom: 1.5rem;
+        }
+
+        .inspector-edges {
+            margin-bottom: 1.25rem;
+            display: grid;
+            gap: 1rem;
+        }
+
+        .inspector-edges-section {
+            background: rgba(30, 41, 59, 0.4);
+            border: 1px solid rgba(148, 163, 184, 0.2);
+            border-radius: 0.5rem;
+            padding: 0.75rem;
+        }
+
+        .inspector-edges-title {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: #c7d2fe;
+            margin-bottom: 0.5rem;
+        }
+
+        .inspector-edge-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.4rem;
+        }
+
+        .inspector-edge-btn {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            background: rgba(79, 70, 229, 0.2);
+            border: 1px solid rgba(99, 102, 241, 0.35);
+            border-radius: 0.5rem;
+            padding: 0.45rem 0.6rem;
+            color: #e0e7ff;
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .inspector-edge-btn:hover {
+            background: rgba(99, 102, 241, 0.3);
+            border-color: rgba(129, 140, 248, 0.6);
+        }
+
+        .inspector-edge-label {
+            font-weight: 600;
+            margin-bottom: 0.1rem;
+        }
+
+        .inspector-edge-meta {
+            font-size: 0.7rem;
+            color: #cbd5f5;
+            margin-bottom: 0.1rem;
+        }
+
+        .inspector-edge-path {
+            font-size: 0.68rem;
+            color: #94a3b8;
+            word-break: break-all;
+        }
+
+        .inspector-edge-empty,
+        .inspector-edge-more {
+            font-size: 0.75rem;
+            color: #a5b4fc;
         }
 
         .info-row {
             margin-bottom: 0.75rem;
+            font-size: 0.9rem;
             line-height: 1.6;
         }
 
@@ -578,6 +650,10 @@
         const vizCloseBtn = document.getElementById('vizCloseBtn');
 
         const SUPPORTED_EXTENSIONS = ['.js', '.jsx', '.ts', '.tsx', '.py'];
+        const JS_FILE_EXTENSIONS = ['.js', '.jsx', '.ts', '.tsx', '.mjs', '.cjs'];
+        const JS_INDEX_FILENAMES = ['index.js', 'index.jsx', 'index.ts', 'index.tsx'];
+        const PY_FILE_EXTENSIONS = ['.py'];
+        const PY_PACKAGE_FILENAMES = ['__init__.py'];
         const languageDisplayNames = {
             javascript: 'JavaScript',
             typescript: 'TypeScript',
@@ -586,6 +662,8 @@
 
         let sourceFiles = [];
         let fileHandles = new Map();
+        const sourceFileIndex = new Map();
+        const moduleIndex = new Map();
         let totalFiles = 0;
         let scannedFiles = 0;
         let allFunctions = [];
@@ -613,9 +691,13 @@
 
                 sourceFiles = [];
                 fileHandles.clear();
+                sourceFileIndex.clear();
+                moduleIndex.clear();
                 allFunctions = [];
                 allCalls = [];
                 callGraph = null;
+                fullVizData = null;
+                functionMapById = new Map();
                 scannedFiles = 0;
                 totalFiles = 0;
                 fileList.innerHTML = '';
@@ -691,8 +773,11 @@
                     if (SUPPORTED_EXTENSIONS.includes(extension)) {
                         const language = parserManager.detectLanguage(fullPath);
                         if (language) {
-                            sourceFiles.push({ path: fullPath, language });
+                            const { moduleId, aliases } = createModuleMetadata(fullPath, language);
+                            const fileMeta = { path: fullPath, language, moduleId, moduleAliases: aliases };
+                            sourceFiles.push(fileMeta);
                             fileHandles.set(fullPath, entry);
+                            registerSourceFile(fileMeta);
                         }
                     }
 
@@ -732,45 +817,72 @@
         }
 
         async function parseSourceFiles() {
-            const filesByLanguage = groupFilesByLanguage(sourceFiles);
             const total = sourceFiles.length;
+            if (!total) return;
+
+            const languageCache = new Map();
             let parsedCount = 0;
 
-            for (const [languageId, files] of Object.entries(filesByLanguage)) {
-                if (!files.length) continue;
+            for (const file of sourceFiles) {
+                const languageId = file.language;
+                if (!languageId) continue;
 
-                const language = await parserManager.loadLanguage(languageId);
                 const extractor = getExtractorForLanguage(languageId);
                 if (!extractor) continue;
 
-                for (const file of files) {
-                    try {
-                        const fileHandle = fileHandles.get(file.path);
-                        if (!fileHandle) continue;
-
-                        const fileBlob = await fileHandle.getFile();
-                        const source = await fileBlob.text();
-
-                        const extracted = await extractor(source, file.path, language, languageId);
-
-                        allFunctions.push(...annotateFunctions(extracted.functions, languageId));
-                        allCalls.push(...annotateCalls(extracted.calls, languageId));
-
-                        const symbolTable = symbolTableManager.getTable(file.path);
-                        (extracted.exports || []).forEach(exp => {
-                            if (!exp?.name) return;
-                            symbolTable.addExport(exp.name, { isDefault: exp.isDefault });
-                        });
-                        (extracted.imports || []).forEach(imp => {
-                            if (!imp?.name) return;
-                            symbolTable.addImport(imp.name, imp.from, imp.originalName);
-                        });
-
-                        parsedCount++;
-                        updateProgress(`Parsing ${languageDisplayNames[languageId] || languageId}...`, parsedCount, total);
-                    } catch (err) {
-                        console.error(`Failed to parse ${file.path}:`, err);
+                try {
+                    if (!languageCache.has(languageId)) {
+                        const loadedLanguage = await parserManager.loadLanguage(languageId);
+                        languageCache.set(languageId, loadedLanguage);
                     }
+                    const language = languageCache.get(languageId);
+
+                    const fileHandle = fileHandles.get(file.path);
+                    if (!fileHandle) continue;
+
+                    const fileBlob = await fileHandle.getFile();
+                    const source = await fileBlob.text();
+
+                    const extracted = await extractor(source, file.path, language, languageId);
+
+                    const annotatedFunctions = annotateFunctions(extracted.functions, languageId, file.moduleId);
+                    allFunctions.push(...annotatedFunctions);
+                    allCalls.push(...annotateCalls(extracted.calls, languageId));
+
+                    const symbolTable = symbolTableManager.getTable(file.path);
+                    symbolTable.setModuleId(file.moduleId);
+                    symbolTableManager.registerModule(file.path, file.moduleId);
+
+                    annotatedFunctions.forEach(func => {
+                        symbolTable.registerFunction(func, { autoExport: languageId === 'python' });
+                        functionMapById.set(func.id, func);
+                    });
+
+                    (extracted.exports || []).forEach(exp => {
+                        if (!exp?.name) return;
+                        symbolTable.addExport(exp.name, {
+                            isDefault: !!exp.isDefault,
+                            localName: exp.localName,
+                            kind: exp.kind || 'value'
+                        });
+                    });
+
+                    (extracted.imports || []).forEach(imp => {
+                        if (!imp?.name) return;
+                        const resolved = resolveImportModule(file, imp.from, languageId);
+                        symbolTable.addImport(imp.name, {
+                            from: imp.from,
+                            originalName: imp.originalName,
+                            isDefault: !!imp.isDefault,
+                            moduleId: resolved?.moduleId || null,
+                            resolvedFilePath: resolved?.filePath || null
+                        });
+                    });
+
+                    parsedCount++;
+                    updateProgress(`Parsing ${languageDisplayNames[languageId] || languageId}...`, parsedCount, total);
+                } catch (err) {
+                    console.error(`Failed to parse ${file.path}:`, err);
                 }
             }
         }
@@ -837,6 +949,12 @@
                     controls.setHoverInfo(info);
                 }
             };
+
+            if (inspector) {
+                inspector.onNavigate = (nodeId) => {
+                    graphViz.focusNodeById(nodeId);
+                };
+            }
 
             functionMapById = new Map((callGraph.nodes || []).map(fn => [fn.id, fn]));
             fullVizData = convertCallGraphToVizData(callGraph);
@@ -979,13 +1097,13 @@
             graphViz.loadData({ nodes: filteredNodes, links: filteredLinks });
         }
 
-        async function handleNodeClick(node) {
+        async function handleNodeClick(node, edgeSummary) {
             if (!node) {
                 inspector?.hide();
                 return;
             }
             const source = await getFunctionSource(node);
-            inspector?.show(node, source);
+            inspector?.show(node, source, edgeSummary);
         }
 
         function handleNodeHover(node) {
