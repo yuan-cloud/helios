@@ -135,13 +135,13 @@ Tree-sitter's query DSL lets you capture these nodes robustly.
 
 ### 3.7 Visualization (3D)
 
-[viz-agent - IN PROGRESS - 2025-11-07]
+[LilacLake - UPDATED - 2025-11-08 07:32]
 
-✅ 3d-force-graph scaffold hooked to call graph output (call edges, arrow particles, camera helpers)
-✅ Inspector panel with Prism highlighting and controls sidebar (toggles, filters, export)
-✅ Neighborhood highlighting polished (hover sidebar, quick jumps, smoothed fade) — 2025-11-08
-❌ Similarity edge layer pending embeddings-agent output (blocked until Section 3.4/3.5 ship vectors)
-✅ [2025-11-08] Restored call/similarity edge toggles after hover refactor regression (commit a1b2c3d)
+✅ 3d-force-graph scaffold hooked to call graph output (directional call edges, particle arrows, camera helpers)
+✅ Controls + inspector enhancements (hover sidebar, neighbor quick jumps, call inbound/outbound lists)
+⏳ Layout persistence & performance tuning (25% done – awaiting storage-agent OPFS snapshot flow)
+❌ Similarity edge layer (blocked: needs embeddings-agent similarity vectors from sections 3.4/3.5)
+✅ Regression fix: call/sim edge toggles restored post hover refactor (`6213e89`)
 
 - Render with 3d-force-graph:
   - Use directional arrows/particles for call edges; labels on hover; click to focus; fit-to-view; pause/resume simulation. The lib supports directional particles and node/link labels out of the box.
@@ -264,12 +264,12 @@ Persist DB under OPFS (origin-private) so users can reopen the site and continue
 
 ## 11) Visualization Details
 
-[viz-agent - IN PROGRESS - 2025-11-07]
+[LilacLake - UPDATED - 2025-11-08 07:32]
 
-✅ Call-edge palette with directional particles and arrowheads implemented
-✅ Hover/click interactions wired to inspector panel and camera focus
-⏳ Save/persist layout positions + frozen nodes (UI surface sketched, needs storage agent hook)
-❌ Similarity edge styling blocked by missing similarity data from embeddings-agent
+✅ Call-edge palette complete (directional particles, arrowheads, color coding)
+✅ Interaction polish (hover sidebar, inspector call lists, camera/quick-jump syncing)
+⏳ Layout persistence & freeze UX (20% done – awaiting storage-agent OPFS snapshot flow)
+❌ Similarity edge styling (blocked: embeddings-agent similarity vectors not yet available)
 
 - **Edge palette**:
   - Call edges: Color by module proximity or "internal vs external"; arrows on direction; use `linkDirectionalParticles` to emphasize direction on hover.
