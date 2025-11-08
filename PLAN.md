@@ -57,7 +57,7 @@ Everything runs from static hosting (GitHub/Cloudflare Pages). To enable threads
 
 ### 3.2 Language Detection and AST Parsing
 
-[PinkMountain - UPDATED - 2025-11-09 04:05]
+[PinkMountain - UPDATED - 2025-11-09 04:20]
 
 ✅ Tree-sitter loaded  
 ✅ JS/TS grammar loaded  
@@ -80,7 +80,7 @@ Tree-sitter's query DSL lets you capture these nodes robustly.
 
 ### 3.3 Call Graph Construction (Static, Best-Effort)
 
-[PinkMountain - UPDATED - 2025-11-09 04:05]
+[PinkMountain - UPDATED - 2025-11-09 04:20]
 
 ✅ Static call graph extraction complete (caller→callee edges with call-site metadata)  
 ✅ Python grammar support added (functions/imports/calls feed call graph + viz)  
@@ -152,13 +152,13 @@ Tree-sitter's query DSL lets you capture these nodes robustly.
 
 ### 3.7 Visualization (3D)
 
-[LilacLake - UPDATED - 2025-11-09 02:58]
+[LilacLake - UPDATED - 2025-11-09 04:20]
 
 ✅ 3d-force-graph scaffold hooked to call graph output (directional call edges, particle arrows, camera helpers)
 ✅ Controls + inspector enhancements (hover sidebar, neighbor quick jumps, call inbound/outbound lists)
 ✅ Call-edge resolution styling (resolved/ambiguous/unresolved cues + inspector badges)
 ✅ Similarity edge layer (dashed styling, weight-aware opacity/width, threshold slider, hover/inspector surfacing)
-⏳ Layout persistence & performance tuning (65% done – localStorage save/restore shipped; OPFS persistence waiting on storage-agent layout endpoints)
+⏳ Layout persistence & performance tuning (80% done – OPFS snapshot save/restore wired to storage worker; perf profiling + tuning knobs pending)
 ✅ Regression fix: call/sim edge toggles restored post hover refactor (`6213e89`)
 
 - Render with 3d-force-graph:
@@ -208,7 +208,7 @@ All steps are cancellable and resumable; show clear privacy note ("Remains on yo
 ✅ Schema + migration unit + layout persistence coverage (`tests/storage/sqlite-ensure.test.mjs`, `tests/storage/client.test.mjs`, `tests/storage/layout-persistence.test.mjs`)
 ✅ OPFS layout snapshot persistence API (`src/storage/layout-persistence.js`, worker/client handlers) [unblocked viz agent]
 ⏳ End-to-end DB resume flow (40% – needs wiring from embeddings/viz to consume storage APIs)
-⏳ Layout snapshot integration in viz UI (0% – pending viz-agent adoption of new APIs)
+✅ Layout snapshot integration in viz UI (viz save/restore now uses OPFS snapshot provider)
 ❌ Multi-session retention policy doc (blocked: awaiting product requirements on data lifespan)
 
 **Tables:**
