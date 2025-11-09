@@ -200,13 +200,14 @@ All steps are cancellable and resumable; show clear privacy note ("Remains on yo
 
 ## 6) Data Model (SQLite)
 
-[storage-agent - UPDATED - 2025-11-09 03:59]
+[storage-agent - UPDATED - 2025-11-09 05:15]
 
 ✅ SQLite-WASM bootstrap w/ OPFS fallback (`src/storage/sqlite.js`)
 ✅ Schema definition & metadata helpers (`src/storage/schema.js`, `src/storage/migrations.js`)
 ✅ Worker/client API for SQLite access (`src/storage/client.js`, `src/workers/storage-worker.js`)
 ✅ Schema + migration unit + layout persistence coverage (`tests/storage/sqlite-ensure.test.mjs`, `tests/storage/client.test.mjs`, `tests/storage/layout-persistence.test.mjs`)
 ✅ OPFS layout snapshot persistence API (`src/storage/layout-persistence.js`, worker/client handlers) [unblocked viz agent]
+✅ Layout + embedding persistence integration guide (`docs/storage.md`)
 ⏳ End-to-end DB resume flow (40% – needs wiring from embeddings/viz to consume storage APIs)
 ✅ Layout snapshot integration in viz UI (viz save/restore now uses OPFS snapshot provider)
 ❌ Multi-session retention policy doc (blocked: awaiting product requirements on data lifespan)
