@@ -153,13 +153,13 @@ Tree-sitter's query DSL lets you capture these nodes robustly.
 
 ### 3.7 Visualization (3D)
 
-[LilacLake - UPDATED - 2025-11-09 04:20]
+[LilacLake - UPDATED - 2025-11-09 05:18]
 
-✅ 3d-force-graph scaffold hooked to call graph output (directional call edges, particle arrows, camera helpers)
-✅ Controls + inspector enhancements (hover sidebar, neighbor quick jumps, call inbound/outbound lists)
-✅ Call-edge resolution styling (resolved/ambiguous/unresolved cues + inspector badges)
-✅ Similarity edge layer (dashed styling, weight-aware opacity/width, threshold slider, hover/inspector surfacing)
-✅ Layout persistence & performance tuning (auto heuristics + perf toggles shipped; continued profiling as needed)
+✅ 3d-force-graph scaffold hooked to call graph output (directional call edges, particle arrows, camera helpers)  
+✅ Controls + inspector enhancements (hover sidebar, neighbor quick jumps, call inbound/outbound lists)  
+✅ Call-edge resolution styling (resolved/ambiguous/unresolved cues + inspector badges)  
+✅ Similarity edge layer (dashed styling, weight-aware opacity/width, threshold slider, hover/inspector surfacing)  
+✅ Layout persistence & performance tuning (auto heuristics + perf toggles shipped; viz shows embedding reuse stats)  
 ✅ Regression fix: call/sim edge toggles restored post hover refactor (`6213e89`)
 
 - Render with 3d-force-graph:
