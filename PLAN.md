@@ -57,7 +57,7 @@ Everything runs from static hosting (GitHub/Cloudflare Pages). To enable threads
 
 ### 3.2 Language Detection and AST Parsing
 
-[PinkMountain - UPDATED - 2025-11-09 05:50]
+[PinkMountain - UPDATED - 2025-11-09 05:52]
 
 ✅ Tree-sitter loaded  
 ✅ JS/TS grammar loaded  
@@ -80,7 +80,7 @@ Tree-sitter's query DSL lets you capture these nodes robustly.
 
 ### 3.3 Call Graph Construction (Static, Best-Effort)
 
-[PinkMountain - UPDATED - 2025-11-09 05:50]
+[PinkMountain - UPDATED - 2025-11-09 05:52]
 
 ✅ Static call graph extraction complete (caller→callee edges with call-site metadata)  
 ✅ Python grammar support added (functions/imports/calls feed call graph + viz)  
