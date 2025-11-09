@@ -141,6 +141,15 @@ Tree-sitter's query DSL lets you capture these nodes robustly.
 
 ### 3.6 Graph Assembly
 
+[OrangeSnow - UPDATED - 2025-11-10 04:18]
+
+✅ Graphology scaffolding and `buildFunctionGraph` implemented (`src/graph/graph-builder.js`)  
+✅ Node attribute normalization + per-layer edge statistics  
+✅ Import map updated for Graphology + Louvain packages  
+⏳ Parser/embedding data plumbing into graph builder (10% done — awaiting final payload wiring)  
+⏳ Storage/viz integration for computed metrics (15% done — pending downstream consumption)  
+❌ Cross-worker message schema finalization (blocked until parser/embedding agents confirm transport format)
+
 - **Nodes**: One per function `{id, fqName, filePath, range, lang, size (#LOC), metrics…}`.
 - **Edges (two layers)**:
   1. **Call edges** (directed, solid): Weight by call-site count; color by call type (internal/external, static/dynamic).
@@ -290,6 +299,14 @@ Persist DB under OPFS (origin-private) so users can reopen the site and continue
 - Threshold and top-K per node; allow user to slide K and τ in the UI.
 
 ### 10.4 Network Analysis
+
+[OrangeSnow - UPDATED - 2025-11-10 04:18]
+
+✅ Centrality suite (degree, betweenness, PageRank) — `src/analysis/centralities.js`  
+✅ Louvain community detection helper — `src/analysis/communities.js`  
+✅ Clique + k-core analysis utilities — `src/analysis/cliques.js`  
+⏳ Metric aggregation export for viz/storage (20% done — needs wiring into persistence layer)  
+❌ Validation harness with sample repos (blocked until representative datasets available)
 
 - Compute: degree, betweenness, eigenvector, PageRank; community (Louvain); show histograms in a side panel. (Graphology has these out of the box.)
 
