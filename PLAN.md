@@ -154,7 +154,7 @@ Tree-sitter's query DSL lets you capture these nodes robustly.
 
 ### 3.7 Visualization (3D)
 
-[LilacLake - UPDATED - 2025-11-09 06:30]
+[LilacLake - UPDATED - 2025-11-09 06:35]
 
 ✅ Core 3d-force-graph scaffold hooked to call graph output (directional particles, camera helpers, fit-to-view)  
 ✅ Controls + inspector polish (hover sidebar, neighbor quick jumps, inbound/outbound call lists, Prism-highlighted source)  
@@ -297,7 +297,7 @@ Persist DB under OPFS (origin-private) so users can reopen the site and continue
 
 ## 11) Visualization Details
 
-[LilacLake - UPDATED - 2025-11-09 06:30]
+[LilacLake - UPDATED - 2025-11-09 06:35]
 
 ✅ Call-edge palette finalized (directional particles, arrowheads, module-aware colors, hover fades)  
 ✅ Interaction polish (hover sidebar metrics, inspector call lists, camera focus + quick-jump syncing)  
