@@ -8,6 +8,8 @@ import { StorageWorkerClient } from "./client.js";
 
 const SNAPSHOT_KEY = "analysis.snapshot.v1";
 const SNAPSHOT_VERSION = 1;
+const MAX_SOURCE_CHAR_LENGTH = 8_192;
+const MAX_SOURCE_LINES = 400;
 
 function toArray(value) {
   if (!value) {
@@ -31,10 +33,25 @@ function sanitizeSourceFile(file) {
   };
 }
 
-function sanitizeFunction(fn) {
+function sanitizeFunction(fn, options = {}) {
   if (!fn || typeof fn !== "object") {
     return null;
   }
+  const {
+    includeSource = true,
+    sourceCharLimit = MAX_SOURCE_CHAR_LENGTH,
+    sourceLineLimit = MAX_SOURCE_LINES,
+  } = options;
+
+  let source = null;
+  let sourceTruncated = false;
+
+  if (includeSource && typeof fn.source === "string" && fn.source.length) {
+    const trimmed = trimSource(fn.source, sourceCharLimit, sourceLineLimit);
+    source = trimmed.text;
+    sourceTruncated = trimmed.truncated;
+  }
+
   return {
     id: fn.id,
     name: fn.name || "<anonymous>",
@@ -51,12 +68,14 @@ function sanitizeFunction(fn) {
     loc: Number.isFinite(fn.loc) ? fn.loc : null,
     doc: fn.doc || null,
     metrics: fn.metrics || null,
+    source,
+    sourceTruncated: source ? sourceTruncated : false,
   };
 }
 
 function sanitizeCallGraph(callGraph = {}) {
   const nodes = toArray(callGraph.nodes)
-    .map(sanitizeFunction)
+    .map((fn) => sanitizeFunction(fn))
     .filter(Boolean);
   const edges = toArray(callGraph.edges).map((edge) => {
     if (!edge || typeof edge !== "object") {
@@ -239,4 +258,24 @@ export async function clearAnalysisSnapshot(clientInput) {
 }
 
 export const ANALYSIS_SNAPSHOT_KEY = SNAPSHOT_KEY;
+
+function trimSource(source, maxChars, maxLines) {
+  let truncated = false;
+  let text = source;
+
+  if (Number.isFinite(maxLines) && maxLines > 0) {
+    const lines = text.split(/\r?\n/);
+    if (lines.length > maxLines) {
+      text = lines.slice(0, maxLines).join("\n");
+      truncated = true;
+    }
+  }
+
+  if (Number.isFinite(maxChars) && maxChars > 0 && text.length > maxChars) {
+    text = text.slice(0, maxChars);
+    truncated = true;
+  }
+
+  return { text, truncated };
+}
 

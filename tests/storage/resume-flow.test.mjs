@@ -44,6 +44,8 @@ class MockStorageClient {
 test("save/load/clear analysis snapshot", async (t) => {
   const client = new MockStorageClient();
 
+  const longSource = Array.from({ length: 1200 }, (_, idx) => `line ${idx}`).join("\n");
+
   const payload = {
     projectLabel: "sample-project",
     sourceFiles: [
@@ -76,7 +78,7 @@ test("save/load/clear analysis snapshot", async (t) => {
           endColumn: 2,
           loc: 40,
           doc: "Foo docs",
-          source: "function foo() {}",
+        source: longSource,
         },
         {
           id: "virtual:missing:src/foo.js",
@@ -164,7 +166,12 @@ test("save/load/clear analysis snapshot", async (t) => {
   assert.equal(saved.version, 1);
   assert.equal(saved.project.label, "sample-project");
   assert.equal(saved.functions.length, 1);
+  assert.ok(saved.functions[0].source, "Function source should be persisted");
+  assert.equal(saved.functions[0].sourceTruncated, true, "Long source should be marked truncated");
+  assert.ok(saved.functions[0].source.length <= 8192, "Source snippet should be trimmed to snapshot limit");
   assert.equal(saved.callGraph.nodes.length, 2);
+  const savedNode = saved.callGraph.nodes.find((node) => node.id === "src/foo.js:10:42");
+  assert.ok(savedNode?.source, "Call graph node should retain source snippet");
   assert.equal(saved.callGraph.edges.length, 1);
   assert.equal(saved.similarityEdges.length, 1);
   assert.equal(saved.stats.functionCount, 1);
@@ -176,8 +183,8 @@ test("save/load/clear analysis snapshot", async (t) => {
   assert.equal(saved.fingerprint, "fingerprint123");
   assert.equal(saved.layoutKey, "helios:v1:layout:abcd");
 
-  // Ensure heavy fields like source were stripped.
-  assert.equal("source" in saved.functions[0], false);
+  // Source snippets should remain available for inspector hydration.
+  assert.equal("source" in saved.functions[0], true);
 
   const stored = client.store.get(ANALYSIS_SNAPSHOT_KEY);
   assert.ok(stored, "Snapshot should be stored in KV table");
