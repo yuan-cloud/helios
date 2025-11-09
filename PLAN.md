@@ -57,7 +57,7 @@ Everything runs from static hosting (GitHub/Cloudflare Pages). To enable threads
 
 ### 3.2 Language Detection and AST Parsing
 
-[PinkMountain - UPDATED - 2025-11-09 04:28]
+[PinkMountain - UPDATED - 2025-11-09 05:15]
 
 ✅ Tree-sitter loaded  
 ✅ JS/TS grammar loaded  
@@ -80,13 +80,14 @@ Tree-sitter's query DSL lets you capture these nodes robustly.
 
 ### 3.3 Call Graph Construction (Static, Best-Effort)
 
-[PinkMountain - UPDATED - 2025-11-09 04:28]
+[PinkMountain - UPDATED - 2025-11-09 05:15]
 
 ✅ Static call graph extraction complete (caller→callee edges with call-site metadata)  
 ✅ Python grammar support added (functions/imports/calls feed call graph + viz)  
 ✅ Symbol table implementation complete  
 ✅ Module resolution logic extended (import/export aware)  
 ✅ Resolution metadata surfaced to visualization controls/inspector  
+✅ Parser↔viz integration revalidated (hover + inspector data flow confirmed 2025-11-09)  
 ⏳ Enhanced name resolution (stack-graphs integration) — 0% (planned post-MVP once research unblocks)  
 ❌ Stack-graph powered name resolution blocked: awaiting WASM-capable implementation guidance
 
