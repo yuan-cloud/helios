@@ -57,7 +57,7 @@ Everything runs from static hosting (GitHub/Cloudflare Pages). To enable threads
 
 ### 3.2 Language Detection and AST Parsing
 
-[PinkMountain - UPDATED - 2025-11-09 04:20]
+[PinkMountain - UPDATED - 2025-11-09 04:28]
 
 ✅ Tree-sitter loaded  
 ✅ JS/TS grammar loaded  
@@ -80,7 +80,7 @@ Tree-sitter's query DSL lets you capture these nodes robustly.
 
 ### 3.3 Call Graph Construction (Static, Best-Effort)
 
-[PinkMountain - UPDATED - 2025-11-09 04:20]
+[PinkMountain - UPDATED - 2025-11-09 04:28]
 
 ✅ Static call graph extraction complete (caller→callee edges with call-site metadata)  
 ✅ Python grammar support added (functions/imports/calls feed call graph + viz)  
@@ -101,12 +101,12 @@ Tree-sitter's query DSL lets you capture these nodes robustly.
 
 ### 3.4 Function Chunking and Embeddings
 
-[BlueBear - UPDATED - 2025-11-09 04:07]
+[BlueBear - UPDATED - 2025-11-09 05:06]
 
 ✅ Chunking scaffolding (line-aware splits with source offsets)
 ✅ Embedding worker inference (Transformers.js MiniLM via WebGPU/WASM)
 ✅ Persistence to storage worker (chunk vectors + metadata cached in SQLite; transaction flow stabilized)
-⏳ Incremental delta updates (plans for partial re-embed when files change)
+✅ Incremental delta updates (reuse cached function chunks, re-embed only changed sources via per-function fingerprints)
 
 - **Chunking**: Within each function, split by syntactic boundaries (statement blocks / loop bodies / logical sections) to keep chunks ~100–200 tokens. Maintain chunk offsets into the source so clicks can highlight text accurately.
 - **Model**: Start with a compact, general-purpose text/code embedding like MiniLM (384-dim) in ONNX via Transformers.js, loading from HF hub through the library's CDN resolver. Models cache in the browser (Cache API/IndexedDB) to avoid re-downloads. Provide a setting to force WebGPU backend when available; fall back to WASM.
@@ -115,7 +115,7 @@ Tree-sitter's query DSL lets you capture these nodes robustly.
 
 ### 3.5 Embedding Aggregation and Similarity
 
-[BlueBear - UPDATED - 2025-11-09 04:07]
+[BlueBear - UPDATED - 2025-11-09 05:06]
 
 ✅ Representative vector computation (per-function mean + normalization)
 ✅ Top-k bundle similarity with cosine metrics (candidate limit + thresholding)
