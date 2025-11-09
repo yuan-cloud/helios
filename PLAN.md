@@ -209,7 +209,7 @@ All steps are cancellable and resumable; show clear privacy note ("Remains on yo
 ✅ Schema + migration unit + layout persistence coverage (`tests/storage/sqlite-ensure.test.mjs`, `tests/storage/client.test.mjs`, `tests/storage/layout-persistence.test.mjs`)
 ✅ OPFS layout snapshot persistence API (`src/storage/layout-persistence.js`, worker/client handlers) [unblocked viz agent]
 ✅ Layout + embedding persistence integration guide (`docs/storage.md`)
-⏳ End-to-end DB resume flow (40% – needs wiring from embeddings/viz to consume storage APIs)
+✅ End-to-end DB resume flow (OPFS snapshot resume UI + automated tests)
 ✅ Layout snapshot integration in viz UI (viz save/restore now uses OPFS snapshot provider)
 ❌ Multi-session retention policy doc (blocked: awaiting product requirements on data lifespan)
 

@@ -587,7 +587,12 @@
         <div class="text-center space-y-6">
             <h1 class="title">HELIOS</h1>
             <p class="tagline">See the gravity of your code</p>
-            <button class="button" id="selectBtn">Select Repository</button>
+            <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
+                <button class="button" id="selectBtn">Select Repository</button>
+                <button class="button hidden" id="resumeBtn" style="background: rgba(129, 140, 248, 0.15); border: 1px solid rgba(129, 140, 248, 0.5);">
+                    Resume Last Session
+                </button>
+            </div>
         </div>
 
         <div class="progress-container hidden" id="progressContainer">
@@ -640,6 +645,10 @@
             deleteLayoutSnapshot,
             listLayoutSnapshots
         } from './src/storage/layout-persistence.js';
+        import {
+            saveAnalysisSnapshot,
+            loadAnalysisSnapshot
+        } from './src/storage/resume-flow.js';
 
         const starsContainer = document.getElementById('stars');
         const starCount = 120;
@@ -653,6 +662,7 @@
         }
 
         const selectBtn = document.getElementById('selectBtn');
+        const resumeBtn = document.getElementById('resumeBtn');
         const progressContainer = document.getElementById('progressContainer');
         const progressText = document.getElementById('progressText');
         const progressFill = document.getElementById('progressFill');
@@ -721,6 +731,7 @@
         let storageClientInitPromise = null;
         let latestEmbeddingSummary = null;
         let latestFunctionFingerprintMap = null;
+        let resumeSnapshot = null;
 
         const symbolTableManager = new SymbolTableManager();
         function updateEmbeddingSummary(summary) {
@@ -746,6 +757,19 @@
             selectBtn.style.cursor = 'not-allowed';
         }
 
+        resumeBtn?.addEventListener('click', async () => {
+            if (!resumeSnapshot) {
+                return;
+            }
+            resumeBtn.classList.add('hidden');
+            try {
+                await hydrateFromSnapshot(resumeSnapshot);
+            } catch (err) {
+                console.error('Failed to resume previous session:', err);
+                resumeBtn.classList.remove('hidden');
+            }
+        });
+
         selectBtn.addEventListener('click', async () => {
             try {
                 const directoryHandle = await window.showDirectoryPicker();
@@ -770,6 +794,8 @@
                 embeddingError = null;
                 embeddingReuseCounts = { reused: 0, embedded: 0 };
                 latestFunctionFingerprintMap = null;
+                resumeSnapshot = null;
+                resumeBtn?.classList.add('hidden');
                 window.heliosEmbeddingChunks = [];
                 window.heliosEmbeddingStats = null;
                 window.heliosEmbeddings = null;
@@ -792,6 +818,7 @@
                 progressContainer.classList.remove('hidden');
 
                 await parserManager.initialize();
+                await ensureStorageClient();
 
                 progressText.textContent = 'Counting files...';
                 totalFiles = await countFiles(directoryHandle);
@@ -1114,6 +1141,33 @@
                 }
 
                 displayResults();
+
+                if (storageReady && storageClient && callGraph?.nodes?.length) {
+                    try {
+                        const snapshotLayoutKey = computeLayoutStorageKey(callGraph);
+                        const savedSnapshot = await saveAnalysisSnapshot(storageClient, {
+                            projectLabel: directoryHandle?.name || null,
+                            sourceFiles,
+                            callGraph,
+                            similarityEdges,
+                            embedding: {
+                                metadata: embeddingMetadata,
+                                reuse: embeddingReuseCounts,
+                                stats: embeddingStats,
+                                chunkCount: embeddingChunks.length,
+                                cached: usedCachedEmbeddings,
+                                error: embeddingError
+                            },
+                            embeddingFingerprint,
+                            functionFingerprintMap: latestFunctionFingerprintMap,
+                            layoutKey: snapshotLayoutKey
+                        });
+                        resumeSnapshot = savedSnapshot;
+                        resumeBtn?.classList.remove('hidden');
+                    } catch (err) {
+                        console.warn('Failed to save analysis snapshot:', err);
+                    }
+                }
 
                 if (allFunctions.length > 0 && stats.totalEdges >= 0) {
                     visualizeBtn.classList.remove('hidden');
@@ -1808,6 +1862,173 @@
             return storageClientInitPromise;
         }
 
+        async function initializeResumeOption() {
+            if (!resumeBtn) {
+                return;
+            }
+            resumeBtn.classList.add('hidden');
+            resumeSnapshot = null;
+            try {
+                const available = await ensureStorageClient();
+                if (!available || !storageClient) {
+                    return;
+                }
+                const snapshot = await loadAnalysisSnapshot(storageClient);
+                if (snapshot && Array.isArray(snapshot.callGraph?.nodes) && snapshot.callGraph.nodes.length) {
+                    resumeSnapshot = snapshot;
+                    resumeBtn.classList.remove('hidden');
+                }
+            } catch (err) {
+                console.warn('Failed to load resume snapshot:', err);
+            }
+        }
+
+        async function hydrateFromSnapshot(snapshot) {
+            if (!snapshot || !snapshot.callGraph) {
+                return;
+            }
+
+            sourceFiles = Array.isArray(snapshot.sourceFiles)
+                ? snapshot.sourceFiles.map(file => ({
+                    path: file.path || '',
+                    language: file.language || null,
+                    moduleId: file.moduleId || null,
+                    moduleAliases: Array.isArray(file.moduleAliases) ? [...file.moduleAliases] : []
+                }))
+                : [];
+            fileHandles.clear();
+            sourceFileIndex.clear();
+            moduleIndex.clear();
+            sourceFiles.forEach(registerSourceFile);
+
+            allFunctions = Array.isArray(snapshot.functions)
+                ? snapshot.functions.map(fn => ({ ...fn }))
+                : [];
+            allCalls = [];
+
+            const callGraphNodes = Array.isArray(snapshot.callGraph?.nodes)
+                ? snapshot.callGraph.nodes.map(node => ({ ...node }))
+                : [];
+            const callGraphEdges = Array.isArray(snapshot.callGraph?.edges)
+                ? snapshot.callGraph.edges.map(edge => ({
+                    ...edge,
+                    metadata: edge.metadata ? { ...edge.metadata } : null
+                }))
+                : [];
+            callGraph = {
+                nodes: callGraphNodes,
+                edges: callGraphEdges,
+                stats: snapshot.callGraph?.stats || {
+                    totalEdges: callGraphEdges.length,
+                    staticEdges: 0,
+                    dynamicEdges: 0,
+                    resolvedEdges: 0,
+                    ambiguousEdges: 0,
+                    unresolvedEdges: 0
+                }
+            };
+
+            similarityEdges = Array.isArray(snapshot.similarityEdges)
+                ? snapshot.similarityEdges.map(edge => ({ ...edge }))
+                : [];
+
+            embeddingMetadata = snapshot.embedding?.metadata
+                ? { ...snapshot.embedding.metadata }
+                : {
+                    backend: null,
+                    modelId: null,
+                    dimension: null,
+                    quantized: null
+                };
+            embeddingReuseCounts = snapshot.embedding?.reuse
+                ? { ...snapshot.embedding.reuse }
+                : { reused: 0, embedded: 0 };
+            embeddingStats = snapshot.embedding?.stats || null;
+            usedCachedEmbeddings = !!snapshot.embedding?.cached;
+            embeddingFingerprint = snapshot.fingerprint || null;
+            latestFunctionFingerprintMap = snapshot.functionFingerprints || null;
+            embeddingError = snapshot.embedding?.error || null;
+
+            embeddingChunks = [];
+            embeddingVectors = [];
+            functionEmbeddings = [];
+
+            window.heliosFunctions = allFunctions;
+            window.heliosCallGraph = callGraph;
+            window.heliosSimilarity = similarityEdges;
+            window.heliosEmbeddingReuse = embeddingReuseCounts;
+            window.heliosEmbeddingStats = embeddingStats;
+            window.heliosEmbeddingError = embeddingError;
+
+            updateEmbeddingSummary({
+                chunkCount: snapshot.embedding?.chunkCount ?? null,
+                metadata: embeddingMetadata,
+                reuse: embeddingReuseCounts,
+                cached: usedCachedEmbeddings,
+                similarityEdges: similarityEdges.length,
+                functionsWithEmbeddings: allFunctions.length,
+                error: embeddingError
+            });
+
+            totalFiles = sourceFiles.length;
+            scannedFiles = totalFiles;
+            counter.textContent = formatCounterMessage();
+
+            const stats = snapshot.stats || {};
+            const graphStats = stats.callGraphStats || callGraph.stats || {};
+            const totalEdges = graphStats.totalEdges ?? callGraph.edges.length;
+            const staticEdges = graphStats.staticEdges ?? 0;
+            const dynamicEdges = graphStats.dynamicEdges ?? 0;
+            const resolvedEdges = graphStats.resolvedEdges ?? 0;
+            const ambiguousEdges = graphStats.ambiguousEdges ?? 0;
+            const unresolvedEdges = graphStats.unresolvedEdges ?? 0;
+
+            const resolutionDetails = [];
+            if (resolvedEdges) resolutionDetails.push(`${resolvedEdges} resolved`);
+            if (ambiguousEdges) resolutionDetails.push(`${ambiguousEdges} ambiguous`);
+            if (unresolvedEdges) resolutionDetails.push(`${unresolvedEdges} unresolved`);
+            const resolutionSummary = resolutionDetails.length ? ` · ${resolutionDetails.join(' / ')}` : '';
+
+            let embeddingSummary = '';
+            if (embeddingMetadata && (embeddingMetadata.modelId || embeddingMetadata.dimension)) {
+                const dim = embeddingMetadata.dimension ? `${embeddingMetadata.dimension}-dim` : 'unknown-dim';
+                const backendLabel = embeddingMetadata.backend ? embeddingMetadata.backend.toUpperCase() : 'WASM';
+                let reuseLabel = '';
+                if (usedCachedEmbeddings) {
+                    reuseLabel = ', cached';
+                } else if ((embeddingReuseCounts.reused || 0) > 0 || (embeddingReuseCounts.embedded || 0) > 0) {
+                    const reusedLabel = `${(embeddingReuseCounts.reused || 0).toLocaleString()} reused`;
+                    const embeddedLabel = (embeddingReuseCounts.embedded || 0) > 0
+                        ? ` / ${(embeddingReuseCounts.embedded || 0).toLocaleString()} new`
+                        : '';
+                    reuseLabel = `, ${reusedLabel}${embeddedLabel}`;
+                }
+                const chunkCount = snapshot.embedding?.chunkCount ?? null;
+                const chunkLabel = Number.isFinite(chunkCount)
+                    ? `${chunkCount.toLocaleString()} embedding chunk${chunkCount !== 1 ? 's' : ''}`
+                    : 'embeddings cached';
+                embeddingSummary = ` · ${chunkLabel} (${dim}, ${backendLabel}${reuseLabel})`;
+            } else if (embeddingError) {
+                embeddingSummary = ' · Embeddings failed previously';
+            }
+
+            let similaritySummary = '';
+            if (similarityEdges.length > 0) {
+                similaritySummary = ` · ${similarityEdges.length.toLocaleString()} similarity edge${similarityEdges.length !== 1 ? 's' : ''}`;
+            }
+
+            const functionCount = stats.functionCount ?? allFunctions.length;
+            functionsCounter.textContent = `${functionCount.toLocaleString()} function${functionCount !== 1 ? 's' : ''} cached · ${totalEdges.toLocaleString()} call edge${totalEdges !== 1 ? 's' : ''} (${staticEdges.toLocaleString()} static · ${dynamicEdges.toLocaleString()} dynamic)${resolutionSummary}${embeddingSummary}${similaritySummary}`;
+
+            displayResults();
+            progressContainer.classList.add('hidden');
+            resultsContainer.classList.remove('hidden');
+            visualizeBtn.classList.remove('hidden');
+
+            resumeSnapshot = snapshot;
+            await initializeVisualization();
+        }
+
         function createLayoutPersistenceProvider(layoutKey, layoutHash) {
             if (!storageReady || !storageClient) {
                 return null;
@@ -1890,6 +2111,10 @@
             }
             return Math.abs(hash).toString(16);
         }
+
+        initializeResumeOption().catch(err => {
+            console.warn('Resume snapshot init failed:', err);
+        });
     </script>
 </body>
 </html>
