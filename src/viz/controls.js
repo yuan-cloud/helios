@@ -116,6 +116,13 @@ export class VisualizationControls {
             <div class="control-hint" id="performanceStatus" aria-live="polite" style="font-size: 0.72rem; color: #cbd5f5;"></div>
           </div>
         </div>
+
+        <div class="controls-section">
+          <h4 class="controls-title">Embeddings</h4>
+          <div class="control-hint" id="embeddingStatus" aria-live="polite" style="font-size: 0.8rem; color: #cbd5f5;"></div>
+          <div class="control-hint" id="embeddingReuseStatus" aria-live="polite" style="font-size: 0.78rem; color: #a5b4fc;"></div>
+          <div class="control-hint" id="similarityStatus" aria-live="polite" style="font-size: 0.78rem; color: #a5b4fc;"></div>
+        </div>
         
         ${this.options.showFilters ? `
         <div class="controls-section">
@@ -194,11 +201,15 @@ export class VisualizationControls {
     this.performanceAutoToggle = this.container.querySelector('#toggleAutoPerformance');
     this.performanceModeToggle = this.container.querySelector('#toggleHighPerformance');
     this.performanceStatusEl = this.container.querySelector('#performanceStatus');
+    this.embeddingStatusEl = this.container.querySelector('#embeddingStatus');
+    this.embeddingReuseStatusEl = this.container.querySelector('#embeddingReuseStatus');
+    this.similarityStatusEl = this.container.querySelector('#similarityStatus');
     if (this.graphViz && typeof this.graphViz.getPerformanceState === 'function') {
       this.updatePerformanceControls(this.graphViz.getPerformanceState());
     } else {
       this.updatePerformanceControls();
     }
+    this.setEmbeddingSummary();
   }
 
   /**
@@ -454,6 +465,81 @@ export class VisualizationControls {
         this.layoutStatusEl.textContent = '';
         this.layoutStatusTimer = null;
       }, timeout);
+    }
+  }
+
+  setEmbeddingSummary(summary = null) {
+    if (!summary) {
+      if (this.embeddingStatusEl) {
+        this.embeddingStatusEl.textContent = 'Embeddings will be generated on visualization.';
+        this.embeddingStatusEl.style.color = '#cbd5f5';
+      }
+      if (this.embeddingReuseStatusEl) {
+        this.embeddingReuseStatusEl.textContent = '';
+      }
+      if (this.similarityStatusEl) {
+        this.similarityStatusEl.textContent = '';
+      }
+      return;
+    }
+
+    const {
+      chunkCount = 0,
+      metadata = {},
+      reuse = null,
+      cached = false,
+      similarityEdges = null,
+      functionsWithEmbeddings = null,
+      error = null
+    } = summary;
+
+    if (this.embeddingStatusEl) {
+      if (error) {
+        this.embeddingStatusEl.textContent = `Embeddings error: ${error.message || error}`;
+        this.embeddingStatusEl.style.color = '#f87171';
+      } else if (chunkCount === 0) {
+        this.embeddingStatusEl.textContent = 'Embeddings not available for this dataset.';
+        this.embeddingStatusEl.style.color = '#cbd5f5';
+      } else {
+        const backendLabel = metadata.backend ? metadata.backend.toUpperCase() : 'WASM';
+        const dimLabel = metadata.dimension ? `${metadata.dimension}-dim` : 'unknown dim';
+        const cachedLabel = cached ? 'cached' : 'fresh';
+        this.embeddingStatusEl.textContent = `${chunkCount.toLocaleString()} embedding chunk${chunkCount === 1 ? '' : 's'} · ${dimLabel}, ${backendLabel} (${cachedLabel})`;
+        this.embeddingStatusEl.style.color = '#cbd5f5';
+      }
+    }
+
+    if (this.embeddingReuseStatusEl) {
+      if (reuse && (Number.isFinite(reuse.reused) || Number.isFinite(reuse.embedded))) {
+        const reusedCount = Number.isFinite(reuse.reused) ? reuse.reused : 0;
+        const embeddedCount = Number.isFinite(reuse.embedded) ? reuse.embedded : 0;
+        if (reusedCount === 0 && embeddedCount === 0) {
+          this.embeddingReuseStatusEl.textContent = '';
+        } else {
+          const reusedLabel = `${reusedCount.toLocaleString()} reused`;
+          const embeddedLabel = embeddedCount > 0 ? ` / ${embeddedCount.toLocaleString()} new` : '';
+          this.embeddingReuseStatusEl.textContent = `Reuse summary: ${reusedLabel}${embeddedLabel}`;
+        }
+      } else {
+        this.embeddingReuseStatusEl.textContent = '';
+      }
+    }
+
+    if (this.similarityStatusEl) {
+      if (similarityEdges === null && functionsWithEmbeddings === null) {
+        this.similarityStatusEl.textContent = '';
+      } else if (
+        Number.isFinite(similarityEdges) &&
+        Number.isFinite(functionsWithEmbeddings)
+      ) {
+        this.similarityStatusEl.textContent = `Similarity edges: ${similarityEdges.toLocaleString()} · Functions with embeddings: ${functionsWithEmbeddings.toLocaleString()}`;
+      } else if (Number.isFinite(similarityEdges)) {
+        this.similarityStatusEl.textContent = `Similarity edges: ${similarityEdges.toLocaleString()}`;
+      } else if (Number.isFinite(functionsWithEmbeddings)) {
+        this.similarityStatusEl.textContent = `Functions with embeddings: ${functionsWithEmbeddings.toLocaleString()}`;
+      } else {
+        this.similarityStatusEl.textContent = '';
+      }
     }
   }
 

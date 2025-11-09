@@ -719,9 +719,16 @@
         let storageClient = null;
         let storageReady = false;
         let storageClientInitPromise = null;
+        let latestEmbeddingSummary = null;
         let latestFunctionFingerprintMap = null;
 
         const symbolTableManager = new SymbolTableManager();
+        function updateEmbeddingSummary(summary) {
+            latestEmbeddingSummary = summary;
+            if (controls && typeof controls.setEmbeddingSummary === 'function') {
+                controls.setEmbeddingSummary(summary);
+            }
+        }
 
         try {
             embeddingManager = new EmbeddingManager();
@@ -768,6 +775,7 @@
                 window.heliosEmbeddings = null;
                 window.heliosEmbeddingReuse = null;
                 window.heliosEmbeddingError = null;
+                updateEmbeddingSummary(null);
                 functionEmbeddings = [];
                 similarityEdges = [];
                 similarityStats = null;
@@ -1029,6 +1037,16 @@
                     window.heliosFunctionEmbeddings = null;
                     window.heliosSimilarity = null;
                 }
+
+                updateEmbeddingSummary({
+                    chunkCount: embeddingChunks.length,
+                    metadata: embeddingMetadata,
+                    reuse: embeddingReuseCounts,
+                    cached: usedCachedEmbeddings,
+                    similarityEdges: Array.isArray(similarityEdges) ? similarityEdges.length : null,
+                    functionsWithEmbeddings: Array.isArray(functionEmbeddings) ? functionEmbeddings.length : null,
+                    error: embeddingError
+                });
 
                 progressContainer.classList.add('hidden');
                 resultsContainer.classList.remove('hidden');
@@ -1308,6 +1326,9 @@
 
             if (!controls) {
                 controls = new VisualizationControls(vizControls, graphViz);
+                if (typeof controls.setEmbeddingSummary === 'function') {
+                    controls.setEmbeddingSummary(latestEmbeddingSummary || null);
+                }
             }
 
             graphViz.onHoverDetails = (info) => {
