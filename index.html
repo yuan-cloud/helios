@@ -1190,7 +1190,13 @@
                             },
                             embeddingFingerprint,
                             functionFingerprintMap: latestFunctionFingerprintMap,
-                            layoutKey: snapshotLayoutKey
+                        layoutKey: snapshotLayoutKey,
+                        graph: {
+                            payload: graphPayload,
+                            summary: graphSummary,
+                            serialized: graphSerialized,
+                            extras: graphExtras
+                        }
                         });
                         resumeSnapshot = savedSnapshot;
                         resumeBtn?.classList.remove('hidden');
@@ -1637,6 +1643,13 @@
                 embeddings: embeddingPayload,
                 overrides
             });
+
+            if (overrides && overrides.extras) {
+                mergedPayload.extras = {
+                    ...(mergedPayload.extras || {}),
+                    ...(overrides.extras || {})
+                };
+            }
 
             graphPayload = mergedPayload;
             graphExtras = mergedPayload.extras || null;
@@ -2194,6 +2207,8 @@
             embeddingVectors = [];
             functionEmbeddings = [];
 
+            const graphSnapshot = snapshot.graph || null;
+
             window.heliosFunctions = allFunctions;
             window.heliosCallGraph = callGraph;
             window.heliosSimilarity = similarityEdges;
@@ -2201,11 +2216,15 @@
             window.heliosEmbeddingStats = embeddingStats;
             window.heliosEmbeddingError = embeddingError;
 
-            updateGraphData({
-                functions: allFunctions,
-                callEdges: Array.isArray(callGraph?.edges) ? callGraph.edges : [],
-                similarityEdges: Array.isArray(similarityEdges) ? similarityEdges : []
-            });
+            const graphPayloadInput = graphSnapshot?.payload
+                ? { ...graphSnapshot.payload }
+                : {
+                    functions: allFunctions,
+                    callEdges: Array.isArray(callGraph?.edges) ? callGraph.edges : [],
+                    similarityEdges: Array.isArray(similarityEdges) ? similarityEdges : []
+                };
+
+            updateGraphData(graphPayloadInput);
 
             updateEmbeddingSummary({
                 chunkCount: snapshot.embedding?.chunkCount ?? null,

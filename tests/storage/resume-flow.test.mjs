@@ -160,6 +160,76 @@ test("save/load/clear analysis snapshot", async (t) => {
       "src/foo.js:10:42": "fp-foo",
     },
     layoutKey: "helios:v1:layout:abcd",
+    graph: {
+      payload: {
+        functions: [
+          {
+            id: "graph:src/foo.js:10:42",
+            name: "graphFoo",
+            filePath: "src/foo.js",
+            lang: "javascript",
+            moduleId: "src/foo",
+            startLine: 1,
+            endLine: 10,
+            metrics: { centrality: 0.92 },
+            doc: "Graph node docs",
+          },
+        ],
+        callEdges: [
+          {
+            source: "graph:src/foo.js:10:42",
+            target: "src/foo.js:10:42",
+            weight: 1,
+            isDynamic: false,
+            resolution: {
+              status: "resolved",
+              reason: "Rehydrate from snapshot",
+            },
+            callSites: [{ file: "src/foo.js", line: 3, column: 2 }],
+          },
+        ],
+        similarityEdges: [
+          {
+            source: "graph:src/foo.js:10:42",
+            target: "src/bar.py:0:10",
+            similarity: 0.73,
+            method: "topk-avg",
+          },
+        ],
+        extras: {
+          summary: {
+            topCentral: ["graph:src/foo.js:10:42"],
+          },
+        },
+      },
+      summary: {
+        nodes: 2,
+        edges: 2,
+        communities: 1,
+      },
+      serialized: {
+        nodes: [
+          {
+            id: "graph:src/foo.js:10:42",
+            name: "graphFoo",
+            filePath: "src/foo.js",
+            lang: "javascript",
+            metrics: { centrality: 0.92 },
+          },
+        ],
+        edges: [
+          {
+            source: "graph:src/foo.js:10:42",
+            target: "src/foo.js:10:42",
+            weight: 1,
+            layer: "call",
+          },
+        ],
+      },
+      extras: {
+        topCommunities: [{ id: 1, size: 1 }],
+      },
+    },
   };
 
   const saved = await saveAnalysisSnapshot(client, payload);
@@ -182,6 +252,14 @@ test("save/load/clear analysis snapshot", async (t) => {
   assert.equal(saved.embedding.metadata.modelId, "miniLM");
   assert.equal(saved.fingerprint, "fingerprint123");
   assert.equal(saved.layoutKey, "helios:v1:layout:abcd");
+  assert.ok(saved.graph, "Graph snapshot should be persisted");
+  assert.equal(saved.graph.payload.functions.length, 1);
+  assert.equal(saved.graph.payload.callEdges.length, 1);
+  assert.equal(saved.graph.payload.similarityEdges.length, 1);
+  assert.equal(saved.graph.payload.extras.summary.topCentral[0], "graph:src/foo.js:10:42");
+  assert.equal(saved.graph.summary.nodes, 2);
+  assert.equal(saved.graph.serialized.nodes.length, 1);
+  assert.equal(saved.graph.extras.topCommunities.length, 1);
 
   // Source snippets should remain available for inspector hydration.
   assert.equal("source" in saved.functions[0], true);

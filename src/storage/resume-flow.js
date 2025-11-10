@@ -11,6 +11,17 @@ const SNAPSHOT_VERSION = 1;
 const MAX_SOURCE_CHAR_LENGTH = 8_192;
 const MAX_SOURCE_LINES = 400;
 
+function cloneStructured(value) {
+  if (value === null || value === undefined) {
+    return value ?? null;
+  }
+  try {
+    return JSON.parse(JSON.stringify(value));
+  } catch (err) {
+    return null;
+  }
+}
+
 function toArray(value) {
   if (!value) {
     return [];
@@ -73,55 +84,91 @@ function sanitizeFunction(fn, options = {}) {
   };
 }
 
+function sanitizeCallSites(sites) {
+  if (!Array.isArray(sites)) {
+    return null;
+  }
+  const sanitized = [];
+  for (let i = 0; i < sites.length && sanitized.length < 10; i += 1) {
+    const site = sites[i];
+    if (!site || typeof site !== "object") {
+      continue;
+    }
+    sanitized.push({
+      file: site.file || null,
+      line: Number.isFinite(site.line) ? site.line : null,
+      column: Number.isFinite(site.column) ? site.column : null,
+    });
+  }
+  return sanitized.length ? sanitized : null;
+}
+
+function sanitizeResolution(resolution) {
+  if (!resolution || typeof resolution !== "object") {
+    return null;
+  }
+  const matches = Array.isArray(resolution.matches)
+    ? resolution.matches.slice(0, 12).map((match) => ({
+        id: match?.id ?? null,
+        name: match?.name ?? null,
+        filePath: match?.filePath ?? null,
+        moduleId: match?.moduleId ?? null,
+        matchType: match?.matchType ?? null,
+        confidence: match?.confidence ?? null,
+      }))
+    : null;
+  return {
+    status: resolution.status || null,
+    reason: resolution.reason || null,
+    matchCount: Number.isFinite(resolution.matchCount)
+      ? resolution.matchCount
+      : matches
+        ? matches.length
+        : null,
+    matches,
+    selectedMatch: resolution.selectedMatch || null,
+    importInfo: resolution.importInfo || null,
+    calleeName: resolution.calleeName || null,
+  };
+}
+
+function sanitizeCallEdge(edge) {
+  if (!edge || typeof edge !== "object") {
+    return null;
+  }
+  const metadata = edge.metadata || null;
+  const sanitizedResolution = sanitizeResolution(edge.resolution || metadata?.resolution);
+  const sanitizedCallSites = sanitizeCallSites(edge.callSites || metadata?.callSiteSamples);
+
+  const sanitizedMetadata =
+    metadata || sanitizedCallSites || sanitizedResolution
+      ? {
+          callSites: sanitizedCallSites,
+          resolution: sanitizedResolution,
+        }
+      : null;
+
+  return {
+    source: edge.source,
+    target: edge.target,
+    weight: Number.isFinite(edge.weight) ? edge.weight : 1,
+    isDynamic: !!edge.isDynamic,
+    resolution: sanitizedResolution,
+    callSites: sanitizedCallSites,
+    metadata: sanitizedMetadata,
+  };
+}
+
 function sanitizeCallGraph(callGraph = {}) {
   const nodes = toArray(callGraph.nodes)
     .map((fn) => sanitizeFunction(fn))
     .filter(Boolean);
-  const edges = toArray(callGraph.edges).map((edge) => {
-    if (!edge || typeof edge !== "object") {
-      return null;
-    }
-    const metadata = edge.metadata || null;
-    const resolution = metadata?.resolution || null;
-    return {
-      source: edge.source,
-      target: edge.target,
-      weight: Number.isFinite(edge.weight) ? edge.weight : 1,
-      isDynamic: !!edge.isDynamic,
-      metadata: metadata
-        ? {
-            callSites: Array.isArray(metadata.callSiteSamples)
-              ? metadata.callSiteSamples.slice(0, 10)
-              : null,
-            resolution: resolution
-              ? {
-                  status: resolution.status || null,
-                  reason: resolution.reason || null,
-                  matchCount: Number.isFinite(resolution.matchCount)
-                    ? resolution.matchCount
-                    : null,
-                  matches: Array.isArray(resolution.matches)
-                    ? resolution.matches.slice(0, 12).map((match) => ({
-                        id: match.id,
-                        name: match.name,
-                        filePath: match.filePath,
-                        moduleId: match.moduleId || null,
-                        matchType: match.matchType || null,
-                        confidence: match.confidence || null,
-                      }))
-                    : null,
-                  selectedMatch: resolution.selectedMatch || null,
-                  importInfo: resolution.importInfo || null,
-                  calleeName: resolution.calleeName || null,
-                }
-              : null,
-          }
-        : null,
-    };
-  });
+  const edges = toArray(callGraph.edges)
+    .map((edge) => sanitizeCallEdge(edge))
+    .filter(Boolean);
   return {
     nodes,
-    edges: edges.filter(Boolean),
+    edges,
     stats: callGraph.stats || null,
   };
 }
@@ -188,6 +235,8 @@ function sanitizeSnapshotPayload(data = {}) {
     error: data.embedding?.error || data.embeddingError || null,
   });
 
+  const graph = sanitizeGraphSnapshot(data.graph || {});
+
   return {
     version: SNAPSHOT_VERSION,
     savedAt: new Date().toISOString(),
@@ -202,11 +251,13 @@ function sanitizeSnapshotPayload(data = {}) {
     callGraph,
     similarityEdges,
     embedding: embeddingSummary,
+    graph,
     stats: {
       functionCount: nonVirtualFunctions.length,
       callEdgeCount: callGraph.edges.length,
       similarityEdgeCount: similarityEdges.length,
       callGraphStats: callGraph.stats || null,
+      graphSummary: graph?.summary || null,
     },
   };
 }
@@ -277,5 +328,67 @@ function trimSource(source, maxChars, maxLines) {
   }
 
   return { text, truncated };
+}
+
+function sanitizeGraphSnapshot(graph = {}) {
+  if (!graph || typeof graph !== "object") {
+    return null;
+  }
+
+  const payloadFunctions = toArray(graph.payload?.functions)
+    .map((fn) => sanitizeFunction(fn))
+    .filter(Boolean);
+  const payloadCallEdges = toArray(graph.payload?.callEdges)
+    .map((edge) => sanitizeCallEdge(edge))
+    .filter(Boolean);
+  const payloadSimilarity = toArray(graph.payload?.similarityEdges)
+    .map((edge) => sanitizeSimilarityEdge(edge))
+    .filter(Boolean);
+  const payloadExtras = graph.payload?.extras
+    ? cloneStructured(graph.payload.extras)
+    : null;
+
+  const payload =
+    payloadFunctions.length || payloadCallEdges.length || payloadSimilarity.length || payloadExtras
+      ? {
+          functions: payloadFunctions,
+          callEdges: payloadCallEdges,
+          similarityEdges: payloadSimilarity,
+          extras: payloadExtras,
+        }
+      : null;
+
+  const summary =
+    graph.summary && typeof graph.summary === "object"
+      ? cloneStructured(graph.summary)
+      : null;
+
+  const serialized =
+    graph.serialized && typeof graph.serialized === "object"
+      ? {
+          nodes: Array.isArray(graph.serialized.nodes)
+            ? cloneStructured(graph.serialized.nodes)
+            : [],
+          edges: Array.isArray(graph.serialized.edges)
+            ? cloneStructured(graph.serialized.edges)
+            : [],
+        }
+      : null;
+
+  const extras =
+    graph.extras && typeof graph.extras === "object"
+      ? cloneStructured(graph.extras)
+      : payloadExtras;
+
+  if (!payload && !summary && !serialized && !extras) {
+    return null;
+  }
+
+  return {
+    payload,
+    summary,
+    serialized,
+    extras,
+  };
 }
 
