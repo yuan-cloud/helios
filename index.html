@@ -651,6 +651,11 @@
             saveAnalysisSnapshot,
             loadAnalysisSnapshot
         } from './src/storage/resume-flow.js';
+        import {
+            collectGraphPayload,
+            buildAnalyzedGraph,
+            serializeGraph
+        } from './src/graph/pipeline.js';
 
         const starsContainer = document.getElementById('stars');
         const starCount = 120;
@@ -732,6 +737,15 @@
             approximateBandSize: 28,
             approximateOversample: 2
         };
+
+        let graphPayload = {
+            functions: [],
+            callEdges: [],
+            similarityEdges: []
+        };
+        let graphAnalysis = null;
+        let graphSummary = null;
+        let graphSerialized = { nodes: [], edges: [] };
 
         let storageClient = null;
         let storageReady = false;
@@ -1072,6 +1086,12 @@
                     window.heliosSimilarity = null;
                 }
 
+                updateGraphData({
+                    functions: allFunctions,
+                    callEdges: Array.isArray(callGraph?.edges) ? callGraph.edges : [],
+                    similarityEdges: Array.isArray(similarityEdges) ? similarityEdges : []
+                });
+
                 updateEmbeddingSummary({
                     chunkCount: embeddingChunks.length,
                     metadata: embeddingMetadata,
@@ -1404,8 +1424,32 @@
                 };
             }
 
-            functionMapById = new Map((callGraph.nodes || []).map(fn => [fn.id, fn]));
-            fullVizData = convertCallGraphToVizData(callGraph);
+            const functionLookup = new Map((allFunctions || []).map(fn => [fn.id, fn]));
+            (graphSerialized?.nodes || []).forEach(node => {
+                if (!functionLookup.has(node.id)) {
+                    const range = node.range || {};
+                    functionLookup.set(node.id, {
+                        id: node.id,
+                        name: node.name || node.fqName || node.id,
+                        fqName: node.fqName || node.name || node.id,
+                        filePath: node.filePath || null,
+                        moduleId: node.moduleId || null,
+                        lang: node.lang || detectLanguageFromPath(node.filePath || ''),
+                        startLine: range.startLine ?? node.startLine ?? null,
+                        endLine: range.endLine ?? node.endLine ?? null,
+                        startColumn: range.startColumn ?? node.startColumn ?? null,
+                        endColumn: range.endColumn ?? node.endColumn ?? null,
+                        doc: node.doc || '',
+                        source: node.source || ''
+                    });
+                }
+            });
+            functionMapById = functionLookup;
+            const hasAnalyzedGraph = Array.isArray(graphSerialized?.nodes) && graphSerialized.nodes.length > 0;
+            fullVizData = convertCallGraphToVizData(
+                hasAnalyzedGraph ? graphSerialized : callGraph,
+                { includeFallbackSimilarity: !hasAnalyzedGraph }
+            );
             const layoutKey = computeLayoutStorageKey(callGraph);
             const layoutHash = extractLayoutHash(layoutKey);
             graphViz.setLayoutStorageKey(layoutKey, layoutHash);
@@ -1500,46 +1544,123 @@
             return `Found ${sourceFiles.length} source file${sourceFiles.length !== 1 ? 's' : ''}${parts.length ? ' (' + parts.join(', ') + ')' : ''}`;
         }
 
-        function convertCallGraphToVizData(graph) {
+        function updateGraphData(payload = {}) {
+            graphPayload = {
+                functions: Array.isArray(payload.functions) ? payload.functions : [],
+                callEdges: Array.isArray(payload.callEdges) ? payload.callEdges : [],
+                similarityEdges: Array.isArray(payload.similarityEdges) ? payload.similarityEdges : []
+            };
+
+            try {
+                const collected = collectGraphPayload(graphPayload);
+                const { graph, summary } = buildAnalyzedGraph(collected, { assignMetrics: true });
+                const serialized = serializeGraph(graph);
+
+                graphPayload = collected;
+                graphAnalysis = graph;
+                graphSummary = summary;
+                graphSerialized = serialized;
+
+                window.heliosGraph = graph;
+                window.heliosGraphSummary = summary;
+                window.heliosGraphSerialized = serialized;
+                window.heliosCallEdges = collected.callEdges;
+                window.heliosSimilarityEdges = collected.similarityEdges;
+
+                fullVizData = convertCallGraphToVizData(serialized, { includeFallbackSimilarity: false });
+            } catch (err) {
+                console.error('Graph analysis failed:', err);
+                graphAnalysis = null;
+                graphSummary = null;
+                graphSerialized = { nodes: [], edges: [] };
+                fullVizData = convertCallGraphToVizData(callGraph, { includeFallbackSimilarity: true });
+            }
+        }
+
+        function convertCallGraphToVizData(graph, { includeFallbackSimilarity = true } = {}) {
             if (!graph) return { nodes: [], links: [] };
 
-            const nodes = (graph.nodes || []).map(fn => ({
-                id: fn.id,
-                fqName: fn.fqName || fn.name,
-                name: fn.name,
-                filePath: fn.filePath,
-                lang: fn.lang || detectLanguageFromPath(fn.filePath),
-                moduleId: fn.moduleId || null,
-                isVirtual: !!fn.isVirtual,
-                size: fn.loc || Math.max(1, (fn.endLine || fn.startLine || 0) - (fn.startLine || 0) + 1),
-                startLine: fn.startLine,
-                endLine: fn.endLine,
-                startColumn: fn.startColumn,
-                endColumn: fn.endColumn,
-                doc: fn.doc || '',
-                metrics: fn.metrics || {},
-                source: fn.source || ''
-            }));
+            const nodes = (graph.nodes || []).map(fn => {
+                const range = fn.range || {};
+                const startLine = fn.startLine ?? range.startLine ?? null;
+                const endLine = fn.endLine ?? range.endLine ?? null;
+                const startColumn = fn.startColumn ?? range.startColumn ?? null;
+                const endColumn = fn.endColumn ?? range.endColumn ?? null;
+                const locEstimate = (() => {
+                    const start = startLine ?? 0;
+                    const end = endLine ?? start;
+                    return Math.max(1, end - start + 1);
+                })();
 
-            const links = (graph.edges || []).map(edge => {
-                const metadata = edge.metadata || {};
-                const resolution = metadata.resolution || null;
-                const resolutionStatus = resolution?.status || 'resolved';
                 return {
-                    source: edge.source,
-                    target: edge.target,
-                    type: 'call',
-                    weight: edge.weight || 1,
-                    dynamic: edge.isDynamic || false,
-                    resolution,
-                    resolutionStatus,
-                    resolutionReason: resolution?.reason || '',
-                    importInfo: resolution?.importInfo || null,
-                    metadata
+                    id: fn.id,
+                    fqName: fn.fqName || fn.name || fn.id,
+                    name: fn.name || fn.fqName || fn.id,
+                    filePath: fn.filePath,
+                    lang: fn.lang || detectLanguageFromPath(fn.filePath),
+                    moduleId: fn.moduleId || null,
+                    isVirtual: !!fn.isVirtual,
+                    size: fn.loc || locEstimate,
+                    startLine,
+                    endLine,
+                    startColumn,
+                    endColumn,
+                    doc: fn.doc || '',
+                    metrics: fn.metrics || {},
+                    analysis: fn.analysis || null,
+                    source: fn.source || ''
                 };
             });
 
-            if (similarityEdges.length > 0) {
+            const links = [];
+            let hasSimilarityEdges = false;
+
+            (graph.edges || []).forEach(edge => {
+                const layer = (edge.layer || edge.type || '').toLowerCase();
+                const isSimilarity =
+                    layer === 'similarity' ||
+                    (!!edge.undirected && layer !== 'call') ||
+                    (layer !== 'call' && typeof edge.similarity === 'number');
+
+                if (isSimilarity) {
+                    hasSimilarityEdges = true;
+                    links.push({
+                        source: edge.source,
+                        target: edge.target,
+                        type: 'similarity',
+                        weight: Number.isFinite(edge.similarity)
+                            ? edge.similarity
+                            : edge.representativeSimilarity ?? 0,
+                        similarity: Number.isFinite(edge.similarity) ? edge.similarity : 0,
+                        method: edge.method || edge.metadata?.method || 'topk-avg',
+                        representativeSimilarity: edge.representativeSimilarity ?? null,
+                        topPairs: edge.topPairs || edge.metadata?.topPairs || [],
+                        undirected: edge.undirected ?? true,
+                        metadata: edge.metadata || null
+                    });
+                    return;
+                }
+
+                const metadata = edge.metadata || {};
+                const resolution = edge.resolution || metadata.resolution || null;
+                const resolutionStatus = resolution?.status || 'resolved';
+
+                links.push({
+                    source: edge.source,
+                    target: edge.target,
+                    type: 'call',
+                    weight: Number.isFinite(edge.weight) ? Number(edge.weight) : 1,
+                    dynamic: !!edge.isDynamic,
+                    resolution,
+                    resolutionStatus,
+                    resolutionReason: resolution?.reason || '',
+                    importInfo: resolution?.importInfo || metadata.importInfo || null,
+                    metadata,
+                    callSites: edge.callSites || metadata.callSites || metadata.callSiteSamples || null
+                });
+            });
+
+            if (includeFallbackSimilarity && !hasSimilarityEdges && similarityEdges.length > 0) {
                 similarityEdges.forEach(edge => {
                     links.push({
                         source: edge.source,
@@ -1549,7 +1670,8 @@
                         similarity: edge.similarity || 0,
                         method: edge.method || 'topk-avg',
                         representativeSimilarity: edge.representativeSimilarity ?? null,
-                        topPairs: edge.topPairs || []
+                        topPairs: edge.topPairs || [],
+                        undirected: true
                     });
                 });
             }
@@ -1966,6 +2088,12 @@
             window.heliosEmbeddingReuse = embeddingReuseCounts;
             window.heliosEmbeddingStats = embeddingStats;
             window.heliosEmbeddingError = embeddingError;
+
+            updateGraphData({
+                functions: allFunctions,
+                callEdges: Array.isArray(callGraph?.edges) ? callGraph.edges : [],
+                similarityEdges: Array.isArray(similarityEdges) ? similarityEdges : []
+            });
 
             updateEmbeddingSummary({
                 chunkCount: snapshot.embedding?.chunkCount ?? null,
