@@ -652,10 +652,11 @@
             loadAnalysisSnapshot
         } from './src/storage/resume-flow.js';
         import {
+            mergeGraphPayload,
             collectGraphPayload,
             buildAnalyzedGraph,
             serializeGraph
-        } from './src/graph/pipeline.js';
+        } from './src/graph/index.js';
 
         const starsContainer = document.getElementById('stars');
         const starCount = 120;
@@ -741,11 +742,13 @@
         let graphPayload = {
             functions: [],
             callEdges: [],
-            similarityEdges: []
+            similarityEdges: [],
+            extras: null
         };
         let graphAnalysis = null;
         let graphSummary = null;
         let graphSerialized = { nodes: [], edges: [] };
+        let graphExtras = null;
 
         let storageClient = null;
         let storageReady = false;
@@ -1418,6 +1421,12 @@
                 }
             };
 
+            graphViz.onAnalysisSummary = (summary = {}) => {
+                if (controls && typeof controls.setAnalysisSummary === 'function') {
+                    controls.setAnalysisSummary(summary);
+                }
+            };
+
             if (inspector) {
                 inspector.onNavigate = (nodeId) => {
                     graphViz.focusNodeById(nodeId);
@@ -1544,19 +1553,97 @@
             return `Found ${sourceFiles.length} source file${sourceFiles.length !== 1 ? 's' : ''}${parts.length ? ' (' + parts.join(', ') + ')' : ''}`;
         }
 
-        function updateGraphData(payload = {}) {
-            graphPayload = {
-                functions: Array.isArray(payload.functions) ? payload.functions : [],
-                callEdges: Array.isArray(payload.callEdges) ? payload.callEdges : [],
-                similarityEdges: Array.isArray(payload.similarityEdges) ? payload.similarityEdges : []
+        function exportSymbolTables(manager) {
+            if (!manager || typeof manager.getAllTables !== 'function') {
+                return null;
+            }
+            const tables = manager.getAllTables();
+            if (!tables || typeof tables.forEach !== 'function') {
+                return null;
+            }
+            const result = {};
+            tables.forEach((table, filePath) => {
+                if (!table) {
+                    return;
+                }
+                const symbolEntries = table.symbols instanceof Map
+                    ? Array.from(table.symbols.entries()).map(([local, fullyQualifiedName]) => ({
+                        local,
+                        fullyQualifiedName
+                    }))
+                    : [];
+                const functionEntries = typeof table.getAllFunctions === 'function'
+                    ? table.getAllFunctions()
+                    : table.functions instanceof Map
+                        ? Array.from(table.functions.values())
+                        : [];
+                result[filePath] = {
+                    moduleId: typeof table.getModuleId === 'function'
+                        ? table.getModuleId()
+                        : table.moduleId ?? null,
+                    exports: typeof table.getExports === 'function' ? table.getExports() : [],
+                    imports: typeof table.getImports === 'function' ? table.getImports() : [],
+                    symbols: symbolEntries,
+                    functions: functionEntries
+                };
+            });
+            return result;
+        }
+
+        function updateGraphData(input = {}) {
+            const hasLegacyShape =
+                input && !input.parser && !input.embeddings && (input.functions || input.callEdges || input.similarityEdges);
+
+            const overrides = input.overrides || (hasLegacyShape ? input : {});
+            const parserInput = input.parser || {};
+            const embeddingInput = input.embeddings || {};
+
+            const parserPayload = {
+                functions: Array.isArray(parserInput.functions)
+                    ? parserInput.functions
+                    : Array.isArray(callGraph?.nodes)
+                        ? callGraph.nodes
+                        : Array.isArray(allFunctions)
+                            ? allFunctions
+                            : [],
+                callEdges: Array.isArray(parserInput.callEdges)
+                    ? parserInput.callEdges
+                    : Array.isArray(callGraph?.edges)
+                        ? callGraph.edges
+                        : [],
+                stats: parserInput.stats || callGraph?.stats || null,
+                symbolTables: parserInput.symbolTables || exportSymbolTables(symbolTableManager)
             };
 
+            const embeddingPayload = {
+                similarityEdges: Array.isArray(embeddingInput.similarityEdges)
+                    ? embeddingInput.similarityEdges
+                    : Array.isArray(similarityEdges)
+                        ? similarityEdges
+                        : [],
+                metadata: embeddingInput.metadata || embeddingMetadata || null,
+                stats: embeddingInput.stats || similarityStats || null
+            };
+
+            if (Array.isArray(functionEmbeddings) && functionEmbeddings.length) {
+                embeddingPayload.functionEmbeddings = functionEmbeddings;
+            }
+
+            const mergedPayload = mergeGraphPayload({
+                parser: parserPayload,
+                embeddings: embeddingPayload,
+                overrides
+            });
+
+            graphPayload = mergedPayload;
+            graphExtras = mergedPayload.extras || null;
+
+            const collected = collectGraphPayload(mergedPayload);
+
             try {
-                const collected = collectGraphPayload(graphPayload);
                 const { graph, summary } = buildAnalyzedGraph(collected, { assignMetrics: true });
                 const serialized = serializeGraph(graph);
 
-                graphPayload = collected;
                 graphAnalysis = graph;
                 graphSummary = summary;
                 graphSerialized = serialized;
@@ -1564,8 +1651,11 @@
                 window.heliosGraph = graph;
                 window.heliosGraphSummary = summary;
                 window.heliosGraphSerialized = serialized;
+                window.heliosGraphPayload = mergedPayload;
+                window.heliosGraphExtras = graphExtras;
                 window.heliosCallEdges = collected.callEdges;
                 window.heliosSimilarityEdges = collected.similarityEdges;
+                window.heliosGraphStats = summary;
 
                 fullVizData = convertCallGraphToVizData(serialized, { includeFallbackSimilarity: false });
             } catch (err) {
@@ -1573,7 +1663,26 @@
                 graphAnalysis = null;
                 graphSummary = null;
                 graphSerialized = { nodes: [], edges: [] };
-                fullVizData = convertCallGraphToVizData(callGraph, { includeFallbackSimilarity: true });
+
+                window.heliosGraph = null;
+                window.heliosGraphSummary = null;
+                window.heliosGraphSerialized = graphSerialized;
+                window.heliosGraphPayload = mergedPayload;
+                window.heliosGraphExtras = graphExtras;
+                window.heliosCallEdges = collected.callEdges;
+                window.heliosSimilarityEdges = collected.similarityEdges;
+                window.heliosGraphStats = null;
+
+                fullVizData = convertCallGraphToVizData(
+                    {
+                        nodes: parserPayload.functions || [],
+                        edges: parserPayload.callEdges || []
+                    },
+                    { includeFallbackSimilarity: true }
+                );
+            }
+            if (graphViz && typeof graphViz.setAnalysisSummary === 'function') {
+                graphViz.setAnalysisSummary(graphSummary);
             }
         }
 
