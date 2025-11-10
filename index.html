@@ -1175,8 +1175,7 @@
                 if (storageReady && storageClient && callGraph?.nodes?.length) {
                     try {
                         const snapshotLayoutKey = computeLayoutStorageKey(callGraph);
-                        const graphSnapshotForSave = buildGraphSnapshotForSave();
-                        const snapshotPayload = {
+                        const savedSnapshot = await saveAnalysisSnapshot(storageClient, {
                             projectLabel: directoryHandle?.name || null,
                             sourceFiles,
                             callGraph,
@@ -1192,11 +1191,7 @@
                             embeddingFingerprint,
                             functionFingerprintMap: latestFunctionFingerprintMap,
                             layoutKey: snapshotLayoutKey
-                        };
-                        if (graphSnapshotForSave) {
-                            snapshotPayload.graph = graphSnapshotForSave;
-                        }
-                        const savedSnapshot = await saveAnalysisSnapshot(storageClient, snapshotPayload);
+                        });
                         resumeSnapshot = savedSnapshot;
                         resumeBtn?.classList.remove('hidden');
                     } catch (err) {
@@ -1643,13 +1638,6 @@
                 overrides
             });
 
-            if (overrides && overrides.extras) {
-                mergedPayload.extras = {
-                    ...(mergedPayload.extras || {}),
-                    ...(overrides.extras || {})
-                };
-            }
-
             graphPayload = mergedPayload;
             graphExtras = mergedPayload.extras || null;
 
@@ -1699,41 +1687,6 @@
             if (graphViz && typeof graphViz.setAnalysisSummary === 'function') {
                 graphViz.setAnalysisSummary(graphSummary);
             }
-        }
-
-        function cloneForSnapshot(value) {
-            if (value === null || value === undefined) {
-                return value ?? null;
-            }
-            try {
-                return JSON.parse(JSON.stringify(value));
-            } catch (err) {
-                return null;
-            }
-        }
-
-        function buildGraphSnapshotForSave() {
-            const snapshot = {
-                payload: graphPayload,
-                summary: graphSummary,
-                serialized: graphSerialized,
-                extras: graphExtras
-            };
-
-            const hasPayload =
-                snapshot.payload &&
-                (
-                    (Array.isArray(snapshot.payload.functions) && snapshot.payload.functions.length) ||
-                    (Array.isArray(snapshot.payload.callEdges) && snapshot.payload.callEdges.length) ||
-                    (Array.isArray(snapshot.payload.similarityEdges) && snapshot.payload.similarityEdges.length) ||
-                    snapshot.payload.extras
-                );
-
-            if (!hasPayload && !snapshot.summary && !snapshot.serialized && !snapshot.extras) {
-                return null;
-            }
-
-            return cloneForSnapshot(snapshot);
         }
 
         function convertCallGraphToVizData(graph, { includeFallbackSimilarity = true } = {}) {
@@ -2241,59 +2194,6 @@
             embeddingVectors = [];
             functionEmbeddings = [];
 
-            const graphSnapshot = snapshot.graph || null;
-            if (graphSnapshot) {
-                const payloadClone = graphSnapshot.payload ? cloneForSnapshot(graphSnapshot.payload) || graphSnapshot.payload : null;
-                const summaryClone = graphSnapshot.summary ? cloneForSnapshot(graphSnapshot.summary) || graphSnapshot.summary : null;
-                const serializedClone = graphSnapshot.serialized ? cloneForSnapshot(graphSnapshot.serialized) || graphSnapshot.serialized : null;
-                const extrasClone = graphSnapshot.extras
-                    ? cloneForSnapshot(graphSnapshot.extras) || graphSnapshot.extras
-                    : payloadClone?.extras || null;
-
-                if (payloadClone) {
-                    graphPayload = {
-                        functions: Array.isArray(payloadClone.functions) ? payloadClone.functions : [],
-                        callEdges: Array.isArray(payloadClone.callEdges) ? payloadClone.callEdges : [],
-                        similarityEdges: Array.isArray(payloadClone.similarityEdges) ? payloadClone.similarityEdges : [],
-                        extras: payloadClone.extras || null
-                    };
-                    window.heliosGraphPayload = graphPayload;
-
-                    if (graphPayload.similarityEdges.length) {
-                        similarityEdges = graphPayload.similarityEdges.map(edge => ({ ...edge }));
-                    }
-                } else {
-                    graphPayload = {
-                        functions: [],
-                        callEdges: [],
-                        similarityEdges: []
-                    };
-                }
-
-                graphSummary = summaryClone || null;
-                graphSerialized = serializedClone || { nodes: [], edges: [] };
-                graphExtras = extrasClone || null;
-
-                if (graphSummary) {
-                    window.heliosGraphSummary = graphSummary;
-                }
-                if (graphSerialized) {
-                    window.heliosGraphSerialized = graphSerialized;
-                }
-                if (graphExtras) {
-                    window.heliosGraphExtras = graphExtras;
-                }
-            } else {
-                graphPayload = {
-                    functions: [],
-                    callEdges: [],
-                    similarityEdges: []
-                };
-                graphSummary = null;
-                graphSerialized = { nodes: [], edges: [] };
-                graphExtras = null;
-            }
-
             window.heliosFunctions = allFunctions;
             window.heliosCallGraph = callGraph;
             window.heliosSimilarity = similarityEdges;
@@ -2301,40 +2201,11 @@
             window.heliosEmbeddingStats = embeddingStats;
             window.heliosEmbeddingError = embeddingError;
 
-            const overridesForGraph = {};
-            if (graphPayload?.functions?.length) {
-                overridesForGraph.functions = graphPayload.functions;
-            }
-            if (graphPayload?.callEdges?.length) {
-                overridesForGraph.callEdges = graphPayload.callEdges;
-            }
-            if (graphPayload?.similarityEdges?.length) {
-                overridesForGraph.similarityEdges = graphPayload.similarityEdges;
-            }
-            if (graphExtras) {
-                overridesForGraph.extras = graphExtras;
-            }
-
-            similarityStats = snapshot.stats?.graphSummary || similarityStats;
-
-            const graphUpdateInput = {
-                parser: {
-                    functions: allFunctions,
-                    callEdges: Array.isArray(callGraph?.edges) ? callGraph.edges : [],
-                    stats: snapshot.stats?.callGraphStats || callGraph.stats || null
-                },
-                embeddings: {
-                    similarityEdges: Array.isArray(similarityEdges) ? similarityEdges : [],
-                    metadata: embeddingMetadata,
-                    stats: similarityStats
-                }
-            };
-
-            if (Object.keys(overridesForGraph).length) {
-                graphUpdateInput.overrides = overridesForGraph;
-            }
-
-            updateGraphData(graphUpdateInput);
+            updateGraphData({
+                functions: allFunctions,
+                callEdges: Array.isArray(callGraph?.edges) ? callGraph.edges : [],
+                similarityEdges: Array.isArray(similarityEdges) ? similarityEdges : []
+            });
 
             updateEmbeddingSummary({
                 chunkCount: snapshot.embedding?.chunkCount ?? null,
