@@ -1,7 +1,11 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-const { collectGraphPayload, serializeGraph } = await import('../../src/graph/pipeline.js');
+const {
+  collectGraphPayload,
+  buildAnalyzedGraph,
+  serializeGraph
+} = await import('../../src/graph/pipeline.js');
 
 test('collectGraphPayload uses explicit sources when provided', () => {
   const functions = [{ id: 'fn1' }];
@@ -84,6 +88,40 @@ test('serializeGraph flattens node and edge attributes', () => {
   assert.equal(result.edges[0].key, 'e1');
   assert.equal(result.edges[0].sourceAttributes.name, 'Node 1');
   assert.equal(result.edges[0].targetAttributes.name, 'Node 2');
+});
+
+test('buildAnalyzedGraph preserves call edge metadata fields', () => {
+  const payload = {
+    functions: [
+      { id: 'fn1', name: 'Fn1' },
+      { id: 'fn2', name: 'Fn2' }
+    ],
+    callEdges: [
+      {
+        source: 'fn1',
+        target: 'fn2',
+        weight: 2,
+        isDynamic: false,
+        resolution: {
+          status: 'resolved',
+          calleeName: 'fn2'
+        },
+        callSites: [
+          { file: 'a.ts', line: 10, column: 4 }
+        ]
+      }
+    ],
+    similarityEdges: []
+  };
+
+  const { graph } = buildAnalyzedGraph(payload, { assignMetrics: false });
+  const serialized = serializeGraph(graph);
+  const callEdge = serialized.edges.find(edge => edge.layer === 'call');
+
+  assert.ok(callEdge, 'Expected call edge to be present');
+  assert.equal(callEdge.resolution?.status, 'resolved');
+  assert.equal(callEdge.resolution?.calleeName, 'fn2');
+  assert.deepEqual(callEdge.callSites, [{ file: 'a.ts', line: 10, column: 4 }]);
 });
 
 

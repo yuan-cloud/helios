@@ -209,11 +209,36 @@ function addCallEdge(graph, nodeStats, idLookup, edge, summary, config) {
   const weight = Number.isFinite(edge.weight) ? Number(edge.weight) : 1;
   const isDynamic = Boolean(edge.isDynamic);
 
+  const {
+    source: _ignoredSource,
+    target: _ignoredTarget,
+    weight: _ignoredWeight,
+    isDynamic: _ignoredDynamic,
+    metadata,
+    ...rest
+  } = edge;
+
+  const extraAttributes = {};
+  Object.keys(rest || {}).forEach(key => {
+    const value = rest[key];
+    if (value !== undefined) {
+      extraAttributes[key] = value;
+    }
+  });
+
+  if (!extraAttributes.resolution && metadata?.resolution) {
+    extraAttributes.resolution = metadata.resolution;
+  }
+  if (!extraAttributes.callSites && metadata?.callSiteSamples) {
+    extraAttributes.callSites = metadata.callSiteSamples;
+  }
+
   const attributes = {
     layer: EDGE_LAYERS.CALL,
     weight,
     isDynamic,
-    metadata: edge.metadata || null
+    metadata: metadata || null,
+    ...extraAttributes
   };
 
   const edgeKey = `call:${sourceKey}->${targetKey}`;
