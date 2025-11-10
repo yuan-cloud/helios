@@ -1641,9 +1641,10 @@
             graphPayload = mergedPayload;
             graphExtras = mergedPayload.extras || null;
 
-            const collected = collectGraphPayload(mergedPayload);
-
+            let collected = null;
             try {
+                collected = collectGraphPayload(mergedPayload);
+
                 const { graph, summary } = buildAnalyzedGraph(collected, { assignMetrics: true });
                 const serialized = serializeGraph(graph);
 
@@ -1672,14 +1673,16 @@
                 window.heliosGraphSerialized = graphSerialized;
                 window.heliosGraphPayload = mergedPayload;
                 window.heliosGraphExtras = graphExtras;
-                window.heliosCallEdges = collected.callEdges;
-                window.heliosSimilarityEdges = collected.similarityEdges;
+                const fallbackCallEdges = collected?.callEdges ?? (Array.isArray(parserPayload.callEdges) ? parserPayload.callEdges : []);
+                const fallbackSimilarityEdges = collected?.similarityEdges ?? (Array.isArray(embeddingPayload.similarityEdges) ? embeddingPayload.similarityEdges : []);
+                window.heliosCallEdges = fallbackCallEdges;
+                window.heliosSimilarityEdges = fallbackSimilarityEdges;
                 window.heliosGraphStats = null;
 
                 fullVizData = convertCallGraphToVizData(
                     {
                         nodes: parserPayload.functions || [],
-                        edges: parserPayload.callEdges || []
+                        edges: fallbackCallEdges
                     },
                     { includeFallbackSimilarity: true }
                 );
