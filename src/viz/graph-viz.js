@@ -64,6 +64,15 @@ export class GraphVisualization {
     };
     this.onSimilarityStatsChange = null;
 
+    this.graphAnalysisSummary = null;
+    this.centralityReference = {
+      maxPageRank: null,
+      maxBetweenness: null,
+      maxDegree: null
+    };
+    this.currentAnalysisDigest = null;
+    this.onAnalysisSummary = null;
+
     // Layout persistence metadata
     this.layoutStorageKey = 'helios:layout:last';
     this.layoutGraphHash = null;
@@ -229,6 +238,7 @@ export class GraphVisualization {
 
     this.applyGraphData();
     this.evaluatePerformancePreset(true);
+    this.emitAnalysisSummary();
 
     return this;
   }
@@ -402,25 +412,27 @@ export class GraphVisualization {
    * Normalize node data to expected format
    */
   normalizeNode(node) {
+    const metrics = node && typeof node.metrics === 'object' ? { ...node.metrics } : {};
     const normalized = {
       ...node,
       id: node.id || node.fqName || node.name,
-      fqName: node.fqName || node.name,
-      name: node.name,
+      fqName: node.fqName || node.name || node.id,
+      name: node.name || node.fqName || node.id,
       filePath: node.filePath || '',
       lang: node.lang || 'javascript',
       moduleId: node.moduleId || null,
       isVirtual: !!node.isVirtual,
       size: node.size || node.loc || 0,
-      metrics: node.metrics || {},
-      community: node.community,
-      centrality: typeof node.centrality === 'number' ? node.centrality : 0,
+      metrics,
       doc: node.doc || '',
       x: node.x,
       y: node.y,
       z: node.z
     };
 
+    normalized.community = this.getNodeCommunity(normalized);
+    normalized.coreNumber = this.getNodeCoreNumber(normalized);
+    normalized.centralityDetails = this.getNodeCentralityMetrics(normalized);
     normalized.centralityScore = this.computeCentralityScore(normalized);
     normalized.locSize = this.deriveLocSize(normalized);
 
@@ -625,11 +637,23 @@ export class GraphVisualization {
     if (node.fqName) parts.push(node.fqName);
     if (node.filePath) parts.push(`\n${node.filePath}`);
     if (node.size) parts.push(`\n${node.size} LOC`);
-    if (node.metrics && Object.keys(node.metrics).length > 0) {
-      const metricsStr = Object.entries(node.metrics)
-        .map(([k, v]) => `${k}: ${v}`)
-        .join(', ');
-      parts.push(`\n${metricsStr}`);
+    const centrality = this.getNodeCentralityMetrics(node);
+    if (Number.isFinite(centrality.pageRank)) {
+      parts.push(`\nPR: ${centrality.pageRank.toFixed(3)}`);
+    }
+    if (Number.isFinite(centrality.betweenness)) {
+      parts.push(`\nBC: ${centrality.betweenness.toFixed(3)}`);
+    }
+    if (Number.isFinite(centrality.degree)) {
+      parts.push(`\nDegree: ${Math.round(centrality.degree)}`);
+    }
+    const community = this.getNodeCommunity(node);
+    if (community !== undefined && community !== null) {
+      parts.push(`\nCommunity: ${community}`);
+    }
+    const coreNumber = this.getNodeCoreNumber(node);
+    if (Number.isFinite(coreNumber)) {
+      parts.push(`\nCore: ${coreNumber}`);
     }
     
     return parts.join('');
@@ -688,35 +712,37 @@ export class GraphVisualization {
     return `hsl(${Math.round(hue)}, ${this.palettes.communities.saturation}%, ${this.palettes.communities.lightness}%)`;
   }
 
-  computeCentralityScore(node) {
+  computeCentralityScore(node, reference = null) {
     if (!node) return null;
-
-    const direct = typeof node.centrality === 'number' ? node.centrality : null;
-    if (direct !== null && Number.isFinite(direct)) {
-      return this.clamp(direct, 0, 1);
-    }
-
-    const metrics = node.metrics || {};
-    const candidates = ['pagerank', 'centrality', 'betweenness', 'degree'];
-
-    const values = candidates
-      .map(key => metrics[key])
-      .filter(value => typeof value === 'number' && Number.isFinite(value));
-
-    if (!values.length) {
+    const ref = reference || this.centralityReference || {};
+    const centrality = this.getNodeCentralityMetrics(node);
+    if (!centrality) {
       return null;
     }
 
-    const maxValue = Math.max(...values);
-    const minValue = Math.min(...values);
+    if (Number.isFinite(centrality.pageRank)) {
+      const max = Number.isFinite(ref.maxPageRank) ? ref.maxPageRank : centrality.pageRank;
+      const normalized = max > 0 ? centrality.pageRank / max : centrality.pageRank;
+      return this.clamp(normalized, 0, 1);
+    }
 
-    const normalized = this.scaleValue(
-      maxValue,
-      [minValue || 0, minValue === maxValue ? maxValue + 1 : maxValue],
-      [0, 1]
-    );
+    if (Number.isFinite(centrality.normalizedDegree)) {
+      return this.clamp(centrality.normalizedDegree, 0, 1);
+    }
 
-    return this.clamp(normalized, 0, 1);
+    if (Number.isFinite(centrality.betweenness)) {
+      const max = Number.isFinite(ref.maxBetweenness) ? ref.maxBetweenness : centrality.betweenness;
+      const normalized = max > 0 ? centrality.betweenness / max : centrality.betweenness;
+      return this.clamp(normalized, 0, 1);
+    }
+
+    if (Number.isFinite(centrality.degree)) {
+      const max = Number.isFinite(ref.maxDegree) ? ref.maxDegree : centrality.degree;
+      const normalized = max > 0 ? centrality.degree / max : centrality.degree;
+      return this.clamp(normalized, 0, 1);
+    }
+
+    return null;
   }
 
   deriveLocSize(node) {
@@ -784,12 +810,280 @@ export class GraphVisualization {
     return Math.min(Math.max(value, min), max);
   }
 
+  setAnalysisSummary(summary) {
+    this.graphAnalysisSummary = summary || null;
+    this.emitAnalysisSummary();
+    if (this.graph) {
+      if (typeof this.graph.nodeVal === 'function') {
+        this.graph.nodeVal(this.graph.nodeVal());
+      }
+      if (typeof this.graph.nodeColor === 'function') {
+        this.graph.nodeColor(this.graph.nodeColor());
+      }
+      this.repaintGraph();
+    }
+  }
+
+  emitAnalysisSummary() {
+    const digest = this.buildAnalysisDigest();
+    this.currentAnalysisDigest = digest;
+    if (typeof this.onAnalysisSummary === 'function') {
+      this.onAnalysisSummary(digest);
+    }
+  }
+
+  buildAnalysisDigest() {
+    const nodes = Array.isArray(this.data?.nodes) ? this.data.nodes : [];
+    const links = Array.isArray(this.data?.links) ? this.data.links : [];
+
+    const counts = {
+      nodes: nodes.length,
+      edges: links.length,
+      callEdges: links.filter(link => link.type === 'call').length,
+      similarityEdges: links.filter(link => link.type === 'similarity').length
+    };
+
+    const maxima = this.computeCentralityMaxima(this.graphAnalysisSummary, nodes);
+    this.centralityReference = maxima;
+
+    const topCentral = nodes
+      .map(node => {
+        const centrality = this.getNodeCentralityMetrics(node);
+        const score = this.computeCentralityScore(node, maxima);
+        return {
+          id: node.id,
+          name: node.fqName || node.name || node.id,
+          score,
+          pageRank: centrality.pageRank,
+          betweenness: centrality.betweenness
+        };
+      })
+      .filter(entry => Number.isFinite(entry.score))
+      .sort((a, b) => (b.score || 0) - (a.score || 0))
+      .slice(0, 5)
+      .map(entry => ({
+        ...entry,
+        score: Number.isFinite(entry.score) ? Number(entry.score.toFixed(3)) : null,
+        pageRank: Number.isFinite(entry.pageRank) ? Number(entry.pageRank.toFixed(3)) : null,
+        betweenness: Number.isFinite(entry.betweenness) ? Number(entry.betweenness.toFixed(3)) : null
+      }));
+
+    const communityMap = new Map();
+    nodes.forEach(node => {
+      const community = this.getNodeCommunity(node);
+      if (community === undefined || community === null) {
+        return;
+      }
+      const entry = communityMap.get(community) || { community, count: 0 };
+      entry.count += 1;
+      communityMap.set(community, entry);
+    });
+
+    const communityList = Array.from(communityMap.values()).sort((a, b) => b.count - a.count);
+    const topCommunities = communityList.slice(0, 5);
+    const modularity = this.graphAnalysisSummary?.communities?.modularity;
+
+    const coreCounts = new Map();
+    let maxCoreNumber = null;
+    nodes.forEach(node => {
+      const coreNumber = this.getNodeCoreNumber(node);
+      if (coreNumber === undefined || coreNumber === null) {
+        return;
+      }
+      const entry = coreCounts.get(coreNumber) || { coreNumber, count: 0 };
+      entry.count += 1;
+      coreCounts.set(coreNumber, entry);
+      if (maxCoreNumber === null || coreNumber > maxCoreNumber) {
+        maxCoreNumber = coreNumber;
+      }
+    });
+    const coreList = Array.from(coreCounts.values()).sort((a, b) => b.coreNumber - a.coreNumber);
+
+    return {
+      counts,
+      centrality: {
+        top: topCentral,
+        reference: maxima
+      },
+      communities: {
+        total: communityMap.size,
+        modularity: Number.isFinite(modularity) ? modularity : null,
+        top: topCommunities
+      },
+      cores: {
+        degeneracy: Number.isFinite(this.graphAnalysisSummary?.cliques?.degeneracy)
+          ? this.graphAnalysisSummary.cliques.degeneracy
+          : null,
+        top: coreList[0] || null
+      }
+    };
+  }
+
+  computeCentralityMaxima(summary, nodes) {
+    const maxima = {
+      maxPageRank: null,
+      maxBetweenness: null,
+      maxDegree: null
+    };
+
+    if (summary?.centrality?.pageRank) {
+      const values = Object.values(summary.centrality.pageRank).filter(Number.isFinite);
+      if (values.length) {
+        maxima.maxPageRank = Math.max(...values);
+      }
+    }
+    if (summary?.centrality?.betweenness) {
+      const values = Object.values(summary.centrality.betweenness).filter(Number.isFinite);
+      if (values.length) {
+        maxima.maxBetweenness = Math.max(...values);
+      }
+    }
+    if (summary?.centrality?.degree) {
+      const values = Object.values(summary.centrality.degree)
+        .map(value => {
+          if (typeof value === 'number') {
+            return value;
+          }
+          if (value && typeof value === 'object' && Number.isFinite(value.total)) {
+            return value.total;
+          }
+          return null;
+        })
+        .filter(Number.isFinite);
+      if (values.length) {
+        maxima.maxDegree = Math.max(...values);
+      }
+    }
+
+    if (!Number.isFinite(maxima.maxPageRank)) {
+      nodes.forEach(node => {
+        const centrality = this.getNodeCentralityMetrics(node);
+        if (Number.isFinite(centrality.pageRank)) {
+          maxima.maxPageRank = Math.max(maxima.maxPageRank ?? centrality.pageRank, centrality.pageRank);
+        }
+      });
+    }
+    if (!Number.isFinite(maxima.maxBetweenness)) {
+      nodes.forEach(node => {
+        const centrality = this.getNodeCentralityMetrics(node);
+        if (Number.isFinite(centrality.betweenness)) {
+          maxima.maxBetweenness = Math.max(maxima.maxBetweenness ?? centrality.betweenness, centrality.betweenness);
+        }
+      });
+    }
+    if (!Number.isFinite(maxima.maxDegree)) {
+      nodes.forEach(node => {
+        const centrality = this.getNodeCentralityMetrics(node);
+        if (Number.isFinite(centrality.degree)) {
+          maxima.maxDegree = Math.max(maxima.maxDegree ?? centrality.degree, centrality.degree);
+        }
+      });
+    }
+
+    return maxima;
+  }
+
+  getNodeCommunity(node) {
+    if (!node) {
+      return null;
+    }
+    if (node.community !== undefined && node.community !== null) {
+      return node.community;
+    }
+    const metrics = node.metrics || {};
+    const communities = metrics.communities;
+    if (communities && typeof communities === 'object') {
+      if (communities.community !== undefined && communities.community !== null) {
+        return communities.community;
+      }
+      const keys = Object.keys(communities);
+      for (const key of keys) {
+        const value = communities[key];
+        if (value !== null && value !== undefined) {
+          return value;
+        }
+      }
+    }
+    if (metrics.community !== undefined && metrics.community !== null) {
+      return metrics.community;
+    }
+    return null;
+  }
+
+  getNodeCoreNumber(node) {
+    if (!node) {
+      return null;
+    }
+    if (typeof node.coreNumber === 'number' && Number.isFinite(node.coreNumber)) {
+      return node.coreNumber;
+    }
+    const metrics = node.metrics || {};
+    if (typeof metrics.coreNumber === 'number' && Number.isFinite(metrics.coreNumber)) {
+      return metrics.coreNumber;
+    }
+    const cores = metrics.cores;
+    if (cores && typeof cores === 'object') {
+      if (typeof cores.coreNumber === 'number' && Number.isFinite(cores.coreNumber)) {
+        return cores.coreNumber;
+      }
+      const keys = Object.keys(cores);
+      for (const key of keys) {
+        const value = cores[key];
+        if (typeof value === 'number' && Number.isFinite(value)) {
+          return value;
+        }
+      }
+    }
+    return null;
+  }
+
+  getNodeCentralityMetrics(node) {
+    if (!node) {
+      return {};
+    }
+    if (node.centralityDetails && typeof node.centralityDetails === 'object') {
+      return node.centralityDetails;
+    }
+    const metrics = node.metrics || {};
+    const centrality = metrics.centrality || {};
+    const degreeInfo = centrality.degree;
+
+    const pageRank = this.asFiniteNumber(
+      centrality.pageRank ?? centrality.pagerank ?? node.pageRank
+    );
+    const betweenness = this.asFiniteNumber(centrality.betweenness ?? node.betweenness);
+    const degreeTotal = this.asFiniteNumber(
+      typeof degreeInfo === 'number' ? degreeInfo : degreeInfo?.total
+    );
+    const degreeIn = this.asFiniteNumber(degreeInfo?.in);
+    const degreeOut = this.asFiniteNumber(degreeInfo?.out);
+    let normalizedDegree = this.asFiniteNumber(degreeInfo?.normalized ?? centrality.normalizedDegree);
+    if (normalizedDegree === null && Number.isFinite(degreeTotal) && Number.isFinite(this.centralityReference?.maxDegree)) {
+      const max = this.centralityReference.maxDegree;
+      normalizedDegree = max > 0 ? degreeTotal / max : null;
+    }
+
+    return {
+      pageRank,
+      betweenness,
+      degree: degreeTotal,
+      degreeIn,
+      degreeOut,
+      normalizedDegree
+    };
+  }
+
+  asFiniteNumber(value) {
+    return typeof value === 'number' && Number.isFinite(value) ? value : null;
+  }
+
   /**
    * Get node size (by centrality or default)
    */
   getNodeSize(node) {
-    const centralitySize = node.centralityScore !== null
-      ? this.scaleValue(node.centralityScore, [0, 1], [4, 16])
+    const centralityScore = this.computeCentralityScore(node);
+    const centralitySize = centralityScore !== null
+      ? this.scaleValue(centralityScore, [0, 1], [4, 16])
       : null;
 
     const locSize = node.locSize !== null
@@ -1023,6 +1317,11 @@ export class GraphVisualization {
       .map(id => this.getNodeById(id))
       .filter(Boolean);
 
+    const community = this.getNodeCommunity(node);
+    const coreNumber = this.getNodeCoreNumber(node);
+    const centralityMetrics = this.getNodeCentralityMetrics(node);
+    const centralityScore = this.computeCentralityScore(node);
+
     let callOutgoing = 0;
     let callIncoming = 0;
     let similarityEdges = 0;
@@ -1082,6 +1381,10 @@ export class GraphVisualization {
         callOutgoing,
         callIncoming,
         similarityEdges,
+        centralityScore,
+        centrality: centralityMetrics,
+        community,
+        coreNumber,
         topSimilarity: similarityList.slice(0, 3),
         resolution: {
           resolved: resolvedEdges,

@@ -27,6 +27,7 @@ export class VisualizationControls {
 
     this.layoutStatusTimer = null;
     this.similarityStats = null;
+    this.analysisSummary = null;
     this.similarityThreshold = 0;
     
     this.init();
@@ -65,6 +66,10 @@ export class VisualizationControls {
             <span class="hover-info-badge" id="hoverResolvedEdges">0 resolved</span>
             <span class="hover-info-badge" id="hoverAmbiguousEdges">0 ambiguous</span>
             <span class="hover-info-badge" id="hoverUnresolvedEdges">0 unresolved</span>
+            <span class="hover-info-badge" id="hoverCommunity">Community —</span>
+            <span class="hover-info-badge" id="hoverPageRank">PR —</span>
+            <span class="hover-info-badge" id="hoverBetweenness">BC —</span>
+            <span class="hover-info-badge" id="hoverCore">Core —</span>
           </div>
           <div class="hover-info-neighbors" id="hoverNeighborList"></div>
           <div class="hover-similarity-section hidden" id="hoverSimilaritySection">
@@ -123,6 +128,13 @@ export class VisualizationControls {
           <div class="control-hint" id="embeddingReuseStatus" aria-live="polite" style="font-size: 0.78rem; color: #a5b4fc;"></div>
           <div class="control-hint" id="similarityStatus" aria-live="polite" style="font-size: 0.78rem; color: #a5b4fc;"></div>
         </div>
+        <div class="controls-section hidden" id="analysisSummarySection">
+          <h4 class="controls-title">Graph Metrics</h4>
+          <div class="control-hint" id="analysisSummaryCounts" aria-live="polite" style="font-size: 0.78rem; color: #cbd5f5;"></div>
+          <div class="control-hint" id="analysisSummaryCommunities" style="font-size: 0.76rem; color: #a5b4fc;"></div>
+          <div class="control-hint" id="analysisSummaryCentrality" style="font-size: 0.76rem; color: #a5b4fc;"></div>
+          <div class="control-hint" id="analysisSummaryCores" style="font-size: 0.76rem; color: #cbd5f5;"></div>
+        </div>
         
         ${this.options.showFilters ? `
         <div class="controls-section">
@@ -176,6 +188,10 @@ export class VisualizationControls {
     this.hoverResolvedEdges = this.container.querySelector('#hoverResolvedEdges');
     this.hoverAmbiguousEdges = this.container.querySelector('#hoverAmbiguousEdges');
     this.hoverUnresolvedEdges = this.container.querySelector('#hoverUnresolvedEdges');
+    this.hoverCommunity = this.container.querySelector('#hoverCommunity');
+    this.hoverPageRank = this.container.querySelector('#hoverPageRank');
+    this.hoverBetweenness = this.container.querySelector('#hoverBetweenness');
+    this.hoverCore = this.container.querySelector('#hoverCore');
     this.layoutStatusEl = this.container.querySelector('#layoutStatus');
     this.hoverSimilaritySection = this.container.querySelector('#hoverSimilaritySection');
     this.hoverSimilarityList = this.container.querySelector('#hoverSimilarityList');
@@ -204,12 +220,18 @@ export class VisualizationControls {
     this.embeddingStatusEl = this.container.querySelector('#embeddingStatus');
     this.embeddingReuseStatusEl = this.container.querySelector('#embeddingReuseStatus');
     this.similarityStatusEl = this.container.querySelector('#similarityStatus');
+    this.analysisSummarySection = this.container.querySelector('#analysisSummarySection');
+    this.analysisSummaryCountsEl = this.container.querySelector('#analysisSummaryCounts');
+    this.analysisSummaryCommunitiesEl = this.container.querySelector('#analysisSummaryCommunities');
+    this.analysisSummaryCentralityEl = this.container.querySelector('#analysisSummaryCentrality');
+    this.analysisSummaryCoresEl = this.container.querySelector('#analysisSummaryCores');
     if (this.graphViz && typeof this.graphViz.getPerformanceState === 'function') {
       this.updatePerformanceControls(this.graphViz.getPerformanceState());
     } else {
       this.updatePerformanceControls();
     }
     this.setEmbeddingSummary();
+    this.setAnalysisSummary();
   }
 
   /**
@@ -543,6 +565,82 @@ export class VisualizationControls {
     }
   }
 
+  setAnalysisSummary(summary = null) {
+    this.analysisSummary = summary || null;
+    if (!this.analysisSummarySection) {
+      return;
+    }
+
+    if (!summary) {
+      this.analysisSummarySection.classList.add('hidden');
+      if (this.analysisSummaryCountsEl) this.analysisSummaryCountsEl.textContent = '';
+      if (this.analysisSummaryCommunitiesEl) this.analysisSummaryCommunitiesEl.textContent = '';
+      if (this.analysisSummaryCentralityEl) this.analysisSummaryCentralityEl.textContent = '';
+      if (this.analysisSummaryCoresEl) this.analysisSummaryCoresEl.textContent = '';
+      return;
+    }
+
+    this.analysisSummarySection.classList.remove('hidden');
+
+    const counts = summary.counts || {};
+    const nodeCount = Number.isFinite(counts.nodes) ? counts.nodes : 0;
+    const callEdges = Number.isFinite(counts.callEdges) ? counts.callEdges : 0;
+    const similarityEdges = Number.isFinite(counts.similarityEdges) ? counts.similarityEdges : 0;
+    if (this.analysisSummaryCountsEl) {
+      const nodeLabel = `${nodeCount.toLocaleString()} node${nodeCount === 1 ? '' : 's'}`;
+      const callLabel = `${callEdges.toLocaleString()} call edge${callEdges === 1 ? '' : 's'}`;
+      const similarityLabel = `${similarityEdges.toLocaleString()} similarity edge${similarityEdges === 1 ? '' : 's'}`;
+      this.analysisSummaryCountsEl.textContent = `${nodeLabel} · ${callLabel} · ${similarityLabel}`;
+    }
+
+    const communities = summary.communities || {};
+    if (this.analysisSummaryCommunitiesEl) {
+      const totalCommunities = Number.isFinite(communities.total) ? communities.total : 0;
+      const topCommunity = Array.isArray(communities.top) && communities.top.length ? communities.top[0] : null;
+      const parts = [];
+      parts.push(`${totalCommunities.toLocaleString()} communit${totalCommunities === 1 ? 'y' : 'ies'}`);
+      if (topCommunity && topCommunity.community !== undefined) {
+        const topLabel = `${topCommunity.community}`;
+        const topCount = Number.isFinite(topCommunity.count) ? ` – ${topCommunity.count.toLocaleString()}` : '';
+        parts.push(`largest ${topLabel}${topCount}`);
+      }
+      if (Number.isFinite(communities.modularity)) {
+        parts.push(`modularity ${communities.modularity.toFixed(3)}`);
+      }
+      this.analysisSummaryCommunitiesEl.textContent = parts.join(' · ');
+    }
+
+    const centrality = summary.centrality || {};
+    if (this.analysisSummaryCentralityEl) {
+      const top = Array.isArray(centrality.top) ? centrality.top : [];
+      const formatted = top.slice(0, 3).map(entry => {
+        const label = entry.name || entry.id;
+        const score = Number.isFinite(entry.score)
+          ? entry.score.toFixed(2)
+          : Number.isFinite(entry.pageRank)
+            ? entry.pageRank.toFixed(3)
+            : null;
+        return score ? `${label} (${score})` : label;
+      });
+      this.analysisSummaryCentralityEl.textContent = formatted.length
+        ? `Top central: ${formatted.join(', ')}`
+        : 'Top central: —';
+    }
+
+    const cores = summary.cores || {};
+    if (this.analysisSummaryCoresEl) {
+      const parts = [];
+      if (Number.isFinite(cores.degeneracy)) {
+        parts.push(`degeneracy ${cores.degeneracy}`);
+      }
+      if (cores.top && Number.isFinite(cores.top.coreNumber)) {
+        const count = Number.isFinite(cores.top.count) ? ` (${cores.top.count.toLocaleString()})` : '';
+        parts.push(`max core ${cores.top.coreNumber}${count}`);
+      }
+      this.analysisSummaryCoresEl.textContent = parts.length ? parts.join(' · ') : 'Core data unavailable';
+    }
+  }
+
   updatePerformanceControls(state = null) {
     if (!state) {
       state = { mode: 'balanced', auto: true };
@@ -741,6 +839,9 @@ export class VisualizationControls {
       return;
     }
 
+    const formatDecimal = (value, digits = 2) =>
+      Number.isFinite(value) ? value.toFixed(digits) : '—';
+
     if (!info || !info.node) {
       this.hoverInfoSection.classList.add('hidden');
       if (this.hoverNeighborList) {
@@ -761,6 +862,10 @@ export class VisualizationControls {
       if (this.hoverResolvedEdges) this.hoverResolvedEdges.textContent = '0 resolved';
       if (this.hoverAmbiguousEdges) this.hoverAmbiguousEdges.textContent = '0 ambiguous';
       if (this.hoverUnresolvedEdges) this.hoverUnresolvedEdges.textContent = '0 unresolved';
+      if (this.hoverCommunity) this.hoverCommunity.textContent = 'Community —';
+      if (this.hoverPageRank) this.hoverPageRank.textContent = 'PR —';
+      if (this.hoverBetweenness) this.hoverBetweenness.textContent = 'BC —';
+      if (this.hoverCore) this.hoverCore.textContent = 'Core —';
       return;
     }
 
@@ -798,6 +903,28 @@ export class VisualizationControls {
     }
     if (this.hoverUnresolvedEdges) {
       this.hoverUnresolvedEdges.textContent = `${resolutionStats.unresolved || 0} unresolved`;
+    }
+    if (this.hoverCommunity) {
+      const community = stats.community;
+      this.hoverCommunity.textContent =
+        community !== undefined && community !== null ? `Community ${community}` : 'Community —';
+    }
+    if (this.hoverPageRank) {
+      const pageRank = stats.centrality && Number.isFinite(stats.centrality.pageRank)
+        ? stats.centrality.pageRank
+        : null;
+      this.hoverPageRank.textContent = pageRank !== null ? `PR ${formatDecimal(pageRank, 3)}` : 'PR —';
+    }
+    if (this.hoverBetweenness) {
+      const betweenness = stats.centrality && Number.isFinite(stats.centrality.betweenness)
+        ? stats.centrality.betweenness
+        : null;
+      this.hoverBetweenness.textContent = betweenness !== null ? `BC ${formatDecimal(betweenness, 3)}` : 'BC —';
+    }
+    if (this.hoverCore) {
+      const coreNumber = stats.coreNumber;
+      this.hoverCore.textContent =
+        Number.isFinite(coreNumber) ? `Core ${coreNumber}` : 'Core —';
     }
 
     if (this.hoverNeighborList) {

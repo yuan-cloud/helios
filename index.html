@@ -1420,12 +1420,15 @@
                     controls.setHoverInfo(info);
                 }
             };
-
-            graphViz.onAnalysisSummary = (summary = {}) => {
+            graphViz.onAnalysisSummary = (summary) => {
                 if (controls && typeof controls.setAnalysisSummary === 'function') {
                     controls.setAnalysisSummary(summary);
                 }
             };
+
+            if (graphViz && typeof graphViz.setAnalysisSummary === 'function') {
+                graphViz.setAnalysisSummary(window.heliosGraphSummary || null);
+            }
 
             if (inspector) {
                 inspector.onNavigate = (nodeId) => {
