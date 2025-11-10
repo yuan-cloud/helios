@@ -141,13 +141,13 @@ Tree-sitter's query DSL lets you capture these nodes robustly.
 
 ### 3.6 Graph Assembly
 
-[OrangeSnow - UPDATED - 2025-11-10 04:18]
+[OrangeSnow - UPDATED - 2025-11-10 06:17]
 
 ✅ Graphology scaffolding and `buildFunctionGraph` implemented (`src/graph/graph-builder.js`)  
-✅ Node attribute normalization + per-layer edge statistics  
+✅ Data ingestion + analysis pipeline (`src/graph/pipeline.js`, `collectGraphPayload`/`buildAnalyzedGraph`)  
 ✅ Import map updated for Graphology + Louvain packages  
-⏳ Parser/embedding data plumbing into graph builder (10% done — awaiting final payload wiring)  
-⏳ Storage/viz integration for computed metrics (15% done — pending downstream consumption)  
+⏳ Live parser/embedding wiring & worker messaging (30% done — awaiting final payload handshake)  
+⏳ Storage/viz integration for computed metrics (20% done — needs downstream consumption hooks)  
 ❌ Cross-worker message schema finalization (blocked until parser/embedding agents confirm transport format)
 
 - **Nodes**: One per function `{id, fqName, filePath, range, lang, size (#LOC), metrics…}`.
@@ -163,15 +163,15 @@ Tree-sitter's query DSL lets you capture these nodes robustly.
 
 ### 3.7 Visualization (3D)
 
-[LilacLake - UPDATED - 2025-11-09 06:40]
+[LilacLake - UPDATED - 2025-11-10 06:20]
 
 ✅ Core 3d-force-graph scaffold hooked to call graph output (directional particles, camera helpers, fit-to-view)  
 ✅ Controls + inspector polish (hover sidebar, neighbor quick jumps, inbound/outbound call lists, Prism-highlighted source)  
 ✅ Call-edge resolution styling (resolved/ambiguous/unresolved cues propagated to hover and inspector badges)  
 ✅ Similarity edge layer (dashed styling, weight-aware opacity/width, threshold slider, hover + inspector surfacing)  
 ✅ Layout persistence & performance tuning (auto-freeze heuristics, OPFS snapshot provider, embedding reuse stats surfaced)  
-✅ Resume flow integration & regression guard (call/sim edge toggles restored; viz consumes storage snapshots)  
-✅ Ready to support downstream testing/integration (no outstanding viz-agent tasks)
+⏳ Live parser payload hookup (awaiting finalized function/call edge schema from parser-agent)  
+✅ Resume flow integration & regression guard (call/sim edge toggles restored; viz consumes storage snapshots)
 
 - Render with 3d-force-graph:
   - Use directional arrows/particles for call edges; labels on hover; click to focus; fit-to-view; pause/resume simulation. The lib supports directional particles and node/link labels out of the box.
@@ -300,12 +300,13 @@ Persist DB under OPFS (origin-private) so users can reopen the site and continue
 
 ### 10.4 Network Analysis
 
-[OrangeSnow - UPDATED - 2025-11-10 04:18]
+[OrangeSnow - UPDATED - 2025-11-10 06:17]
 
 ✅ Centrality suite (degree, betweenness, PageRank) — `src/analysis/centralities.js`  
 ✅ Louvain community detection helper — `src/analysis/communities.js`  
 ✅ Clique + k-core analysis utilities — `src/analysis/cliques.js`  
-⏳ Metric aggregation export for viz/storage (20% done — needs wiring into persistence layer)  
+✅ Graph serialization helper to expose analyzed metrics (`serializeGraph`)  
+⏳ Metric export wiring into storage/viz layers (25% done — pending consumer adapters)  
 ❌ Validation harness with sample repos (blocked until representative datasets available)
 
 - Compute: degree, betweenness, eigenvector, PageRank; community (Louvain); show histograms in a side panel. (Graphology has these out of the box.)
@@ -314,14 +315,14 @@ Persist DB under OPFS (origin-private) so users can reopen the site and continue
 
 ## 11) Visualization Details
 
-[LilacLake - UPDATED - 2025-11-09 06:40]
+[LilacLake - UPDATED - 2025-11-10 06:20]
 
 ✅ Call-edge palette finalized (directional particles, arrowheads, module-aware colors, hover fades)  
 ✅ Interaction polish (hover sidebar metrics, inspector call lists, camera focus + quick-jump syncing)  
 ✅ Resolution state surfacing (hover + inspector badges with import context)  
 ✅ Similarity edge styling (dashed visuals, weight-aware opacity/width, threshold slider, inspector badges)  
-✅ Layout persistence & freeze UX (OPFS-backed save/restore, auto-freeze presets, resume snapshot hooks)  
-✅ Ongoing support: monitoring resume-flow integration + responding to review feedback promptly
+⏳ Data ingestion wiring (coordinating parser/graph payload contract for live updates)  
+✅ Layout persistence & freeze UX (OPFS-backed save/restore, auto-freeze presets, resume snapshot hooks)
 
 - **Edge palette**:
   - Call edges: Color by module proximity or "internal vs external"; arrows on direction; use `linkDirectionalParticles` to emphasize direction on hover.
