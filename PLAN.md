@@ -165,7 +165,7 @@ Tree-sitter's query DSL lets you capture these nodes robustly.
 
 ### 3.7 Visualization (3D)
 
-[LilacLake - UPDATED - 2025-11-10 06:20]
+[LilacLake - UPDATED - 2025-11-10 07:35]
 
 ✅ Core 3d-force-graph scaffold hooked to call graph output (directional particles, camera helpers, fit-to-view)  
 ✅ Controls + inspector polish (hover sidebar, neighbor quick jumps, inbound/outbound call lists, Prism-highlighted source)  
@@ -173,7 +173,9 @@ Tree-sitter's query DSL lets you capture these nodes robustly.
 ✅ Similarity edge layer (dashed styling, weight-aware opacity/width, threshold slider, hover + inspector surfacing)  
 ✅ Layout persistence & performance tuning (auto-freeze heuristics, OPFS snapshot provider, embedding reuse stats surfaced)  
 ⏳ Live parser payload hookup (awaiting finalized function/call edge schema from parser-agent)  
-✅ Resume flow integration & regression guard (call/sim edge toggles restored; viz consumes storage snapshots)
+✅ Graphology metrics surfaced in UI (node sizing/color by centrality/community; hover badges for PR/BC/core/community)  
+✅ Controls panel shows graph-level summaries (counts, top communities, central nodes, cores)  
+✅ Resume flow integration & regression guard (call/sim edge toggles restored; viz consumes storage snapshots)  
 
 - Render with 3d-force-graph:
   - Use directional arrows/particles for call edges; labels on hover; click to focus; fit-to-view; pause/resume simulation. The lib supports directional particles and node/link labels out of the box.
@@ -324,7 +326,7 @@ Persist DB under OPFS (origin-private) so users can reopen the site and continue
 ✅ Resolution state surfacing (hover + inspector badges with import context)  
 ✅ Similarity edge styling (dashed visuals, weight-aware opacity/width, threshold slider, inspector badges)  
 ⏳ Data ingestion wiring (coordinating parser/graph payload contract for live updates)  
-✅ Layout persistence & freeze UX (OPFS-backed save/restore, auto-freeze presets, resume snapshot hooks)
+✅ Layout persistence & freeze UX (OPFS-backed save/restore, auto-freeze presets, resume snapshot hooks)  
 
 - **Edge palette**:
   - Call edges: Color by module proximity or "internal vs external"; arrows on direction; use `linkDirectionalParticles` to emphasize direction on hover.
