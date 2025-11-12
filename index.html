@@ -10,13 +10,13 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script type="importmap">
     {
-        "imports": {
+      "imports": {
           "web-tree-sitter": "https://cdn.jsdelivr.net/npm/web-tree-sitter@0.20.4/dist/tree-sitter.esm.min.js",
           "3d-force-graph": "https://cdn.jsdelivr.net/npm/3d-force-graph@1.70.25/dist/3d-force-graph.es.min.js",
           "@xenova/transformers": "https://cdn.jsdelivr.net/npm/@xenova/transformers@2.8.0/dist/transformers.esm.min.js",
           "graphology": "https://esm.sh/graphology@0.25.4",
           "graphology-communities-louvain": "https://esm.sh/graphology-communities-louvain@0.9.1"
-        }
+      }
     }
     </script>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/themes/prism-tomorrow.min.css">
@@ -206,7 +206,35 @@
             color: #a5b4fc;
             font-size: 1rem;
             text-align: center;
-            margin-bottom: 1rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .progress-detail {
+            margin-bottom: 0.85rem;
+            font-size: 0.82rem;
+            text-align: center;
+            color: #cbd5f5;
+            letter-spacing: 0.01em;
+        }
+
+        .storage-controls {
+            margin-top: 0.85rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .storage-controls .button[disabled] {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .storage-status {
+            min-height: 1.2rem;
+            font-size: 0.85rem;
+            color: #cbd5f5;
+            text-align: center;
         }
 
         .progress-bar {
@@ -584,7 +612,7 @@
         <div class="gravity-particle"></div>
         <div class="gravity-particle"></div>
     </div>
-
+    
     <div class="hero-container">
         <div class="text-center space-y-6">
             <h1 class="title">HELIOS</h1>
@@ -594,11 +622,21 @@
                 <button class="button hidden" id="resumeBtn" style="background: rgba(129, 140, 248, 0.15); border: 1px solid rgba(129, 140, 248, 0.5);">
                     Resume Last Session
                 </button>
+                <button class="button" id="loadDemoBtn" type="button" style="background: rgba(34, 197, 94, 0.18); border: 1px solid rgba(34, 197, 94, 0.45); color: #bbf7d0;">
+                    Load Demo
+            </button>
+            </div>
+            <div class="storage-controls">
+                <button class="button" id="clearStorageBtn" type="button" style="background: rgba(248, 113, 113, 0.15); border: 1px solid rgba(248, 113, 113, 0.35); color: #fecaca;">
+                    Clear Stored Data
+                </button>
+                <div class="storage-status" id="storageStatus" role="status" aria-live="polite"></div>
             </div>
         </div>
 
         <div class="progress-container hidden" id="progressContainer">
             <div class="progress-text" id="progressText">Scanning files...</div>
+            <div class="progress-detail hidden" id="progressDetail"></div>
             <div class="progress-bar">
                 <div class="progress-fill" id="progressFill"></div>
             </div>
@@ -610,6 +648,11 @@
             <div class="file-list" id="fileList"></div>
             <button class="button hidden" id="visualizeBtn" style="margin-top: 2rem;">Visualize Graph</button>
         </div>
+    </div>
+
+    <div class="demo-loading hidden" id="demoLoading" role="status" aria-live="polite" aria-hidden="true">
+        <div class="demo-spinner"></div>
+        <div class="demo-loading-message" id="demoLoadingLabel">Loading demo dataset...</div>
     </div>
 
     <div class="viz-container hidden" id="vizContainer">
@@ -631,6 +674,7 @@
         import { InspectorPanel } from './src/viz/inspector.js';
         import { VisualizationControls } from './src/viz/controls.js';
         import { EmbeddingManager } from './src/embeddings/embedding-manager.js';
+        import { detectEmbeddingEnvironment } from './src/embeddings/backend.js';
         import { buildFunctionEmbeddings, computeSimilarityGraph } from './src/embeddings/similarity.js';
         import {
             computeFunctionFingerprint,
@@ -657,6 +701,7 @@
             buildAnalyzedGraph,
             serializeGraph
         } from './src/graph/index.js';
+        import { getDemoDataset } from './src/demo/demo-data.js';
 
         const starsContainer = document.getElementById('stars');
         const starCount = 120;
@@ -671,9 +716,13 @@
 
         const selectBtn = document.getElementById('selectBtn');
         const resumeBtn = document.getElementById('resumeBtn');
+        const loadDemoBtn = document.getElementById('loadDemoBtn');
         const progressContainer = document.getElementById('progressContainer');
         const progressText = document.getElementById('progressText');
+        const progressDetail = document.getElementById('progressDetail');
         const progressFill = document.getElementById('progressFill');
+        const demoLoading = document.getElementById('demoLoading');
+        const demoLoadingLabel = document.getElementById('demoLoadingLabel');
         const resultsContainer = document.getElementById('resultsContainer');
         const counter = document.getElementById('counter');
         const functionsCounter = document.getElementById('functionsCounter');
@@ -684,6 +733,26 @@
         const vizControls = document.getElementById('vizControls');
         const vizInspector = document.getElementById('vizInspector');
         const vizCloseBtn = document.getElementById('vizCloseBtn');
+        const clearStorageBtn = document.getElementById('clearStorageBtn');
+        const storageStatusEl = document.getElementById('storageStatus');
+        if (clearStorageBtn) {
+            clearStorageBtn.disabled = true;
+        }
+
+        function setProgressDetail(detailText) {
+            if (!progressDetail) return;
+            if (detailText && detailText.length) {
+                progressDetail.textContent = detailText;
+                progressDetail.classList.remove('hidden');
+            } else {
+                progressDetail.textContent = '';
+                progressDetail.classList.add('hidden');
+            }
+        }
+
+        function clearProgressDetail() {
+            setProgressDetail('');
+        }
 
         const SUPPORTED_EXTENSIONS = ['.js', '.jsx', '.ts', '.tsx', '.py'];
         const JS_FILE_EXTENSIONS = ['.js', '.jsx', '.ts', '.tsx', '.mjs', '.cjs'];
@@ -724,6 +793,14 @@
         let embeddingFingerprint = null;
         let usedCachedEmbeddings = false;
         let embeddingReuseCounts = { reused: 0, embedded: 0 };
+        let embeddingEnvironment = {
+            detected: false,
+            backend: null,
+            webgpuAvailable: false,
+            forced: false,
+            error: null
+        };
+        let embeddingEnvironmentSummary = null;
         let functionEmbeddings = [];
         let similarityEdges = [];
         let similarityStats = null;
@@ -757,11 +834,209 @@
         let latestFunctionFingerprintMap = null;
         let resumeSnapshot = null;
 
+        function showDemoLoading(message = 'Loading demo dataset...') {
+            if (!demoLoading) {
+                return;
+            }
+            if (demoLoadingLabel) {
+                demoLoadingLabel.textContent = message;
+            }
+            demoLoading.classList.remove('hidden');
+            demoLoading.setAttribute('aria-hidden', 'false');
+        }
+
+        function hideDemoLoading() {
+            if (!demoLoading) {
+                return;
+            }
+            demoLoading.classList.add('hidden');
+            demoLoading.setAttribute('aria-hidden', 'true');
+        }
+
+        function computeSimilarityStatsFromEdges(edges = []) {
+            if (!Array.isArray(edges) || edges.length === 0) {
+                return null;
+            }
+            let min = Infinity;
+            let max = -Infinity;
+            let total = 0;
+            let count = 0;
+            edges.forEach(edge => {
+                const value = typeof edge.similarity === 'number'
+                    ? edge.similarity
+                    : typeof edge.weight === 'number'
+                        ? edge.weight
+                        : null;
+                if (!Number.isFinite(value)) {
+                    return;
+                }
+                min = Math.min(min, value);
+                max = Math.max(max, value);
+                total += value;
+                count += 1;
+            });
+            if (count === 0) {
+                return null;
+            }
+            return {
+                count,
+                min,
+                max,
+                mean: total / count
+            };
+        }
+
+        function resetAnalysisState({ showProgress = false, progressLabel = 'Preparing analysis...' } = {}) {
+            sourceFiles = [];
+            fileHandles = new Map();
+            sourceFileIndex.clear();
+            moduleIndex.clear();
+            totalFiles = 0;
+            scannedFiles = 0;
+            allFunctions = [];
+            allCalls = [];
+            callGraph = null;
+            fullVizData = null;
+            functionMapById = new Map();
+            embeddingChunks = [];
+            embeddingStats = null;
+            embeddingVectors = [];
+            embeddingMetadata = {
+                backend: embeddingEnvironment.backend || null,
+                modelId: null,
+                dimension: null
+            };
+            embeddingError = null;
+            embeddingFingerprint = null;
+            usedCachedEmbeddings = false;
+            embeddingReuseCounts = { reused: 0, embedded: 0 };
+            functionEmbeddings = [];
+            similarityEdges = [];
+            similarityStats = null;
+            graphPayload = { functions: [], callEdges: [], similarityEdges: [], extras: null };
+            graphAnalysis = null;
+            graphSummary = null;
+            graphSerialized = { nodes: [], edges: [] };
+            graphExtras = null;
+            latestEmbeddingSummary = null;
+            latestFunctionFingerprintMap = null;
+            resumeSnapshot = null;
+            resumeBtn?.classList.add('hidden');
+            if (symbolTableManager && typeof symbolTableManager.clear === 'function') {
+                symbolTableManager.clear();
+            }
+            updateEmbeddingSummary(embeddingEnvironmentSummary || null);
+            window.heliosEmbeddingChunks = [];
+            window.heliosEmbeddingStats = null;
+            window.heliosEmbeddings = null;
+            window.heliosEmbeddingReuse = null;
+            window.heliosEmbeddingError = null;
+            window.heliosFunctionEmbeddings = null;
+            window.heliosSimilarity = null;
+            fileList.innerHTML = '';
+            counter.textContent = 'No source files loaded yet';
+            functionsCounter.textContent = '0 functions extracted';
+            visualizeBtn.classList.add('hidden');
+            progressFill.style.width = '0%';
+            progressText.textContent = progressLabel;
+            storageStatusEl?.textContent = '';
+            if (showProgress) {
+                progressContainer.classList.remove('hidden');
+            } else {
+                progressContainer.classList.add('hidden');
+            }
+            resultsContainer.classList.add('hidden');
+        }
+
         const symbolTableManager = new SymbolTableManager();
+
+        function setStorageStatus(message, tone = 'info') {
+            if (!storageStatusEl) {
+                return;
+            }
+            const palette = {
+                success: '#bbf7d0',
+                error: '#fecaca',
+                warning: '#fde68a',
+                info: '#cbd5f5'
+            };
+            storageStatusEl.textContent = message || '';
+            storageStatusEl.style.color = palette[tone] || palette.info;
+        }
+
+        setStorageStatus('Storage initializing…', 'info');
         function updateEmbeddingSummary(summary) {
             latestEmbeddingSummary = summary;
             if (controls && typeof controls.setEmbeddingSummary === 'function') {
                 controls.setEmbeddingSummary(summary);
+            }
+        }
+
+        function buildEmbeddingDetectionSummary(env) {
+            if (!env || !env.detected) {
+                return null;
+            }
+            const backend = env.backend || null;
+            return {
+                chunkCount: 0,
+                metadata: { backend },
+                detection: {
+                    detected: true,
+                    backend,
+                    webgpuAvailable: Boolean(env.webgpuAvailable),
+                    forced: Boolean(env.forced),
+                    error: env.error || null
+                },
+                cached: false
+            };
+        }
+
+        async function bootstrapEmbeddingDetection() {
+            if (!embeddingManager) {
+                embeddingEnvironment = {
+                    detected: true,
+                    backend: null,
+                    webgpuAvailable: false,
+                    forced: false,
+                    error: 'Embeddings unavailable in this environment'
+                };
+            } else {
+                try {
+                    const info = await detectEmbeddingEnvironment();
+                    embeddingEnvironment = {
+                        detected: true,
+                        backend: info?.backend || null,
+                        webgpuAvailable: Boolean(info?.webgpuAvailable),
+                        forced: Boolean(info?.forcedBackend),
+                        error: null
+                    };
+                } catch (err) {
+                    const message = err && err.message ? err.message : (err ? String(err) : 'Unknown detection error');
+                    embeddingEnvironment = {
+                        detected: true,
+                        backend: null,
+                        webgpuAvailable: false,
+                        forced: false,
+                        error: message
+                    };
+                }
+            }
+
+            if (!embeddingMetadata.backend && embeddingEnvironment.backend) {
+                embeddingMetadata.backend = embeddingEnvironment.backend;
+            }
+
+            embeddingEnvironmentSummary = buildEmbeddingDetectionSummary(embeddingEnvironment);
+            window.heliosEmbeddingEnvironment = embeddingEnvironment;
+            if (embeddingEnvironmentSummary) {
+                const hasEmbeddings =
+                    latestEmbeddingSummary &&
+                    Number.isFinite(latestEmbeddingSummary.chunkCount) &&
+                    latestEmbeddingSummary.chunkCount > 0;
+                const hasError = Boolean(latestEmbeddingSummary && latestEmbeddingSummary.error);
+                if (!hasEmbeddings && !hasError) {
+                    updateEmbeddingSummary(embeddingEnvironmentSummary);
+                }
             }
         }
 
@@ -794,52 +1069,51 @@
             }
         });
 
+        clearStorageBtn?.addEventListener('click', async () => {
+            if (clearStorageBtn.disabled) {
+                return;
+            }
+            clearStorageBtn.disabled = true;
+            setStorageStatus('Clearing stored data…', 'info');
+            try {
+                const available = storageClient || (await ensureStorageClient());
+                if (!available || !storageClient) {
+                    setStorageStatus('Storage unavailable; nothing to clear.', 'warning');
+                    return;
+                }
+
+                const result = await storageClient.reset();
+                storageReady = false;
+                storageClientInitPromise = null;
+                resumeSnapshot = null;
+                resumeBtn?.classList.add('hidden');
+
+                const message = result?.removed
+                    ? 'Stored data cleared (OPFS file removed).'
+                    : 'Stored data cleared.';
+
+                const reinitialized = await ensureStorageClient();
+                await initializeResumeOption();
+                if (reinitialized) {
+                    setStorageStatus(message, 'success');
+                } else {
+                    setStorageStatus(`${message} Persistence fallback only.`, 'warning');
+                }
+            } catch (err) {
+                console.error('Failed to clear stored data', err);
+                setStorageStatus('Failed to clear stored data. See console for details.', 'error');
+            } finally {
+                clearStorageBtn.disabled = false;
+            }
+        });
+
         selectBtn.addEventListener('click', async () => {
             try {
                 const directoryHandle = await window.showDirectoryPicker();
-
-                sourceFiles = [];
-                fileHandles.clear();
-                sourceFileIndex.clear();
-                moduleIndex.clear();
-                allFunctions = [];
-                allCalls = [];
-                callGraph = null;
-                fullVizData = null;
-                functionMapById = new Map();
-                embeddingChunks = [];
-                embeddingStats = null;
-                embeddingVectors = [];
-                embeddingMetadata = {
-                    backend: null,
-                    modelId: null,
-                    dimension: null
-                };
-                embeddingError = null;
-                embeddingReuseCounts = { reused: 0, embedded: 0 };
-                latestFunctionFingerprintMap = null;
-                resumeSnapshot = null;
-                resumeBtn?.classList.add('hidden');
-                window.heliosEmbeddingChunks = [];
-                window.heliosEmbeddingStats = null;
-                window.heliosEmbeddings = null;
-                window.heliosEmbeddingReuse = null;
-                window.heliosEmbeddingError = null;
-                updateEmbeddingSummary(null);
-                functionEmbeddings = [];
-                similarityEdges = [];
-                similarityStats = null;
-                window.heliosFunctionEmbeddings = null;
-                window.heliosSimilarity = null;
-                scannedFiles = 0;
-                totalFiles = 0;
-                fileList.innerHTML = '';
-                functionsCounter.textContent = '0 functions extracted';
-                visualizeBtn.classList.add('hidden');
-                progressFill.style.width = '0%';
-                progressText.textContent = 'Initializing parser...';
-                resultsContainer.classList.add('hidden');
-                progressContainer.classList.remove('hidden');
+                
+                resetAnalysisState({ showProgress: true, progressLabel: 'Initializing parser...' });
+                embeddingMetadata.backend = embeddingEnvironment.backend || null;
+                updateEmbeddingSummary(embeddingEnvironmentSummary || null);
 
                 await parserManager.initialize();
                 await ensureStorageClient();
@@ -848,13 +1122,13 @@
                 totalFiles = await countFiles(directoryHandle);
                 progressText.textContent = 'Scanning files...';
                 await scanDirectory(directoryHandle, '');
-
+                
                 progressText.textContent = 'Parsing source files...';
                 await parseSourceFiles();
-
+                
                 progressText.textContent = 'Building call graph...';
                 callGraph = buildCallGraph(allFunctions, allCalls, symbolTableManager);
-
+                
                 const stats = callGraph?.stats || { totalEdges: 0, staticEdges: 0, dynamicEdges: 0 };
 
                 if (embeddingManager) {
@@ -1102,12 +1376,21 @@
                     cached: usedCachedEmbeddings,
                     similarityEdges: Array.isArray(similarityEdges) ? similarityEdges.length : null,
                     functionsWithEmbeddings: Array.isArray(functionEmbeddings) ? functionEmbeddings.length : null,
-                    error: embeddingError
+                    error: embeddingError,
+                    detection: embeddingEnvironment.detected
+                        ? {
+                            detected: true,
+                            backend: embeddingEnvironment.backend,
+                            webgpuAvailable: Boolean(embeddingEnvironment.webgpuAvailable),
+                            forced: Boolean(embeddingEnvironment.forced),
+                            error: embeddingEnvironment.error
+                        }
+                        : null
                 });
 
                 progressContainer.classList.add('hidden');
                 resultsContainer.classList.remove('hidden');
-
+                
                 counter.textContent = formatCounterMessage();
                 const resolutionDetails = [];
                 if (typeof stats.resolvedEdges === 'number') {
@@ -1217,6 +1500,13 @@
             }
         });
 
+        loadDemoBtn?.addEventListener('click', async () => {
+            if (loadDemoBtn.disabled) {
+                return;
+            }
+            await loadDemoExperience();
+        });
+
         visualizeBtn.addEventListener('click', async () => {
             if (!callGraph || !callGraph.nodes?.length) {
                 alert('No call graph data available yet.');
@@ -1231,12 +1521,12 @@
         });
 
         async function scanDirectory(directoryHandle, currentPath) {
-            for await (const entry of directoryHandle.values()) {
-                if (entry.kind === 'file') {
-                    scannedFiles++;
-                    const fileName = entry.name;
-                    const fullPath = currentPath ? `${currentPath}/${fileName}` : fileName;
-
+                for await (const entry of directoryHandle.values()) {
+                    if (entry.kind === 'file') {
+                        scannedFiles++;
+                        const fileName = entry.name;
+                        const fullPath = currentPath ? `${currentPath}/${fileName}` : fileName;
+                        
                     const extension = getExtension(fileName);
                     if (SUPPORTED_EXTENSIONS.includes(extension)) {
                         const language = parserManager.detectLanguage(fullPath);
@@ -1250,14 +1540,14 @@
                     }
 
                     updateProgress('Scanning...', scannedFiles, totalFiles);
-                } else if (entry.kind === 'directory') {
-                    const dirName = entry.name.toLowerCase();
+                    } else if (entry.kind === 'directory') {
+                        const dirName = entry.name.toLowerCase();
                     if (['node_modules', '.git', 'dist', 'build', '.next', 'out', 'coverage'].includes(dirName)) {
-                        continue;
+                            continue;
+                        }
+                        const newPath = currentPath ? `${currentPath}/${entry.name}` : entry.name;
+                        await scanDirectory(entry, newPath);
                     }
-                    const newPath = currentPath ? `${currentPath}/${entry.name}` : entry.name;
-                    await scanDirectory(entry, newPath);
-                }
             }
         }
 
@@ -1277,52 +1567,157 @@
             return count;
         }
 
-        function updateProgress(label, current, total) {
-            if (!total) return;
+        function abbreviatePath(path, maxLength = 72) {
+            if (!path) return '';
+            if (path.length <= maxLength) return path;
+            const suffixLength = Math.floor((maxLength - 1) / 2);
+            const prefixLength = maxLength - suffixLength - 1;
+            const prefix = path.slice(0, prefixLength);
+            const suffix = path.slice(-suffixLength);
+            return `${prefix}…${suffix}`;
+        }
+
+        function buildScanDetail({ fullPath, queuedCount }) {
+            const segments = [];
+            if (typeof queuedCount === 'number' && queuedCount > 0) {
+                segments.push(`Eligible files: ${queuedCount.toLocaleString()}`);
+            }
+            if (fullPath) {
+                segments.push(`Latest: ${abbreviatePath(fullPath)}`);
+            }
+            return segments.join(' • ');
+        }
+
+        function buildParsingDetail({ functionsCount, callCount, currentFile, languageId, largeRepo }) {
+            const segments = [];
+            const fnCount = Number.isFinite(functionsCount) ? functionsCount : 0;
+            const callTotal = Number.isFinite(callCount) ? callCount : 0;
+            segments.push(`Functions: ${fnCount.toLocaleString()}`);
+            segments.push(`Calls: ${callTotal.toLocaleString()}`);
+            if (languageId) {
+                segments.push(`Lang: ${languageDisplayNames[languageId] || languageId}`);
+            }
+            if (currentFile) {
+                segments.push(`Latest: ${abbreviatePath(currentFile)}`);
+            }
+            if (largeRepo) {
+                segments.push('Large repo mode');
+            }
+            return segments.join(' • ');
+        }
+
+        function buildCallGraphDetail(stats, parseStats) {
+            if (!stats) {
+                return '';
+            }
+            const segments = [];
+            const totalEdges = Number.isFinite(stats.totalEdges) ? stats.totalEdges : null;
+            const resolvedEdges = Number.isFinite(stats.resolvedEdges) ? stats.resolvedEdges : null;
+            const ambiguousEdges = Number.isFinite(stats.ambiguousEdges) ? stats.ambiguousEdges : null;
+            const unresolvedEdges = Number.isFinite(stats.unresolvedEdges) ? stats.unresolvedEdges : null;
+            if (totalEdges !== null) {
+                segments.push(`Call edges: ${totalEdges.toLocaleString()}`);
+            }
+            if (resolvedEdges !== null) {
+                segments.push(`Resolved: ${resolvedEdges.toLocaleString()}`);
+            }
+            if (ambiguousEdges !== null) {
+                segments.push(`Ambiguous: ${ambiguousEdges.toLocaleString()}`);
+            }
+            if (unresolvedEdges !== null) {
+                segments.push(`Unresolved: ${unresolvedEdges.toLocaleString()}`);
+            }
+            if (parseStats && Number.isFinite(parseStats.functionsExtracted)) {
+                segments.push(`Functions: ${parseStats.functionsExtracted.toLocaleString()}`);
+            }
+            return segments.join(' • ');
+        }
+
+        function updateProgress(label, current, total, options = {}) {
+            const { unit = 'files', detail, render } = options || {};
+            if (!total || !Number.isFinite(total)) {
+                progressFill.style.width = '0%';
+                if (options && Object.prototype.hasOwnProperty.call(options, 'detail')) {
+                    setProgressDetail(detail);
+                }
+                progressText.textContent = label;
+                return;
+            }
+
             const progress = Math.min((current / total) * 100, 100);
             progressFill.style.width = `${progress}%`;
-            progressText.textContent = `${label} ${current.toLocaleString()} of ${total.toLocaleString()} files`;
+
+            if (typeof render === 'function') {
+                progressText.textContent = render({ label, current, total, unit });
+            } else {
+                progressText.textContent = `${label} ${current.toLocaleString()} of ${total.toLocaleString()} ${unit}`;
+            }
+
+            if (options && Object.prototype.hasOwnProperty.call(options, 'detail')) {
+                setProgressDetail(detail);
+            }
         }
 
         async function parseSourceFiles() {
             const total = sourceFiles.length;
-            if (!total) return;
+            if (!total) {
+                clearProgressDetail();
+                return {
+                    parsedFiles: 0,
+                    functionsExtracted: 0,
+                    callsDetected: 0,
+                    largeRepo: false
+                };
+            }
 
             const languageCache = new Map();
             let parsedCount = 0;
+            let extractedFunctionCount = 0;
+            let extractedCallCount = 0;
+            const largeRepoThreshold = 1000;
+            let largeRepoNotified = false;
 
             for (const file of sourceFiles) {
-                const languageId = file.language;
-                if (!languageId) continue;
-
-                const extractor = getExtractorForLanguage(languageId);
-                if (!extractor) continue;
-
+                const detailPath = file.path;
+                let currentLanguageId = null;
                 try {
-                    if (!languageCache.has(languageId)) {
-                        const loadedLanguage = await parserManager.loadLanguage(languageId);
-                        languageCache.set(languageId, loadedLanguage);
+                    currentLanguageId = file.language || null;
+                    if (!currentLanguageId) {
+                        continue;
                     }
-                    const language = languageCache.get(languageId);
 
-                    const fileHandle = fileHandles.get(file.path);
-                    if (!fileHandle) continue;
+                    const extractor = getExtractorForLanguage(currentLanguageId);
+                    if (!extractor) {
+                        continue;
+                    }
+
+                    if (!languageCache.has(currentLanguageId)) {
+                        const loadedLanguage = await parserManager.loadLanguage(currentLanguageId);
+                        languageCache.set(currentLanguageId, loadedLanguage);
+                    }
+                    const language = languageCache.get(currentLanguageId);
+
+                    const fileHandle = fileHandles.get(detailPath);
+                    if (!fileHandle) {
+                        continue;
+                    }
 
                     const fileBlob = await fileHandle.getFile();
                     const source = await fileBlob.text();
 
-                    const extracted = await extractor(source, file.path, language, languageId);
+                    const extracted = await extractor(source, detailPath, language, currentLanguageId);
 
-                    const annotatedFunctions = annotateFunctions(extracted.functions, languageId, file.moduleId);
+                    const annotatedFunctions = annotateFunctions(extracted.functions, currentLanguageId, file.moduleId);
                     allFunctions.push(...annotatedFunctions);
-                    allCalls.push(...annotateCalls(extracted.calls, languageId));
+                    const annotatedCalls = annotateCalls(extracted.calls, currentLanguageId);
+                    allCalls.push(...annotatedCalls);
 
-                    const symbolTable = symbolTableManager.getTable(file.path);
+                    const symbolTable = symbolTableManager.getTable(detailPath);
                     symbolTable.setModuleId(file.moduleId);
-                    symbolTableManager.registerModule(file.path, file.moduleId);
+                    symbolTableManager.registerModule(detailPath, file.moduleId);
 
                     annotatedFunctions.forEach(func => {
-                        symbolTable.registerFunction(func, { autoExport: languageId === 'python' });
+                        symbolTable.registerFunction(func, { autoExport: currentLanguageId === 'python' });
                         functionMapById.set(func.id, func);
                     });
 
@@ -1337,7 +1732,7 @@
 
                     (extracted.imports || []).forEach(imp => {
                         if (!imp?.name) return;
-                        const resolved = resolveImportModule(file, imp.from, languageId);
+                        const resolved = resolveImportModule(file, imp.from, currentLanguageId);
                         symbolTable.addImport(imp.name, {
                             from: imp.from,
                             originalName: imp.originalName,
@@ -1347,12 +1742,39 @@
                         });
                     });
 
-                    parsedCount++;
-                    updateProgress(`Parsing ${languageDisplayNames[languageId] || languageId}...`, parsedCount, total);
+                    extractedFunctionCount += annotatedFunctions.length;
+                    extractedCallCount += annotatedCalls.length;
+
+                    if (!largeRepoNotified && extractedFunctionCount >= largeRepoThreshold) {
+                        const previewParsed = parsedCount + 1;
+                        largeRepoNotified = true;
+                        console.info(
+                            `[HELIOS parser] Large repository detected: ${extractedFunctionCount.toLocaleString()} functions processed across ${previewParsed.toLocaleString()} files so far.`
+                        );
+                    }
                 } catch (err) {
-                    console.error(`Failed to parse ${file.path}:`, err);
+                    console.error(`Failed to parse ${detailPath}:`, err);
+                } finally {
+                    parsedCount += 1;
+                    updateProgress('Parsing source files...', parsedCount, total, {
+                        unit: 'files',
+                        detail: buildParsingDetail({
+                            functionsCount: extractedFunctionCount,
+                            callCount: extractedCallCount,
+                            currentFile: detailPath,
+                            languageId: currentLanguageId,
+                            largeRepo: largeRepoNotified
+                        })
+                    });
                 }
             }
+
+            return {
+                parsedFiles: parsedCount,
+                functionsExtracted: extractedFunctionCount,
+                callsDetected: extractedCallCount,
+                largeRepo: largeRepoNotified
+            };
         }
 
         function displayResults() {
@@ -1362,7 +1784,7 @@
                 const { path, language } = file;
                 const label = languageDisplayNames[language] || language;
                 const fileFunctions = allFunctions.filter(f => f.filePath === path);
-
+                
                 const fileItem = document.createElement('div');
                 fileItem.className = 'file-item';
                 fileItem.innerHTML = `
@@ -2121,6 +2543,7 @@
                 if (snapshot && Array.isArray(snapshot.callGraph?.nodes) && snapshot.callGraph.nodes.length) {
                     resumeSnapshot = snapshot;
                     resumeBtn.classList.remove('hidden');
+                    setStorageStatus('Saved session detected. Use “Resume Last Session” to continue.', 'info');
                 }
             } catch (err) {
                 console.warn('Failed to load resume snapshot:', err);
@@ -2210,6 +2633,15 @@
                 similarityEdges: Array.isArray(similarityEdges) ? similarityEdges : []
             });
 
+            if (embeddingEnvironment.detected && embeddingMetadata.backend) {
+                embeddingEnvironment = {
+                    ...embeddingEnvironment,
+                    backend: embeddingMetadata.backend
+                };
+                embeddingEnvironmentSummary = buildEmbeddingDetectionSummary(embeddingEnvironment);
+                window.heliosEmbeddingEnvironment = embeddingEnvironment;
+            }
+
             updateEmbeddingSummary({
                 chunkCount: snapshot.embedding?.chunkCount ?? null,
                 metadata: embeddingMetadata,
@@ -2217,7 +2649,16 @@
                 cached: usedCachedEmbeddings,
                 similarityEdges: similarityEdges.length,
                 functionsWithEmbeddings: allFunctions.length,
-                error: embeddingError
+                error: embeddingError,
+                detection: embeddingEnvironment.detected
+                    ? {
+                        detected: true,
+                        backend: embeddingEnvironment.backend,
+                        webgpuAvailable: Boolean(embeddingEnvironment.webgpuAvailable),
+                        forced: Boolean(embeddingEnvironment.forced),
+                        error: embeddingEnvironment.error
+                    }
+                    : null
             });
 
             totalFiles = sourceFiles.length;

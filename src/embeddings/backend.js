@@ -66,3 +66,32 @@ export const BACKENDS = {
   WASM: WASM_BACKEND
 };
 
+/**
+ * Detect overall embedding environment characteristics.
+ * Returns the preferred backend alongside capability markers.
+ * @param {Object} options
+ * @param {string|null} [options.forceBackend]
+ * @returns {Promise<{backend: string, webgpuAvailable: boolean, forcedBackend: string|null}>}
+ */
+export async function detectEmbeddingEnvironment(options = {}) {
+  const { forceBackend = null } = options;
+  let backend = forceBackend ?? null;
+  let webgpuAvailable = false;
+
+  if (!backend) {
+    webgpuAvailable = await isWebGPUAvailable();
+    backend = webgpuAvailable ? WEBGPU_BACKEND : WASM_BACKEND;
+  } else if (backend === WEBGPU_BACKEND) {
+    webgpuAvailable = await isWebGPUAvailable();
+  } else {
+    // Forcing WASM — still probe WebGPU once for telemetry.
+    webgpuAvailable = await isWebGPUAvailable();
+  }
+
+  return {
+    backend,
+    webgpuAvailable,
+    forcedBackend: forceBackend ?? null
+  };
+}
+

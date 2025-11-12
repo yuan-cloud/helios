@@ -4,6 +4,8 @@
  * Provides toggles, filters, and controls for the 3D graph visualization
  */
 
+import { BACKENDS } from '../embeddings/backend.js';
+
 /**
  * VisualizationControls - UI controls for graph visualization
  */
@@ -512,7 +514,8 @@ export class VisualizationControls {
       cached = false,
       similarityEdges = null,
       functionsWithEmbeddings = null,
-      error = null
+      error = null,
+      detection = null
     } = summary;
 
     if (this.embeddingStatusEl) {
@@ -520,8 +523,29 @@ export class VisualizationControls {
         this.embeddingStatusEl.textContent = `Embeddings error: ${error.message || error}`;
         this.embeddingStatusEl.style.color = '#f87171';
       } else if (chunkCount === 0) {
-        this.embeddingStatusEl.textContent = 'Embeddings not available for this dataset.';
-        this.embeddingStatusEl.style.color = '#cbd5f5';
+        if (detection?.error) {
+          this.embeddingStatusEl.textContent = `Embedding backend detection failed: ${detection.error}`;
+          this.embeddingStatusEl.style.color = '#f87171';
+        } else if (detection?.detected) {
+          const backendValue = metadata.backend || detection.backend || BACKENDS.WASM;
+          const backendLabel = backendValue ? backendValue.toUpperCase() : 'UNKNOWN';
+          const descriptorParts = [];
+          if (detection.webgpuAvailable) {
+            descriptorParts.push('WebGPU available');
+          } else {
+            descriptorParts.push('WebGPU unavailable');
+            if ((backendValue || '').toLowerCase() !== BACKENDS.WEBGPU) {
+              descriptorParts.push('using WASM');
+            }
+          }
+          descriptorParts.push(detection.forced ? 'forced selection' : 'auto-detected');
+          const descriptor = descriptorParts.join(' · ');
+          this.embeddingStatusEl.textContent = `Embedding backend: ${backendLabel} (${descriptor})`;
+          this.embeddingStatusEl.style.color = '#cbd5f5';
+        } else {
+          this.embeddingStatusEl.textContent = 'Embeddings not available for this dataset.';
+          this.embeddingStatusEl.style.color = '#cbd5f5';
+        }
       } else {
         const backendLabel = metadata.backend ? metadata.backend.toUpperCase() : 'WASM';
         const dimLabel = metadata.dimension ? `${metadata.dimension}-dim` : 'unknown dim';
