@@ -237,6 +237,40 @@
             text-align: center;
         }
 
+        .demo-loading {
+            position: fixed;
+            inset: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: rgba(15, 23, 42, 0.82);
+            backdrop-filter: blur(6px);
+            z-index: 120;
+        }
+
+        .demo-spinner {
+            width: 64px;
+            height: 64px;
+            border: 4px solid rgba(99, 102, 241, 0.25);
+            border-top-color: rgba(129, 140, 248, 0.85);
+            border-radius: 9999px;
+            animation: demo-spin 1s linear infinite;
+            box-shadow: 0 0 30px rgba(129, 140, 248, 0.3);
+        }
+
+        .demo-loading-message {
+            margin-top: 1rem;
+            font-size: 1rem;
+            color: #e0e7ff;
+            letter-spacing: 0.01em;
+            text-align: center;
+        }
+
+        @keyframes demo-spin {
+            to { transform: rotate(360deg); }
+        }
+
         .progress-bar {
             width: 100%;
             height: 8px;
@@ -1565,6 +1599,185 @@
                 }
             }
             return count;
+        }
+
+        async function loadDemoExperience() {
+            loadDemoBtn.disabled = true;
+            showDemoLoading('Loading demo dataset...');
+            try {
+                await ensureStorageClient();
+                const demo = getDemoDataset();
+
+                resetAnalysisState({ showProgress: false, progressLabel: 'Preparing demo dataset...' });
+
+                sourceFiles = Array.isArray(demo.sourceFiles)
+                    ? demo.sourceFiles.map(file => ({ ...file }))
+                    : [];
+                sourceFiles.forEach(registerSourceFile);
+
+                allFunctions = Array.isArray(demo.functions)
+                    ? demo.functions.map(fn => ({ ...fn }))
+                    : [];
+                allCalls = Array.isArray(demo.calls)
+                    ? demo.calls.map(call => ({ ...call }))
+                    : [];
+                functionMapById = new Map(allFunctions.map(fn => [fn.id, fn]));
+
+                const callGraphNodes = Array.isArray(demo.callGraph?.nodes)
+                    ? demo.callGraph.nodes.map(node => ({ ...node }))
+                    : allFunctions.map(fn => ({
+                        id: fn.id,
+                        name: fn.name,
+                        fqName: fn.fqName || fn.name || fn.id,
+                        filePath: fn.filePath,
+                        lang: fn.lang,
+                        moduleId: fn.moduleId || null,
+                        loc: fn.loc || fn.metrics?.size || 0
+                    }));
+
+                const callGraphEdges = Array.isArray(demo.callGraph?.edges)
+                    ? demo.callGraph.edges.map(edge => ({
+                        ...edge,
+                        metadata: edge.metadata ? { ...edge.metadata } : null
+                    }))
+                    : [];
+
+                const callGraphStats = demo.callGraph?.stats || {
+                    totalNodes: callGraphNodes.length,
+                    totalEdges: callGraphEdges.length,
+                    staticEdges: callGraphEdges.length,
+                    dynamicEdges: 0,
+                    resolvedEdges: callGraphEdges.length,
+                    ambiguousEdges: 0,
+                    unresolvedEdges: 0
+                };
+
+                callGraph = {
+                    nodes: callGraphNodes,
+                    edges: callGraphEdges,
+                    stats: callGraphStats
+                };
+
+                similarityEdges = Array.isArray(demo.similarityEdges)
+                    ? demo.similarityEdges.map(edge => ({ ...edge }))
+                    : [];
+                similarityStats = computeSimilarityStatsFromEdges(similarityEdges);
+
+                const demoEmbedding = demo.embedding || {};
+                embeddingMetadata = {
+                    backend: demoEmbedding.metadata?.backend || 'demo',
+                    modelId: demoEmbedding.metadata?.modelId || 'helios-demo',
+                    dimension: demoEmbedding.metadata?.dimension || null
+                };
+                embeddingStats = demoEmbedding.stats || null;
+                embeddingChunks = Array.isArray(demoEmbedding.chunks) ? demoEmbedding.chunks.slice() : [];
+                embeddingVectors = [];
+                functionEmbeddings = Array.isArray(demoEmbedding.functionEmbeddings)
+                    ? demoEmbedding.functionEmbeddings.slice()
+                    : [];
+                embeddingReuseCounts = {
+                    reused: demoEmbedding.reuse?.reused ?? demoEmbedding.chunkCount ?? 0,
+                    embedded: demoEmbedding.reuse?.embedded ?? 0
+                };
+                usedCachedEmbeddings = true;
+                embeddingError = demoEmbedding.error || null;
+                latestFunctionFingerprintMap = demoEmbedding.functionFingerprintMap || null;
+
+                updateEmbeddingSummary({
+                    chunkCount: demoEmbedding.chunkCount ?? functionEmbeddings.length,
+                    metadata: embeddingMetadata,
+                    reuse: embeddingReuseCounts,
+                    cached: true,
+                    similarityEdges: similarityEdges.length,
+                    functionsWithEmbeddings: demoEmbedding.functionsWithEmbeddings ?? allFunctions.length,
+                    error: embeddingError
+                });
+
+                updateGraphData({
+                    parser: {
+                        functions: allFunctions,
+                        callEdges: callGraphEdges,
+                        stats: callGraphStats,
+                        symbolTables: demo.symbolTables || null
+                    },
+                    embeddings: {
+                        similarityEdges,
+                        metadata: embeddingMetadata,
+                        stats: demoEmbedding.stats || similarityStats || null,
+                        functionEmbeddings
+                    }
+                });
+
+                window.heliosFunctions = allFunctions;
+                window.heliosCallGraph = callGraph;
+                window.heliosSimilarity = similarityEdges;
+                window.heliosEmbeddingStats = embeddingStats;
+                window.heliosEmbeddingError = embeddingError;
+                window.heliosParserStats = {
+                    parsedFiles: sourceFiles.length,
+                    functionsExtracted: allFunctions.length,
+                    callsDetected: callGraphEdges.length,
+                    largeRepo: allFunctions.length >= 1000
+                };
+
+                counter.textContent = formatCounterMessage();
+
+                const resolutionParts = [];
+                if (callGraphStats.resolvedEdges) resolutionParts.push(`${callGraphStats.resolvedEdges} resolved`);
+                if (callGraphStats.ambiguousEdges) resolutionParts.push(`${callGraphStats.ambiguousEdges} ambiguous`);
+                if (callGraphStats.unresolvedEdges) resolutionParts.push(`${callGraphStats.unresolvedEdges} unresolved`);
+                const resolutionSummary = resolutionParts.length ? ` · ${resolutionParts.join(' / ')}` : '';
+
+                const embeddingSummary = (() => {
+                    const chunkCount = demoEmbedding.chunkCount ?? functionEmbeddings.length;
+                    if (embeddingError) {
+                        return ' · Embeddings failed';
+                    }
+                    if (chunkCount <= 0) {
+                        return '';
+                    }
+                    const dimLabel = embeddingMetadata.dimension ? `${embeddingMetadata.dimension}-dim` : 'unknown-dim';
+                    const backendLabel = embeddingMetadata.backend ? embeddingMetadata.backend.toUpperCase() : 'WASM';
+                    let reuseLabel = '';
+                    if (embeddingReuseCounts.reused > 0 || embeddingReuseCounts.embedded > 0) {
+                        const reusedLabel = `${embeddingReuseCounts.reused.toLocaleString()} reused`;
+                        const embeddedLabel = embeddingReuseCounts.embedded > 0
+                            ? ` / ${embeddingReuseCounts.embedded.toLocaleString()} new`
+                            : '';
+                        reuseLabel = `, ${reusedLabel}${embeddedLabel}`;
+                    } else {
+                        reuseLabel = ', cached';
+                    }
+                    return ` · ${chunkCount.toLocaleString()} embedding chunk${chunkCount !== 1 ? 's' : ''} (${dimLabel}, ${backendLabel}${reuseLabel})`;
+                })();
+
+                const similaritySummary = similarityEdges.length
+                    ? ` · ${similarityEdges.length.toLocaleString()} similarity edge${similarityEdges.length !== 1 ? 's' : ''}`
+                    : '';
+
+                functionsCounter.textContent = `${allFunctions.length} function${allFunctions.length !== 1 ? 's' : ''} extracted · ${callGraphStats.totalEdges} call edge${callGraphStats.totalEdges !== 1 ? 's' : ''} (${callGraphStats.staticEdges} static · ${callGraphStats.dynamicEdges} dynamic)${resolutionSummary}${embeddingSummary}${similaritySummary}`;
+
+                displayResults();
+                visualizeBtn.classList.remove('hidden');
+                resultsContainer.classList.remove('hidden');
+
+                if (demoLoadingLabel) {
+                    demoLoadingLabel.textContent = 'Rendering visualization...';
+                }
+
+                await initializeVisualization();
+                if (controls && similarityStats) {
+                    controls.updateSimilarityControls(similarityStats, { minWeight: similarityStats.min ?? 0 });
+                }
+
+                setStorageStatus('Demo dataset loaded (in-memory sample).', 'info');
+            } catch (err) {
+                console.error('Failed to load demo dataset:', err);
+                alert('Failed to load demo dataset. See console for details.');
+            } finally {
+                hideDemoLoading();
+                loadDemoBtn.disabled = false;
+            }
         }
 
         function abbreviatePath(path, maxLength = 72) {

@@ -176,6 +176,7 @@ Tree-sitter's query DSL lets you capture these nodes robustly.
 ✅ Graphology metrics surfaced in UI (node sizing/color by centrality/community; hover badges for PR/BC/core/community)  
 ✅ Controls panel shows graph-level summaries (counts, top communities, central nodes, cores)  
 ✅ Resume flow integration & regression guard (call/sim edge toggles restored; viz consumes storage snapshots)  
+✅ Demo loader with spinner + PNG export (preloaded dataset for instant visualization)  
 
 - Render with 3d-force-graph:
   - Use directional arrows/particles for call edges; labels on hover; click to focus; fit-to-view; pause/resume simulation. The lib supports directional particles and node/link labels out of the box.
@@ -216,7 +217,7 @@ All steps are cancellable and resumable; show clear privacy note ("Remains on yo
 
 ## 6) Data Model (SQLite)
 
-[storage-agent - UPDATED - 2025-11-10 06:32]
+[storage-agent - UPDATED - 2025-11-12 10:05]
 
 ✅ SQLite-WASM bootstrap w/ OPFS fallback (`src/storage/sqlite.js`)
 ✅ Schema definition & metadata helpers (`src/storage/schema.js`, `src/storage/migrations.js`)
@@ -226,6 +227,7 @@ All steps are cancellable and resumable; show clear privacy note ("Remains on yo
 ✅ Layout + embedding persistence integration guide (`docs/storage.md`)
 ✅ End-to-end DB resume flow (OPFS snapshot resume UI + automated tests)
 ✅ Layout snapshot integration in viz UI (viz save/restore now uses OPFS snapshot provider)
+✅ Clear-data control + OPFS status messaging (`index.html`, storage client reset & tests)
 ❌ Multi-session retention policy doc (blocked: awaiting product requirements on data lifespan)
 
 **Tables:**
