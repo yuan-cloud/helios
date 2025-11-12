@@ -24,6 +24,54 @@ import { fileURLToPath } from 'node:url';
 
 import { validateGraphPayload, printValidationErrors } from '../src/graph/payload-validator.js';
 
+export function validatePayload(input, options = {}) {
+  const hasParserSection = Boolean(input && typeof input === 'object' && input.parser);
+  const hasEmbeddingsSection =
+    Boolean(input && typeof input === 'object' && input.embeddings);
+
+  const result = validateGraphPayload(input, options);
+  const compatibilityErrors = [];
+
+  if (hasParserSection && Array.isArray(input.parser?.functions)) {
+    input.parser.functions.forEach((fn, index) => {
+      const id = fn?.id ?? '';
+      if (typeof id !== 'string' || id.trim() === '') {
+        compatibilityErrors.push(
+          `parser.functions[${index}].id must be a non-empty string.`
+        );
+      }
+    });
+  }
+
+  const errorMessages = result.errors.map((error) => {
+    if (!error) {
+      return '<unknown>: Unspecified validation error.';
+    }
+    if (typeof error === 'string') {
+      return error;
+    }
+    let path = error.path || '<root>';
+    if (hasParserSection) {
+      if (path.startsWith('functions') || path.startsWith('callEdges')) {
+        path = `parser.${path}`;
+      }
+    }
+    if (hasEmbeddingsSection && path.startsWith('similarityEdges')) {
+      path = `embeddings.${path}`;
+    }
+    const message = error.message || 'Invalid value.';
+    return `${path}: ${message}`;
+  });
+  const combinedErrors = errorMessages.concat(compatibilityErrors);
+  return {
+    ...result,
+    valid: result.valid && compatibilityErrors.length === 0,
+    errors: combinedErrors
+  };
+}
+
+export { printValidationErrors };
+
 async function main(argv) {
   const args = parseArgs(argv);
   if (args.help || !args.input) {
@@ -96,5 +144,11 @@ function printUsage() {
   console.log('  -h, --help    Show this help message');
 }
 
-await main(process.argv.slice(2));
+const isCliInvocation =
+  process.argv[1] &&
+  path.resolve(process.argv[1]) === fileURLToPath(import.meta.url);
+
+if (isCliInvocation) {
+  await main(process.argv.slice(2));
+}
 
