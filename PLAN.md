@@ -166,18 +166,18 @@ Tree-sitter's query DSL lets you capture these nodes robustly.
 
 ### 3.7 Visualization (3D)
 
-[LilacLake - UPDATED - 2025-11-10 07:35]
+[LilacLake - UPDATED - 2025-11-12 18:05]
 
 ✅ Core 3d-force-graph scaffold hooked to call graph output (directional particles, camera helpers, fit-to-view)  
 ✅ Controls + inspector polish (hover sidebar, neighbor quick jumps, inbound/outbound call lists, Prism-highlighted source)  
 ✅ Call-edge resolution styling (resolved/ambiguous/unresolved cues propagated to hover and inspector badges)  
 ✅ Similarity edge layer (dashed styling, weight-aware opacity/width, threshold slider, hover + inspector surfacing)  
 ✅ Layout persistence & performance tuning (auto-freeze heuristics, OPFS snapshot provider, embedding reuse stats surfaced)  
-⏳ Live parser payload hookup (awaiting finalized function/call edge schema from parser-agent)  
+⏳ Live parser payload hookup (awaiting finalized function/call edge schema from parser-agent) — 30% (blocked: needs parser schema alignment)  
 ✅ Graphology metrics surfaced in UI (node sizing/color by centrality/community; hover badges for PR/BC/core/community)  
 ✅ Controls panel shows graph-level summaries (counts, top communities, central nodes, cores)  
 ✅ Resume flow integration & regression guard (call/sim edge toggles restored; viz consumes storage snapshots)  
-✅ Demo loader with spinner + PNG export (preloaded dataset for instant visualization)  
+✅ Demo loader with spinner + PNG export (preloaded dataset for instant visualization & shareable screenshots)  
 
 - Render with 3d-force-graph:
   - Use directional arrows/particles for call edges; labels on hover; click to focus; fit-to-view; pause/resume simulation. The lib supports directional particles and node/link labels out of the box.
@@ -322,14 +322,15 @@ Persist DB under OPFS (origin-private) so users can reopen the site and continue
 
 ## 11) Visualization Details
 
-[LilacLake - UPDATED - 2025-11-10 06:20]
+[LilacLake - UPDATED - 2025-11-12 18:05]
 
 ✅ Call-edge palette finalized (directional particles, arrowheads, module-aware colors, hover fades)  
 ✅ Interaction polish (hover sidebar metrics, inspector call lists, camera focus + quick-jump syncing)  
 ✅ Resolution state surfacing (hover + inspector badges with import context)  
 ✅ Similarity edge styling (dashed visuals, weight-aware opacity/width, threshold slider, inspector badges)  
-⏳ Data ingestion wiring (coordinating parser/graph payload contract for live updates)  
+⏳ Data ingestion wiring (coordinating parser/graph payload contract for live updates) — 30% (blocked pending parser schema handshake)  
 ✅ Layout persistence & freeze UX (OPFS-backed save/restore, auto-freeze presets, resume snapshot hooks)  
+✅ Demo showcase UX (hero CTA, modal spinner, cached dataset, PNG export wiring)  
 
 - **Edge palette**:
   - Call edges: Color by module proximity or "internal vs external"; arrows on direction; use `linkDirectionalParticles` to emphasize direction on hover.
