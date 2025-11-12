@@ -143,15 +143,16 @@ Tree-sitter's query DSL lets you capture these nodes robustly.
 
 ### 3.6 Graph Assembly
 
-[OrangeSnow - UPDATED - 2025-11-12 18:36]
+[OrangeSnow - UPDATED - 2025-11-12 19:40]
 
 ✅ Graphology scaffolding and `buildFunctionGraph` implemented (`src/graph/graph-builder.js`)  
 ✅ Data ingestion + analysis pipeline (`src/graph/pipeline.js`, `collectGraphPayload`/`buildAnalyzedGraph`)  
 ✅ Import map updated for Graphology + Louvain packages  
 ✅ Payload merge helpers (`src/graph/merge.js`) + tests (`tests/graph/merge.test.mjs`)  
 ✅ Loader integration (`index.html`) using `mergeGraphPayload` with parser stats + symbol tables  
-⏳ Live parser/embedding wiring & worker messaging (30% done — awaiting final payload handshake)  
 ✅ Storage/viz integration for computed metrics (controls + inspector consume centrality/core/community data)  
+✅ Payload validation tooling (`src/graph/payload-validator.js`, `tools/validate-payload.mjs`, docs + tests)  
+⏳ Live parser/embedding wiring & worker messaging (30% done — awaiting final payload handshake)  
 ❌ Cross-worker message schema finalization (blocked until parser/embedding agents confirm transport format; draft documented in `docs/payloads.md`, pending ratification)
 
 - **Nodes**: One per function `{id, fqName, filePath, range, lang, size (#LOC), metrics…}`.
