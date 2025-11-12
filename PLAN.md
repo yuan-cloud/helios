@@ -143,7 +143,7 @@ Tree-sitter's query DSL lets you capture these nodes robustly.
 
 ### 3.6 Graph Assembly
 
-[OrangeSnow - UPDATED - 2025-11-12 17:41]
+[OrangeSnow - UPDATED - 2025-11-12 18:36]
 
 ✅ Graphology scaffolding and `buildFunctionGraph` implemented (`src/graph/graph-builder.js`)  
 ✅ Data ingestion + analysis pipeline (`src/graph/pipeline.js`, `collectGraphPayload`/`buildAnalyzedGraph`)  
