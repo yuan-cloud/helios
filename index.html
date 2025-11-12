@@ -13,8 +13,8 @@
           "web-tree-sitter": "https://cdn.jsdelivr.net/npm/web-tree-sitter@0.20.4/dist/tree-sitter.esm.min.js",
           "3d-force-graph": "https://cdn.jsdelivr.net/npm/3d-force-graph@1.70.25/dist/3d-force-graph.es.min.js",
           "@xenova/transformers": "https://cdn.jsdelivr.net/npm/@xenova/transformers@2.8.0/dist/transformers.esm.min.js",
-          "graphology": "https://cdn.jsdelivr.net/npm/graphology@0.25.4/+esm",
-          "graphology-communities-louvain": "https://esm.sh/graphology-communities-louvain@0.9.1?bundle&target=es2020"
+          "graphology": "https://esm.run/graphology@0.25.4",
+          "graphology-communities-louvain": "https://esm.run/graphology-communities-louvain@0.9.1"
       }
     }
     </script>
@@ -866,7 +866,6 @@
         let latestEmbeddingSummary = null;
         let latestFunctionFingerprintMap = null;
         let resumeSnapshot = null;
-        let embeddingDetectionPromise = null;
 
         function showDemoLoading(message = 'Loading demo dataset...') {
             if (!demoLoading) {
@@ -1076,17 +1075,6 @@
             }
         }
 
-        function ensureEmbeddingDetection() {
-            if (!embeddingDetectionPromise) {
-                embeddingDetectionPromise = bootstrapEmbeddingDetection()
-                    .catch(err => {
-                        embeddingDetectionPromise = null;
-                        throw err;
-                    });
-            }
-            return embeddingDetectionPromise;
-        }
-
         try {
             embeddingManager = new EmbeddingManager();
             window.heliosEmbeddingManager = embeddingManager;
@@ -1095,7 +1083,7 @@
             embeddingManager = null;
             window.heliosEmbeddingManager = null;
         }
-        ensureEmbeddingDetection().catch(err => {
+        bootstrapEmbeddingDetection().catch(err => {
             console.warn('Embedding backend detection failed:', err);
         });
 
@@ -3055,12 +3043,6 @@
         }
 
         async function bootstrapApp() {
-            try {
-                await ensureEmbeddingDetection();
-            } catch (err) {
-                console.warn('Embedding environment detection failed:', err);
-            }
-
             try {
                 await ensureStorageClient();
             } catch (err) {
