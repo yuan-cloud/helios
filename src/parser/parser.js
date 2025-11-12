@@ -1,12 +1,12 @@
+import Parser from 'web-tree-sitter';
+
 /**
  * Main TreeSitter module for HELIOS
  * Loads web-tree-sitter and manages grammar instances
  * Following PLAN.md section 3.2 specifications
  */
 
-
-
-// Grammar WASM URLs (CDN)
+// Grammar WASM URLs (served locally via same origin)
 const GRAMMAR_URLS = {
   javascript: '/grammars/tree-sitter-javascript.wasm',
   typescript: '/grammars/tree-sitter-typescript.wasm',
@@ -24,7 +24,7 @@ const LANGUAGE_MAP = {
 
 class TreeSitterManager {
   constructor() {
-    //this.TreeSitter = null;
+    this.Parser = null;
     this.languages = new Map();
     this.initialized = false;
   }
@@ -39,12 +39,15 @@ class TreeSitterManager {
     }
 
     try {
-      await window.TreeSitter.init();
-      this.parser = window.TreeSitter;
+      if (!this.Parser) {
+        this.Parser = Parser;
+      }
+
+      await this.Parser.init();
       this.initialized = true;
-      console.log('[TreeSitter ] Initialized web-tree-sitter');
+      console.log('[TreeSitter] Initialized web-tree-sitter');
     } catch (err) {
-      console.error('[TreeSitter ] Failed to initialize:', err);
+      console.error('[TreeSitter] Failed to initialize:', err);
       throw new Error(`TreeSitter initialization failed: ${err.message}`);
     }
   }
@@ -79,21 +82,15 @@ class TreeSitterManager {
     }
 
     try {
-      console.log(`[TreeSitter ] Loading ${language} grammar from ${url}`);
-      const response = await fetch(url);
-      if (!response.ok) {
-        throw new Error(`Failed to fetch grammar: ${response.statusText}`);
-      }
-      
-      const wasmBytes = await response.arrayBuffer();
-      const Language = await window.TreeSitter.Language.load(new Uint8Array(wasmBytes));
+      console.log(`[TreeSitter] Loading ${language} grammar from ${url}`);
+      const Language = await this.Parser.Language.load(url);
       
       this.languages.set(language, Language);
-      console.log(`[TreeSitter ] Loaded ${language} grammar`);
+      console.log(`[TreeSitter] Loaded ${language} grammar`);
       
       return Language;
     } catch (err) {
-      console.error(`[TreeSitter ] Failed to load ${language} grammar:`, err);
+      console.error(`[TreeSitter] Failed to load ${language} grammar:`, err);
       throw new Error(`Grammar load failed for ${language}: ${err.message}`);
     }
   }
@@ -121,7 +118,7 @@ class TreeSitterManager {
 
     // Load language grammar if needed
     const Language = await this.loadLanguage(language);
-    const parser = new this.parser();
+    const parser = new this.Parser();
     parser.setLanguage(Language);
 
     // Parse source code
@@ -135,10 +132,7 @@ class TreeSitterManager {
    cleanup() {
     // Delete any cached trees
     this.languages.clear();
-    if (this.TreeSitter ) {
-      // Note: TreeSitter doesn't have explicit cleanup, but we can clear references
-      this.TreeSitter= null;
-    }
+    this.Parser = null;
     this.initialized = false;
   }
 }
