@@ -65,6 +65,7 @@ Everything runs from static hosting (GitHub/Cloudflare Pages). To enable threads
 ✅ Extraction queries complete  
 ✅ Symbol table resolution (module-aware imports/exports complete)  
 ✅ Large-repo progress instrumentation (live parsing/progress metrics for 1–5k functions)  
+✅ Parser payload sample + validation CLI (`docs/examples/parser-output-sample.json`, `tools/validate-parser-output.mjs`)  
 ❌ Stack graphs integration (blocked: upstream WASM-capable implementation required)
 
 - Load web-tree-sitter once; lazy-load grammars per file type. Ship grammar WASMs via CDN (e.g., `tree-sitter-python.wasm`, `tree-sitter-javascript.wasm`).
@@ -168,13 +169,14 @@ Tree-sitter's query DSL lets you capture these nodes robustly.
 
 ### 3.7 Visualization (3D)
 
-[LilacLake - UPDATED - 2025-11-12 18:26]
+[LilacLake - UPDATED - 2025-11-12 19:47]
 
 ✅ Core 3d-force-graph scaffold hooked to call graph output (directional particles, camera helpers, fit-to-view)  
 ✅ Controls + inspector polish (hover sidebar, neighbor quick jumps, inbound/outbound call lists, Prism-highlighted source)  
 ✅ Call-edge resolution styling (resolved/ambiguous/unresolved cues propagated to hover and inspector badges)  
 ✅ Similarity edge layer (dashed styling, weight-aware opacity/width, threshold slider, hover + inspector surfacing)  
 ✅ Layout persistence & performance tuning (auto-freeze heuristics, OPFS snapshot provider, embedding reuse stats surfaced)  
+✅ Payload validation fixtures (contract sample + shared CLI validator for schema sign-off)  
 ⏳ Live parser payload hookup (50% done — payload schema drafted in `docs/payloads.md`; awaiting parser/graph sign-off to wire live data)  
 ✅ Graphology metrics surfaced in UI (node sizing/color by centrality/community; hover badges for PR/BC/core/community)  
 ✅ Controls panel shows graph-level summaries (counts, top communities, central nodes, cores)  
@@ -324,7 +326,7 @@ Persist DB under OPFS (origin-private) so users can reopen the site and continue
 
 ## 11) Visualization Details
 
-[LilacLake - UPDATED - 2025-11-12 18:26]
+[LilacLake - UPDATED - 2025-11-12 19:47]
 
 ✅ Call-edge palette finalized (directional particles, arrowheads, module-aware colors, hover fades)  
 ✅ Interaction polish (hover sidebar metrics, inspector call lists, camera focus + quick-jump syncing)  
@@ -333,6 +335,7 @@ Persist DB under OPFS (origin-private) so users can reopen the site and continue
 ⏳ Data ingestion wiring (50% — contract documented in `docs/payloads.md`; blocked pending parser/graph ratification for worker plumbing)  
 ✅ Layout persistence & freeze UX (OPFS-backed save/restore, auto-freeze presets, resume snapshot hooks)  
 ✅ Demo showcase UX (hero CTA, modal spinner, cached dataset, PNG export wiring)  
+✅ Contract validation tooling shared with parser/graph (`docs/payload-sample.json`, `tools/validate-payload.mjs`, `tests/payload/contract.test.mjs`)  
 
 - **Edge palette**:
   - Call edges: Color by module proximity or "internal vs external"; arrows on direction; use `linkDirectionalParticles` to emphasize direction on hover.
