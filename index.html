@@ -1083,6 +1083,9 @@
             embeddingManager = null;
             window.heliosEmbeddingManager = null;
         }
+        bootstrapEmbeddingDetection().catch(err => {
+            console.warn('Embedding backend detection failed:', err);
+        });
 
         if (!window.showDirectoryPicker) {
             selectBtn.textContent = 'File System Access API not supported';
