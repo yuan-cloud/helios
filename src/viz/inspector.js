@@ -169,19 +169,24 @@ export class InspectorPanel {
       parts.push(`<div class="info-row"><strong>Range:</strong> ${node.startLine}:${node.startColumn} - ${node.endLine}:${node.endColumn}</div>`);
     }
     
-    if (node.metrics && Object.keys(node.metrics).length > 0) {
-      const metricsHtml = Object.entries(node.metrics)
-        .map(([k, v]) => `<span class="metric-tag">${k}: ${v}</span>`)
-        .join('');
-      parts.push(`<div class="info-row"><strong>Metrics:</strong> ${metricsHtml}</div>`);
+    const metricBadges = this.buildMetricBadges(node.metrics);
+    if (metricBadges.length) {
+      parts.push(`<div class="info-row"><strong>Metrics:</strong> ${metricBadges.join('')}</div>`);
+    }
+
+    const centralityRow = this.renderCentralityRow(node);
+    if (centralityRow) {
+      parts.push(centralityRow);
+    }
+
+    const coreNumber = this.getCoreNumber(node);
+    if (coreNumber !== null) {
+      parts.push(`<div class="info-row"><strong>Core Number:</strong> ${coreNumber}</div>`);
     }
     
-    if (node.community !== undefined) {
-      parts.push(`<div class="info-row"><strong>Community:</strong> ${node.community}</div>`);
-    }
-    
-    if (node.centrality !== undefined) {
-      parts.push(`<div class="info-row"><strong>Centrality:</strong> ${node.centrality.toFixed(3)}</div>`);
+    const community = this.getCommunity(node);
+    if (community !== null) {
+      parts.push(`<div class="info-row"><strong>Community:</strong> ${community}</div>`);
     }
     
     if (node.doc) {
@@ -338,6 +343,192 @@ export class InspectorPanel {
         }
       });
     });
+  }
+
+  buildMetricBadges(metrics = {}) {
+    if (!metrics || typeof metrics !== 'object') {
+      return [];
+    }
+    const badges = [];
+    Object.entries(metrics).forEach(([key, value]) => {
+      if (value === null || value === undefined) {
+        return;
+      }
+      if (typeof value === 'number') {
+        badges.push(`<span class="metric-tag">${this.escapeHtml(key)}: ${this.formatNumber(value)}</span>`);
+      } else if (typeof value === 'string') {
+        badges.push(`<span class="metric-tag">${this.escapeHtml(key)}: ${this.escapeHtml(value)}</span>`);
+      }
+    });
+    return badges;
+  }
+
+  renderCentralityRow(node) {
+    const centrality = this.getCentralityDetails(node);
+    if (!centrality) {
+      return '';
+    }
+
+    const tags = [];
+    if (Number.isFinite(centrality.pageRank)) {
+      tags.push(`<span class="metric-tag">PageRank: ${this.formatNumber(centrality.pageRank, 3)}</span>`);
+    }
+    if (Number.isFinite(centrality.betweenness)) {
+      tags.push(`<span class="metric-tag">Betweenness: ${this.formatNumber(centrality.betweenness, 3)}</span>`);
+    }
+    if (Number.isFinite(centrality.degree)) {
+      const degreeValue = this.formatInteger(centrality.degree);
+      const io = [];
+      if (Number.isFinite(centrality.degreeIn)) {
+        io.push(`in ${this.formatInteger(centrality.degreeIn)}`);
+      }
+      if (Number.isFinite(centrality.degreeOut)) {
+        io.push(`out ${this.formatInteger(centrality.degreeOut)}`);
+      }
+      const ioLabel = io.length ? ` (${io.join(' · ')})` : '';
+      tags.push(`<span class="metric-tag">Degree: ${degreeValue}${ioLabel}</span>`);
+    }
+    if (Number.isFinite(centrality.normalizedDegree)) {
+      tags.push(`<span class="metric-tag">Norm Degree: ${this.formatPercent(centrality.normalizedDegree)}</span>`);
+    }
+    if (Number.isFinite(node?.centralityScore)) {
+      tags.push(`<span class="metric-tag">Centrality Score: ${this.formatNumber(node.centralityScore, 3)}</span>`);
+    }
+
+    if (!tags.length) {
+      return '';
+    }
+
+    return `<div class="info-row"><strong>Centrality:</strong> ${tags.join('')}</div>`;
+  }
+
+  getCentralityDetails(node) {
+    if (!node || typeof node !== 'object') {
+      return null;
+    }
+    const details = node.centralityDetails && typeof node.centralityDetails === 'object'
+      ? node.centralityDetails
+      : node.metrics && typeof node.metrics.centrality === 'object'
+        ? node.metrics.centrality
+        : null;
+    if (!details) {
+      return null;
+    }
+
+    const pageRank = this.toFiniteNumber(details.pageRank ?? details.pagerank);
+    const betweenness = this.toFiniteNumber(details.betweenness);
+
+    let degree = null;
+    let degreeIn = null;
+    let degreeOut = null;
+    let normalizedDegree = null;
+
+    if (typeof details.degree === 'number') {
+      degree = this.toFiniteNumber(details.degree);
+    } else if (details.degree && typeof details.degree === 'object') {
+      degree = this.toFiniteNumber(details.degree.total ?? details.degree.value);
+      degreeIn = this.toFiniteNumber(details.degree.in);
+      degreeOut = this.toFiniteNumber(details.degree.out);
+      normalizedDegree = this.toFiniteNumber(details.degree.normalized);
+    }
+
+    if (normalizedDegree === null) {
+      normalizedDegree = this.toFiniteNumber(details.normalizedDegree);
+    }
+
+    const hasData =
+      Number.isFinite(pageRank) ||
+      Number.isFinite(betweenness) ||
+      Number.isFinite(degree) ||
+      Number.isFinite(degreeIn) ||
+      Number.isFinite(degreeOut) ||
+      Number.isFinite(normalizedDegree);
+
+    if (!hasData) {
+      return null;
+    }
+
+    return {
+      pageRank,
+      betweenness,
+      degree,
+      degreeIn,
+      degreeOut,
+      normalizedDegree
+    };
+  }
+
+  getCoreNumber(node) {
+    if (!node || typeof node !== 'object') {
+      return null;
+    }
+    if (Number.isFinite(node.coreNumber)) {
+      return node.coreNumber;
+    }
+    const metrics = node.metrics || {};
+    if (Number.isFinite(metrics.coreNumber)) {
+      return metrics.coreNumber;
+    }
+    const cores = metrics.cores;
+    if (cores && typeof cores === 'object') {
+      if (Number.isFinite(cores.coreNumber)) {
+        return cores.coreNumber;
+      }
+      const entries = Object.values(cores).filter(Number.isFinite);
+      if (entries.length) {
+        return entries[0];
+      }
+    }
+    return null;
+  }
+
+  getCommunity(node) {
+    if (!node || typeof node !== 'object') {
+      return null;
+    }
+    if (node.community !== undefined && node.community !== null) {
+      return node.community;
+    }
+    const metrics = node.metrics || {};
+    if (Number.isFinite(metrics.community)) {
+      return metrics.community;
+    }
+    const communities = metrics.communities;
+    if (communities && typeof communities === 'object') {
+      if (communities.community !== undefined && communities.community !== null) {
+        return communities.community;
+      }
+      const values = Object.values(communities).filter(value => value !== null && value !== undefined);
+      if (values.length) {
+        return values[0];
+      }
+    }
+    return null;
+  }
+
+  formatNumber(value, digits = 2) {
+    if (!Number.isFinite(value)) {
+      return '—';
+    }
+    return Number(value).toFixed(digits);
+  }
+
+  formatInteger(value) {
+    if (!Number.isFinite(value)) {
+      return '—';
+    }
+    return Math.round(Number(value)).toLocaleString();
+  }
+
+  formatPercent(value, digits = 1) {
+    if (!Number.isFinite(value)) {
+      return '—';
+    }
+    return `${(Number(value) * 100).toFixed(digits)}%`;
+  }
+
+  toFiniteNumber(value) {
+    return typeof value === 'number' && Number.isFinite(value) ? value : null;
   }
 }
 
