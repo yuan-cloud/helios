@@ -152,7 +152,7 @@ Tree-sitter's query DSL lets you capture these nodes robustly.
 ✅ Loader integration (`index.html`) using `mergeGraphPayload` with parser stats + symbol tables  
 ⏳ Live parser/embedding wiring & worker messaging (30% done — awaiting final payload handshake)  
 ✅ Storage/viz integration for computed metrics (controls + inspector consume centrality/core/community data)  
-❌ Cross-worker message schema finalization (blocked until parser/embedding agents confirm transport format)
+❌ Cross-worker message schema finalization (blocked until parser/embedding agents confirm transport format; draft documented in `docs/payloads.md`, pending ratification)
 
 - **Nodes**: One per function `{id, fqName, filePath, range, lang, size (#LOC), metrics…}`.
 - **Edges (two layers)**:
