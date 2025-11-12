@@ -102,12 +102,13 @@ Tree-sitter's query DSL lets you capture these nodes robustly.
 
 ### 3.4 Function Chunking and Embeddings
 
-[BlueBear - UPDATED - 2025-11-10 06:24]
+[BlueBear - UPDATED - 2025-11-12 12:53]
 
 ✅ Chunking scaffolding (line-aware splits with source offsets)
 ✅ Embedding worker inference (Transformers.js MiniLM via WebGPU/WASM)
 ✅ Persistence to storage worker (chunk vectors + metadata cached in SQLite; transaction flow stabilized)
 ✅ Incremental delta updates (reuse cached function chunks, re-embed only changed sources via per-function fingerprints)
+✅ Runtime backend detection surfaced (WebGPU probe + UI summary to confirm active inference engine)
 
 - **Chunking**: Within each function, split by syntactic boundaries (statement blocks / loop bodies / logical sections) to keep chunks ~100–200 tokens. Maintain chunk offsets into the source so clicks can highlight text accurately.
 - **Model**: Start with a compact, general-purpose text/code embedding like MiniLM (384-dim) in ONNX via Transformers.js, loading from HF hub through the library's CDN resolver. Models cache in the browser (Cache API/IndexedDB) to avoid re-downloads. Provide a setting to force WebGPU backend when available; fall back to WASM.
@@ -141,7 +142,7 @@ Tree-sitter's query DSL lets you capture these nodes robustly.
 
 ### 3.6 Graph Assembly
 
-[OrangeSnow - UPDATED - 2025-11-12 11:23]
+[OrangeSnow - UPDATED - 2025-11-12 17:41]
 
 ✅ Graphology scaffolding and `buildFunctionGraph` implemented (`src/graph/graph-builder.js`)  
 ✅ Data ingestion + analysis pipeline (`src/graph/pipeline.js`, `collectGraphPayload`/`buildAnalyzedGraph`)  
@@ -149,7 +150,7 @@ Tree-sitter's query DSL lets you capture these nodes robustly.
 ✅ Payload merge helpers (`src/graph/merge.js`) + tests (`tests/graph/merge.test.mjs`)  
 ✅ Loader integration (`index.html`) using `mergeGraphPayload` with parser stats + symbol tables  
 ⏳ Live parser/embedding wiring & worker messaging (30% done — awaiting final payload handshake)  
-⏳ Storage/viz integration for computed metrics (20% done — needs downstream consumption hooks)  
+✅ Storage/viz integration for computed metrics (controls + inspector consume centrality/core/community data)  
 ❌ Cross-worker message schema finalization (blocked until parser/embedding agents confirm transport format)
 
 - **Nodes**: One per function `{id, fqName, filePath, range, lang, size (#LOC), metrics…}`.
@@ -306,13 +307,13 @@ Persist DB under OPFS (origin-private) so users can reopen the site and continue
 
 ### 10.4 Network Analysis
 
-[OrangeSnow - UPDATED - 2025-11-12 11:23]
+[OrangeSnow - UPDATED - 2025-11-12 17:41]
 
 ✅ Centrality suite (degree, betweenness, PageRank) — `src/analysis/centralities.js`  
 ✅ Louvain community detection helper — `src/analysis/communities.js`  
 ✅ Clique + k-core analysis utilities — `src/analysis/cliques.js`  
 ✅ Graph serialization helper to expose analyzed metrics (`serializeGraph`)  
-⏳ Metric export wiring into storage/viz layers (25% done — pending consumer adapters)  
+✅ Metric export wiring into storage/viz layers (resume snapshots + inspector/controls consuming metrics)  
 ❌ Validation harness with sample repos (blocked until representative datasets available)
 
 - Compute: degree, betweenness, eigenvector, PageRank; community (Louvain); show histograms in a side panel. (Graphology has these out of the box.)
