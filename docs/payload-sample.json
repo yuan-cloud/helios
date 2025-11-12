@@ -1,0 +1,305 @@
+{
+  "parser": {
+    "functions": [
+      {
+        "id": "src/utils/math.ts::add",
+        "name": "add",
+        "fqName": "utils.math.add",
+        "filePath": "src/utils/math.ts",
+        "moduleId": "utils.math",
+        "lang": "typescript",
+        "startLine": 12,
+        "endLine": 28,
+        "startColumn": 0,
+        "endColumn": 1,
+        "loc": 17,
+        "doc": "Adds two numbers.",
+        "metrics": {
+          "cyclomatic": 3
+        }
+      },
+      {
+        "id": "src/utils/math.ts::sumArray",
+        "name": "sumArray",
+        "fqName": "utils.math.sumArray",
+        "filePath": "src/utils/math.ts",
+        "moduleId": "utils.math",
+        "lang": "typescript",
+        "startLine": 30,
+        "endLine": 56,
+        "startColumn": 0,
+        "endColumn": 1,
+        "loc": 27,
+        "doc": "Sums an array using reduce.",
+        "metrics": {
+          "cyclomatic": 4
+        }
+      },
+      {
+        "id": "src/components/Button.tsx::renderButton",
+        "name": "renderButton",
+        "fqName": "components.Button.renderButton",
+        "filePath": "src/components/Button.tsx",
+        "moduleId": "components.Button",
+        "lang": "typescript",
+        "startLine": 15,
+        "endLine": 52,
+        "startColumn": 0,
+        "endColumn": 1,
+        "loc": 38,
+        "doc": "Renders the primary button.",
+        "metrics": {
+          "cyclomatic": 6
+        }
+      }
+    ],
+    "callEdges": [
+      {
+        "id": "call::src/components/Button.tsx::renderButton→src/utils/math.ts::sumArray",
+        "source": "src/components/Button.tsx::renderButton",
+        "target": "src/utils/math.ts::sumArray",
+        "weight": 2,
+        "language": "typescript",
+        "callSites": [
+          {
+            "filePath": "src/components/Button.tsx",
+            "line": 33,
+            "column": 12,
+            "context": "const total = sumArray(props.values);"
+          },
+          {
+            "filePath": "src/components/Button.tsx",
+            "line": 41,
+            "column": 10,
+            "context": "const secondaryTotal = sumArray(props.secondaryValues);"
+          }
+        ],
+        "resolution": {
+          "status": "resolved",
+          "reason": null,
+          "candidates": [
+            {
+              "id": "src/utils/math.ts::sumArray",
+              "confidence": 0.99
+            }
+          ],
+          "importInfo": {
+            "module": "./utils/math",
+            "resolvedModule": "utils.math",
+            "specifiers": [
+              "sumArray"
+            ]
+          }
+        }
+      },
+      {
+        "id": "call::src/utils/math.ts::sumArray→src/utils/math.ts::add",
+        "source": "src/utils/math.ts::sumArray",
+        "target": "src/utils/math.ts::add",
+        "weight": 1,
+        "language": "typescript",
+        "callSites": [
+          {
+            "filePath": "src/utils/math.ts",
+            "line": 44,
+            "column": 16,
+            "context": "return add(accumulator, current);"
+          }
+        ],
+        "resolution": {
+          "status": "resolved",
+          "reason": null,
+          "candidates": [
+            {
+              "id": "src/utils/math.ts::add",
+              "confidence": 0.98
+            }
+          ],
+          "importInfo": {
+            "module": "./math",
+            "resolvedModule": "utils.math",
+            "specifiers": [
+              "add"
+            ]
+          }
+        }
+      },
+      {
+        "id": "call::src/components/Button.tsx::renderButton→external::formatCurrency",
+        "source": "src/components/Button.tsx::renderButton",
+        "target": "external::formatCurrency",
+        "weight": 1,
+        "language": "typescript",
+        "callSites": [
+          {
+            "filePath": "src/components/Button.tsx",
+            "line": 46,
+            "column": 12,
+            "context": "const totalLabel = formatCurrency(total);"
+          }
+        ],
+        "resolution": {
+          "status": "ambiguous",
+          "reason": "formatCurrency imported from multiple sources",
+          "candidates": [
+            {
+              "id": "external::formatCurrency",
+              "confidence": 0.4
+            },
+            {
+              "id": "src/utils/formatting.ts::formatCurrency",
+              "confidence": 0.35
+            }
+          ],
+          "importInfo": {
+            "module": "formatting",
+            "resolvedModule": null,
+            "specifiers": [
+              "formatCurrency"
+            ]
+          }
+        }
+      }
+    ],
+    "stats": {
+      "totalEdges": 3,
+      "resolvedEdges": 2,
+      "ambiguousEdges": 1,
+      "unresolvedEdges": 0
+    },
+    "symbolTables": {
+      "src/utils/math.ts": {
+        "moduleId": "utils.math",
+        "exports": [
+          "add",
+          "sumArray"
+        ],
+        "imports": [],
+        "functions": [
+          {
+            "id": "src/utils/math.ts::add",
+            "name": "add"
+          },
+            {
+            "id": "src/utils/math.ts::sumArray",
+            "name": "sumArray"
+          }
+        ]
+      },
+      "src/components/Button.tsx": {
+        "moduleId": "components.Button",
+        "exports": [
+          "renderButton"
+        ],
+        "imports": [
+          {
+            "specifier": "sumArray",
+            "from": "./utils/math"
+          },
+          {
+            "specifier": "formatCurrency",
+            "from": "formatting"
+          }
+        ],
+        "functions": [
+          {
+            "id": "src/components/Button.tsx::renderButton",
+            "name": "renderButton"
+          }
+        ]
+      }
+    }
+  },
+  "embeddings": {
+    "similarityEdges": [
+      {
+        "id": "sim::src/utils/math.ts::add↔src/utils/math.ts::sumArray",
+        "source": "src/utils/math.ts::add",
+        "target": "src/utils/math.ts::sumArray",
+        "similarity": 0.82,
+        "method": "topk-avg",
+        "representativeSimilarity": 0.78,
+        "topPairs": [
+          {
+            "sourceChunk": "chunk:add:1",
+            "targetChunk": "chunk:sumArray:2",
+            "score": 0.88
+          },
+          {
+            "sourceChunk": "chunk:add:1",
+            "targetChunk": "chunk:sumArray:3",
+            "score": 0.81
+          },
+          {
+            "sourceChunk": "chunk:add:2",
+            "targetChunk": "chunk:sumArray:4",
+            "score": 0.76
+          }
+        ],
+        "metadata": {
+          "bundleSize": 3,
+          "model": "Xenova/all-MiniLM-L6-v2"
+        }
+      }
+    ],
+    "metadata": {
+      "backend": "webgpu",
+      "modelId": "Xenova/all-MiniLM-L6-v2",
+      "dimension": 384
+    },
+    "stats": {
+      "chunkCount": 8,
+      "reuse": {
+        "reused": 5,
+        "embedded": 3
+      }
+    },
+    "functionEmbeddings": [
+      {
+        "id": "src/utils/math.ts::add",
+        "vector": [
+          0.12,
+          0.08,
+          -0.04,
+          0.19
+        ],
+        "sourceChunks": [
+          "chunk:add:1",
+          "chunk:add:2"
+        ]
+      },
+      {
+        "id": "src/utils/math.ts::sumArray",
+        "vector": [
+          0.1,
+          0.05,
+          -0.02,
+          0.21
+        ],
+        "sourceChunks": [
+          "chunk:sumArray:1",
+          "chunk:sumArray:2",
+          "chunk:sumArray:3",
+          "chunk:sumArray:4"
+        ]
+      }
+    ]
+  },
+  "overrides": {},
+  "extras": {
+    "analysisSummary": {
+      "centrality": {
+        "topPageRank": [
+          {
+            "id": "src/utils/math.ts::sumArray",
+            "score": 0.0131
+          }
+        ]
+      },
+      "communities": {
+        "count": 1
+      }
+    }
+  }
+}
+

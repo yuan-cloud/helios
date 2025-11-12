@@ -3,6 +3,12 @@
 Plan references: PLAN.md §§3.6, 3.7, 10.4.  
 Scope: Defines the shared JSON structures exchanged between the parser, graph/analysis pipeline, storage layer, and visualization UI.
 
+**Companion resources**
+
+- End-to-end payload example: `docs/payload-sample.json`
+- Validation script: `node tools/validate-payload.mjs docs/payload-sample.json`
+- Contract regression test: `node --test tests/payload/contract.test.mjs`
+
 ## 1. Overview
 
 All agents exchange *immutable* payloads composed of:
