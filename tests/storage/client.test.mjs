@@ -293,4 +293,56 @@ test("kv helpers serialize and parse JSON by default", async () => {
   await closePromise;
 });
 
+test("reset clears initialization state and posts reset message", async () => {
+  const worker = new MockWorker();
+  const client = new StorageWorkerClient({
+    createWorker: () => worker,
+  });
+
+  const resetPromise = client.reset();
+  assert.equal(worker.messages.length, 1, "reset should post a reset message");
+  const resetMessage = worker.messages[0];
+  assert.equal(resetMessage.type, "reset");
+
+  worker.emitMessage({
+    id: resetMessage.id,
+    success: true,
+    result: { cleared: true, removed: true, dbName: "helios.sqlite3" },
+  });
+
+  const resetResult = await resetPromise;
+  assert.equal(resetResult.cleared, true);
+  assert.equal(client.initializationPromise, null);
+
+  const execPromise = client.exec("SELECT 1");
+  await waitForMessages(worker, 2);
+  const initMessage = worker.messages[1];
+  assert.equal(initMessage.type, "init");
+  worker.emitMessage({
+    id: initMessage.id,
+    success: true,
+    result: { persistent: true, schemaVersion: 1 },
+  });
+
+  await waitForMessages(worker, 3);
+  const execMessage = worker.messages[2];
+  assert.equal(execMessage.type, "exec");
+  worker.emitMessage({
+    id: execMessage.id,
+    success: true,
+    result: { changes: 0 },
+  });
+  await execPromise;
+
+  const closePromise = client.close({ terminate: true });
+  await waitForMessages(worker, 4);
+  const closeMessage = worker.messages.at(-1);
+  worker.emitMessage({
+    id: closeMessage.id,
+    success: true,
+    result: { closed: true },
+  });
+  await closePromise;
+});
+
 

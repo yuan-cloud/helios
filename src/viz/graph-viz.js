@@ -163,16 +163,18 @@ export class GraphVisualization {
 
     // Dynamically import 3d-force-graph
     const ForceGraph3DModule = await import('3d-force-graph');
-    const ForceGraph3D = ForceGraph3DModule.default || ForceGraph3DModule;
+    const ForceGraph3D = ForceGraph3DModule.default || ForceGraph3DModule.ForceGraph3D || ForceGraph3DModule;
 
     // Create 3D force graph
-    this.graph = ForceGraph3D()
+    this.graph = ForceGraph3D()(this.container)
       .nodeId('id')
       .nodeLabel(node => this.getNodeLabel(node))
       .nodeColor(node => this.getNodeColor(node))
       .nodeVal(node => this.getNodeSize(node))
-      .linkSource(link => this.getLinkNodeId(link, 'source'))
-      .linkTarget(link => this.getLinkNodeId(link, 'target'))
+      // .linkSource(link => link.sourceId || this.getLinkNodeId(link, 'source'))
+      // .linkTarget(link => link.targetId || this.getLinkNodeId(link, 'target'))
+      // .linkSource(link => this.getLinkNodeId(link, 'source'))
+      // .linkTarget(link => this.getLinkNodeId(link, 'target'))
       .linkLabel(link => this.getLinkLabel(link))
       .linkColor(link => this.getLinkColor(link))
       .linkWidth(link => this.getLinkWidth(link))
@@ -183,7 +185,7 @@ export class GraphVisualization {
       .linkDirectionalArrowLength(6)
       .linkDirectionalArrowRelPos(1)
       .linkOpacity(link => this.getLinkDisplayOpacity(link))
-      .linkLineDash(link => this.getLinkDashArray(link))
+      //.linkLineDash(link => this.getLinkDashArray(link))
       .nodeRelSize(6)
       .onNodeHover(node => this.handleNodeHover(node))
       .onNodeClick(node => this.handleNodeClick(node))
@@ -199,7 +201,7 @@ export class GraphVisualization {
     }
 
     // Mount to container
-    this.graph(this.container);
+   // this.graph(this.container);
 
     this.applyPerformancePreset(this.performance.mode);
     // Set initial camera
@@ -447,8 +449,10 @@ export class GraphVisualization {
    * Normalize link data to expected format
    */
   normalizeLink(link) {
+    console.log('normalizeLink input:', link.source, link.target);
     const sourceId = this.getLinkNodeId(link, 'source');
     const targetId = this.getLinkNodeId(link, 'target');
+    console.log('getLinkNodeId output:', sourceId, targetId);
     const metadata = link.metadata || {};
     const type = link.type || metadata.type || 'call';
 
@@ -1522,9 +1526,36 @@ export class GraphVisualization {
     }
 
     const nodes = this.data.nodes || [];
-    const links = this.filteredLinks || this.data.links || [];
+    const allLinks = this.filteredLinks || this.data.links || [];
+  
+    // Filter out links with undefined source/target
+    const nodeIds = new Set(nodes.map(n => n.id));
+    const links = allLinks.filter(link => {
+      const sourceId = this.getLinkNodeId(link, 'source');
+      const targetId = this.getLinkNodeId(link, 'target');
+      if (!sourceId || !targetId) {
+        console.warn('Skipping link with undefined node:', link);
+        return false;
+      }
+      if (!nodeIds.has(sourceId) || !nodeIds.has(targetId)) {
+        console.warn('Skipping link with missing node:', { sourceId, targetId });
+        return false;
+      }
+      return true;
+    });
+  
+    console.log(`Rendering ${nodes.length} nodes and ${links.length} links (filtered from ${allLinks.length})`);
 
-    this.graph.graphData({ nodes, links });
+    this.graph.graphData({ 
+      nodes, 
+      links: links.map(link => ({
+        ...link,
+        source: link.sourceId || link.source,
+        target: link.targetId || link.target,
+        sourceId: link.sourceId || link.source,
+        targetId: link.targetId || link.target
+      }))
+    });
     this.repaintGraph();
 
     // Refresh hover detail listeners with current state

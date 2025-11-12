@@ -1,9 +1,10 @@
 import { initializeDatabase } from "../storage/sqlite.js";
-import { METADATA_KEYS } from "../storage/schema.js";
+import { METADATA_KEYS, HELIOS_DB_NAME } from "../storage/schema.js";
 
 let sqlite3Module = null;
 let dbHandle = null;
 let initializationPromise = null;
+let currentDbName = HELIOS_DB_NAME;
 
 const requestQueue = {
   current: Promise.resolve(),
@@ -52,7 +53,15 @@ function ensureDbReady() {
 
 async function handleInit(id, payload) {
   if (!initializationPromise) {
-    initializationPromise = initializeDatabase(payload?.config).then((result) => {
+    const config = payload?.config ?? {};
+    currentDbName =
+      typeof config.dbName === "string" && config.dbName.trim().length
+        ? config.dbName
+        : HELIOS_DB_NAME;
+    initializationPromise = initializeDatabase({
+      ...config,
+      dbName: currentDbName,
+    }).then((result) => {
       sqlite3Module = result.sqlite3;
       dbHandle = result.db;
       return {
@@ -61,6 +70,7 @@ async function handleInit(id, payload) {
         metadata: {
           schemaVersionKey: METADATA_KEYS.SCHEMA_VERSION,
         },
+        dbName: currentDbName,
       };
     });
   }
@@ -181,6 +191,42 @@ function closeDatabase() {
   initializationPromise = null;
 }
 
+async function removeDatabaseFile(dbName) {
+  if (
+    typeof navigator !== "undefined" &&
+    navigator.storage &&
+    typeof navigator.storage.getDirectory === "function" &&
+    typeof dbName === "string" &&
+    dbName.trim().length
+  ) {
+    try {
+      const root = await navigator.storage.getDirectory();
+      await root.removeEntry(dbName, { recursive: true });
+      return true;
+    } catch (error) {
+      if (error?.name !== "NotFoundError") {
+        console.warn("Failed to remove OPFS database file", error);
+      }
+    }
+  }
+  return false;
+}
+
+async function resetDatabase(options = {}) {
+  const targetDbName =
+    typeof options.dbName === "string" && options.dbName.trim().length
+      ? options.dbName
+      : currentDbName;
+
+  closeDatabase();
+  const removed = await removeDatabaseFile(targetDbName);
+  return {
+    cleared: true,
+    removed,
+    dbName: targetDbName,
+  };
+}
+
 async function processMessage(event) {
   const { data } = event;
   if (!data || typeof data.id !== "number") {
@@ -235,6 +281,11 @@ async function processMessage(event) {
       }
       case "layout:list": {
         const result = listLayoutSnapshots(payload);
+        respondSuccess(id, result);
+        break;
+      }
+      case "reset": {
+        const result = await resetDatabase(payload || {});
         respondSuccess(id, result);
         break;
       }

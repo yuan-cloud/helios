@@ -172,6 +172,18 @@ export class StorageWorkerClient {
     return this.send("query", { sql, params });
   }
 
+  async reset(options = {}) {
+    this.ensureWorker();
+    const payload = {};
+    if (options.dbName && typeof options.dbName === "string") {
+      payload.dbName = options.dbName;
+    }
+    const result = await this.send("reset", payload);
+    this.initializationPromise = null;
+    this.initResult = null;
+    return result;
+  }
+
   /**
    * Convenience helper for kv table writes.
    * @param {string} key

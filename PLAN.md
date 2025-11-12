@@ -57,14 +57,15 @@ Everything runs from static hosting (GitHub/Cloudflare Pages). To enable threads
 
 ### 3.2 Language Detection and AST Parsing
 
-[PinkMountain - UPDATED - 2025-11-09 06:33]
+[PinkMountain - UPDATED - 2025-11-12 18:18]
 
 ✅ Tree-sitter loaded  
 ✅ JS/TS grammar loaded  
 ✅ Python grammar loaded  
 ✅ Extraction queries complete  
 ✅ Symbol table resolution (module-aware imports/exports complete)  
-❌ Stack graphs integration (blocked: upstream WASM research pending)
+✅ Large-repo progress instrumentation (live parsing/progress metrics for 1–5k functions)  
+❌ Stack graphs integration (blocked: upstream WASM-capable implementation required)
 
 - Load web-tree-sitter once; lazy-load grammars per file type. Ship grammar WASMs via CDN (e.g., `tree-sitter-python.wasm`, `tree-sitter-javascript.wasm`).
 - Use Tree-sitter query patterns to extract:
@@ -80,7 +81,7 @@ Tree-sitter's query DSL lets you capture these nodes robustly.
 
 ### 3.3 Call Graph Construction (Static, Best-Effort)
 
-[PinkMountain - UPDATED - 2025-11-09 06:33]
+[PinkMountain - UPDATED - 2025-11-12 18:18]
 
 ✅ Static call graph extraction complete (caller→callee edges with call-site metadata)  
 ✅ Python grammar support added (functions/imports/calls feed call graph + viz)  
@@ -88,8 +89,8 @@ Tree-sitter's query DSL lets you capture these nodes robustly.
 ✅ Module resolution logic extended (import/export aware)  
 ✅ Resolution metadata surfaced to visualization controls/inspector  
 ✅ Parser↔viz integration revalidated (hover + inspector data flow confirmed 2025-11-09)  
-⏳ Enhanced name resolution (stack-graphs integration) — 0% (planned post-MVP once research unblocks)  
-❌ Stack-graph powered name resolution blocked: awaiting WASM-capable implementation guidance
+⏳ Enhanced name resolution (stack-graphs integration) — 0% (planned post-MVP once upstream support unblocks)  
+❌ Stack-graph powered name resolution blocked: awaiting WASM-capable stack-graphs build and integration guidance
 
 - For each `call_expression`, extract callee:
   - Identifiers → resolve via lexical scope + module import table.

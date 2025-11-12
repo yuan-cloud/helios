@@ -7,26 +7,24 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap" rel="stylesheet">
-    <script src="https://cdn.tailwindcss.com"></script>
     <script type="importmap">
     {
       "imports": {
           "web-tree-sitter": "https://cdn.jsdelivr.net/npm/web-tree-sitter@0.20.4/dist/tree-sitter.esm.min.js",
           "3d-force-graph": "https://cdn.jsdelivr.net/npm/3d-force-graph@1.70.25/dist/3d-force-graph.es.min.js",
           "@xenova/transformers": "https://cdn.jsdelivr.net/npm/@xenova/transformers@2.8.0/dist/transformers.esm.min.js",
-          "graphology": "https://esm.sh/graphology@0.25.4",
-          "graphology-communities-louvain": "https://esm.sh/graphology-communities-louvain@0.9.1"
+          "graphology": "https://cdn.jsdelivr.net/npm/graphology@0.25.4/+esm",
+          "graphology-communities-louvain": "https://esm.sh/graphology-communities-louvain@0.9.1?bundle&target=es2020"
       }
     }
     </script>
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cdefs%3E%3CradialGradient id='g' cx='50%25' cy='50%25' r='50%25'%3E%3Cstop offset='0%25' stop-color='%23a855f7'/%3E%3Cstop offset='55%25' stop-color='%236366f1'/%3E%3Cstop offset='100%25' stop-color='%230a0e27'/%3E%3C/radialGradient%3E%3C/defs%3E%3Ccircle cx='32' cy='32' r='30' fill='url(%23g)'/%3E%3C/svg%3E">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/themes/prism-tomorrow.min.css">
-    <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-core.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-clike.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-javascript.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-typescript.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-jsx.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-tsx.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-python.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/prism.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-typescript.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-jsx.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-tsx.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-python.min.js"></script>
     <style>
         * {
             margin: 0;
@@ -864,6 +862,7 @@
         let storageClient = null;
         let storageReady = false;
         let storageClientInitPromise = null;
+        let storagePersistent = null;
         let latestEmbeddingSummary = null;
         let latestFunctionFingerprintMap = null;
         let resumeSnapshot = null;
@@ -973,7 +972,9 @@
             visualizeBtn.classList.add('hidden');
             progressFill.style.width = '0%';
             progressText.textContent = progressLabel;
-            storageStatusEl?.textContent = '';
+            if (storageStatusEl) {
+                storageStatusEl.textContent = '';
+            }
             if (showProgress) {
                 progressContainer.classList.remove('hidden');
             } else {
@@ -2717,6 +2718,14 @@
 
         async function ensureStorageClient() {
             if (storageReady && storageClient) {
+                if (clearStorageBtn) {
+                    clearStorageBtn.disabled = false;
+                }
+                if (storagePersistent === true) {
+                    setStorageStatus('Storage ready (OPFS persistent).', 'success');
+                } else if (storagePersistent === false) {
+                    setStorageStatus('Storage ready (in-memory fallback).', 'warning');
+                }
                 return true;
             }
             if (storageClientInitPromise) {
@@ -2725,14 +2734,28 @@
             storageClientInitPromise = (async () => {
                 try {
                     const client = new StorageWorkerClient();
-                    await client.ensureInitialized();
+                    const initResult = await client.ensureInitialized();
                     storageClient = client;
                     storageReady = true;
+                    storagePersistent = initResult?.persistent === true;
+                    if (clearStorageBtn) {
+                        clearStorageBtn.disabled = false;
+                    }
+                    if (storagePersistent) {
+                        setStorageStatus('Storage ready (OPFS persistent).', 'success');
+                    } else {
+                        setStorageStatus('Storage ready (in-memory fallback).', 'warning');
+                    }
                     return true;
                 } catch (err) {
                     console.warn('Storage worker unavailable; falling back to browser storage.', err);
                     storageClient = null;
                     storageReady = false;
+                    storagePersistent = null;
+                    if (clearStorageBtn) {
+                        clearStorageBtn.disabled = true;
+                    }
+                    setStorageStatus('Storage unavailable; persistence disabled.', 'error');
                     return false;
                 } finally {
                     storageClientInitPromise = null;
@@ -3016,8 +3039,25 @@
             return Math.abs(hash).toString(16);
         }
 
-        initializeResumeOption().catch(err => {
-            console.warn('Resume snapshot init failed:', err);
+        async function bootstrapApp() {
+            try {
+                await bootstrapEmbeddingDetection();
+            } catch (err) {
+                console.warn('Embedding environment detection failed:', err);
+            }
+
+            try {
+                await ensureStorageClient();
+            } catch (err) {
+                console.warn('Storage initialization failed:', err);
+            }
+
+            await initializeResumeOption();
+        }
+
+        bootstrapApp().catch(err => {
+            console.error('HELIOS bootstrap error:', err);
+            setStorageStatus('Initialization failed. See console for details.', 'error');
         });
     </script>
 </body>
