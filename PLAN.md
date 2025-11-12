@@ -141,7 +141,7 @@ Tree-sitter's query DSL lets you capture these nodes robustly.
 
 ### 3.6 Graph Assembly
 
-[OrangeSnow - UPDATED - 2025-11-10 08:45]
+[OrangeSnow - UPDATED - 2025-11-12 11:23]
 
 ✅ Graphology scaffolding and `buildFunctionGraph` implemented (`src/graph/graph-builder.js`)  
 ✅ Data ingestion + analysis pipeline (`src/graph/pipeline.js`, `collectGraphPayload`/`buildAnalyzedGraph`)  
@@ -304,7 +304,7 @@ Persist DB under OPFS (origin-private) so users can reopen the site and continue
 
 ### 10.4 Network Analysis
 
-[OrangeSnow - UPDATED - 2025-11-10 08:45]
+[OrangeSnow - UPDATED - 2025-11-12 11:23]
 
 ✅ Centrality suite (degree, betweenness, PageRank) — `src/analysis/centralities.js`  
 ✅ Louvain community detection helper — `src/analysis/communities.js`  
