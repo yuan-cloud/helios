@@ -57,7 +57,7 @@ Everything runs from static hosting (GitHub/Cloudflare Pages). To enable threads
 
 ### 3.2 Language Detection and AST Parsing
 
-[PinkMountain - UPDATED - 2025-11-13 00:16]
+[PinkMountain - UPDATED - 2025-11-13 01:33]
 
 ✅ Tree-sitter loaded  
 ✅ JS/TS grammar loaded  
@@ -66,6 +66,7 @@ Everything runs from static hosting (GitHub/Cloudflare Pages). To enable threads
 ✅ Symbol table resolution (module-aware imports/exports complete)  
 ✅ Large-repo progress instrumentation (live parsing/progress metrics for 1–5k functions)  
 ✅ Parser payload sample + validation CLI (`docs/examples/parser-output-sample.json`, `tools/validate-parser-output.mjs`)  
+✅ Tree-sitter grammar loader regression patched (default import restored, local wasm assets routing confirmed 2025-11-13)  
 ❌ Stack graphs integration (blocked: upstream WASM-capable implementation required)
 
 - Load web-tree-sitter once; lazy-load grammars per file type. Ship grammar WASMs via CDN (e.g., `tree-sitter-python.wasm`, `tree-sitter-javascript.wasm`).
