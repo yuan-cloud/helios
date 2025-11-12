@@ -65,7 +65,7 @@ Payloads **must be serializable JSON** (no prototypes, Maps, Sets). Each record 
 - `loc`: lines of code (fallback: `endLine - startLine + 1`).  
 - `doc`: trimmed docstring / first comment.  
 - `metrics`: bag for static metrics (cyclomatic, halstead, etc.).  
-- `analysis`: Graphology outputs. When present, keep nested objects JSON-friendly (no Maps, no class instances).
+- `analysis`: Graphology outputs. Optional — if omitted, viz/graph layers synthesize empty centrality/core/community fields while metrics are computed client-side. When present, keep nested objects JSON-friendly (no Maps, no class instances).
 
 ### Optional fields
 
@@ -141,7 +141,7 @@ Directed, potentially multi-edge if multiple resolutions are returned. Downstrea
 ### Interpretation
 
 - Viz treats missing `target` or `status !== 'resolved'` as unresolved/ambiguous edges (styled accordingly).  
-- Graph-core expects `source/target` to reference ids present in `functions[]`. If unresolved, leave `target` equal to best guess and set `resolution.status` appropriately.
+- Graph-core expects `source/target` to reference ids present in `functions[]`. For unresolved cases the parser may keep a best-guess `target`; downstream loaders should rely on `resolution.status` for styling/logic and tolerate optimistic targets without assuming the resolution succeeded.
 
 ## 4. Similarity Edges (`similarityEdges[]`)
 
