@@ -866,6 +866,7 @@
         let latestEmbeddingSummary = null;
         let latestFunctionFingerprintMap = null;
         let resumeSnapshot = null;
+        let embeddingDetectionPromise = null;
 
         function showDemoLoading(message = 'Loading demo dataset...') {
             if (!demoLoading) {
@@ -1075,6 +1076,17 @@
             }
         }
 
+        function ensureEmbeddingDetection() {
+            if (!embeddingDetectionPromise) {
+                embeddingDetectionPromise = bootstrapEmbeddingDetection()
+                    .catch(err => {
+                        embeddingDetectionPromise = null;
+                        throw err;
+                    });
+            }
+            return embeddingDetectionPromise;
+        }
+
         try {
             embeddingManager = new EmbeddingManager();
             window.heliosEmbeddingManager = embeddingManager;
@@ -1083,7 +1095,7 @@
             embeddingManager = null;
             window.heliosEmbeddingManager = null;
         }
-        bootstrapEmbeddingDetection().catch(err => {
+        ensureEmbeddingDetection().catch(err => {
             console.warn('Embedding backend detection failed:', err);
         });
 
@@ -3044,7 +3056,7 @@
 
         async function bootstrapApp() {
             try {
-                await bootstrapEmbeddingDetection();
+                await ensureEmbeddingDetection();
             } catch (err) {
                 console.warn('Embedding environment detection failed:', err);
             }
