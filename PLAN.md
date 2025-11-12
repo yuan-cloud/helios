@@ -57,7 +57,7 @@ Everything runs from static hosting (GitHub/Cloudflare Pages). To enable threads
 
 ### 3.2 Language Detection and AST Parsing
 
-[PinkMountain - UPDATED - 2025-11-12 20:12]
+[PinkMountain - UPDATED - 2025-11-13 00:16]
 
 ✅ Tree-sitter loaded  
 ✅ JS/TS grammar loaded  
@@ -82,7 +82,7 @@ Tree-sitter's query DSL lets you capture these nodes robustly.
 
 ### 3.3 Call Graph Construction (Static, Best-Effort)
 
-[PinkMountain - UPDATED - 2025-11-12 18:18]
+[PinkMountain - UPDATED - 2025-11-13 00:16]
 
 ✅ Static call graph extraction complete (caller→callee edges with call-site metadata)  
 ✅ Python grammar support added (functions/imports/calls feed call graph + viz)  
@@ -104,7 +104,7 @@ Tree-sitter's query DSL lets you capture these nodes robustly.
 
 ### 3.4 Function Chunking and Embeddings
 
-[BlueBear - UPDATED - 2025-11-12 20:20]
+[BlueBear - UPDATED - 2025-11-13 00:20]
 
 ✅ Chunking scaffolding (line-aware splits with source offsets)
 ✅ Embedding worker inference (Transformers.js MiniLM via WebGPU/WASM)
@@ -119,14 +119,14 @@ Tree-sitter's query DSL lets you capture these nodes robustly.
 
 ### 3.5 Embedding Aggregation and Similarity
 
-[BlueBear - UPDATED - 2025-11-12 20:20]
+[BlueBear - UPDATED - 2025-11-13 00:20]
 
 ✅ Representative vector computation (per-function mean + normalization)
 ✅ Top-k bundle similarity with cosine metrics (candidate limit + thresholding)
 ✅ Similarity edge export to visualization layer (undirected, capped neighbors)
 ✅ Cached reload path (reuse persisted embeddings/similarity when fingerprint matches; resilience fix validated)
 ✅ Approximate KNN candidate pruning (random-projection LSH seeds, auto-thresholded for large repos)
-⏳ Large-scale ANN benchmarking (50% — harness + CLI ready; awaiting real-repo baselines to feed metrics)
+⏳ Large-scale ANN benchmarking (50% — harness + CLI ready; awaiting real-repo embedding baselines to feed metrics; blocked until full repo scan captured)
 
 - Represent each function by a set `E_f = {e_1 … e_m}` of chunk vectors.
 - **Function-to-function correlation**: Default metric = cosine similarity.
