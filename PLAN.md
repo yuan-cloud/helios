@@ -223,7 +223,7 @@ All steps are cancellable and resumable; show clear privacy note ("Remains on yo
 
 ## 6) Data Model (SQLite)
 
-[storage-agent - UPDATED - 2025-11-12 19:45]
+[ChartreuseHill - UPDATED - 2025-11-13 09:18]
 
 ✅ SQLite-WASM bootstrap w/ OPFS fallback (`src/storage/sqlite.js`)
 ✅ Schema definition & metadata helpers (`src/storage/schema.js`, `src/storage/migrations.js`)
@@ -235,8 +235,9 @@ All steps are cancellable and resumable; show clear privacy note ("Remains on yo
 ✅ Layout snapshot integration in viz UI (viz save/restore now uses OPFS snapshot provider)
 ✅ Clear-data control + OPFS status messaging (`index.html`, storage client reset & tests)
 ✅ COOP/COEP service worker + CDN fallback validated (OPFS + WASM modules load under static dev server)
+✅ SQLite-WASM assets mirrored locally (`public/sqlite/*`) with loader pointed at same-origin copy (eliminates OPFS worker CORS failures)
 ⏳ Dependency packaging audit (graphology/web-tree-sitter import strategy) — 80% (monitoring CDN availability, evaluating local mirrors)
-❌ Multi-session retention policy doc (blocked: awaiting product requirements on data lifespan)
+⏳ Multi-session retention policy doc (draft at `docs/retention-policy.md`, awaiting product/design sign-off on retention window)
 
 **Tables:**
 

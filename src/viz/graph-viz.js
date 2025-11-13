@@ -161,8 +161,14 @@ export class GraphVisualization {
       throw new Error('Container element required');
     }
 
-    // Dynamically import 3d-force-graph
-    const ForceGraph3DModule = await import('3d-force-graph');
+    // Dynamically import 3d-force-graph with CDN fallback (avoids CORS on some CDNs)
+    let ForceGraph3DModule;
+    try {
+      ForceGraph3DModule = await import('3d-force-graph');
+    } catch (err) {
+      console.warn('[GraphViz] Primary import failed, using jsDelivr fallback:', err?.message || err);
+      ForceGraph3DModule = await import('https://cdn.jsdelivr.net/npm/3d-force-graph@1.70.25/dist/3d-force-graph.esm.min.js');
+    }
     const ForceGraph3D = ForceGraph3DModule.default || ForceGraph3DModule.ForceGraph3D || ForceGraph3DModule;
 
     // Create 3D force graph

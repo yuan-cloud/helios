@@ -2,6 +2,7 @@
  * Community detection utilities (Louvain).
  */
 
+import Graph from 'graphology';
 import louvain from 'graphology-communities-louvain';
 import { assertGraph, mergeNodeMetrics } from './utils.js';
 
@@ -22,12 +23,38 @@ export function computeCommunities(graph, options = {}) {
   const attribute = options.attribute || DEFAULT_ATTRIBUTE;
   const louvainOptions = options.louvainOptions || {};
 
+  const tempGraph = new Graph({ type: 'undirected', multi: false, allowSelfLoops: false });
+
+  graph.forEachNode((node, attributes) => {
+    tempGraph.mergeNode(node, attributes);
+  });
+
+  graph.forEachEdge(
+    (edgeKey, attributes, source, target) => {
+      if (source === target) {
+        return;
+      }
+      const weight = typeof attributes?.weight === 'number' ? attributes.weight : 1;
+      const existingKey = tempGraph.undirectedEdge(source, target);
+      if (existingKey) {
+        const currentWeight =
+          typeof tempGraph.getEdgeAttribute(existingKey, 'weight') === 'number'
+            ? tempGraph.getEdgeAttribute(existingKey, 'weight')
+            : 0;
+        tempGraph.setEdgeAttribute(existingKey, 'weight', currentWeight + weight);
+      } else {
+        tempGraph.addEdge(source, target, { weight });
+      }
+    },
+    { attachData: true }
+  );
+
   let assignments = null;
   let modularity = null;
 
   if (typeof louvain.detailed === 'function') {
     try {
-      const detailed = louvain.detailed(graph, louvainOptions);
+      const detailed = louvain.detailed(tempGraph, louvainOptions);
       assignments = detailed?.communities || detailed?.partition || detailed?.assignments || null;
       modularity = typeof detailed?.modularity === 'number' ? detailed.modularity : null;
     } catch (err) {
@@ -36,7 +63,7 @@ export function computeCommunities(graph, options = {}) {
   }
 
   if (!assignments) {
-    assignments = louvain(graph, louvainOptions);
+    assignments = louvain(tempGraph, louvainOptions);
   }
 
   if (!assignments) {
@@ -44,26 +71,21 @@ export function computeCommunities(graph, options = {}) {
   }
 
   if (assign) {
-    if (typeof louvain.assign === 'function') {
-      louvain.assign(graph, {
-        communityAttribute: attribute,
-        ...louvainOptions
-      });
-    } else {
-      Object.entries(assignments).forEach(([node, community]) => {
+    Object.entries(assignments).forEach(([node, community]) => {
+      if (graph.hasNode(node)) {
         graph.setNodeAttribute(node, attribute, community);
-      });
-    }
+      }
+    });
   }
 
   const groups = groupCommunities(assignments);
 
   groups.forEach((nodes, community) => {
-    nodes.forEach(node => {
+    nodes.forEach((node) => {
       mergeNodeMetrics(graph, node, {
         communities: {
-          [attribute]: community
-        }
+          [attribute]: community,
+        },
       });
     });
   });
@@ -71,7 +93,7 @@ export function computeCommunities(graph, options = {}) {
   return {
     communities: assignments,
     modularity,
-    groups
+    groups,
   };
 }
 
@@ -91,5 +113,4 @@ function groupCommunities(assignments) {
 
   return map;
 }
-
 

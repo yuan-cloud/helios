@@ -1,6 +1,6 @@
 // SQLite-WASM initialization and schema management helpers.
 // Responsibilities:
-//   - Lazy-load `@sqlite.org/sqlite-wasm` from CDN with error handling.
+//   - Lazy-load `@sqlite.org/sqlite-wasm` from a same-origin mirror with error handling.
 //   - Prefer OPFS-backed persistence when available, fall back to memory DB.
 //   - Apply the HELIOS schema (PLAN.md section 6) with version metadata.
 
@@ -14,12 +14,28 @@ import {
 } from "./schema.js";
 import { getPendingMigrations } from "./migrations.js";
 
-const SQLITE_WASM_BASE =
-  "https://cdn.jsdelivr.net/npm/@sqlite.org/sqlite-wasm@3.46.1-build5/sqlite-wasm/jswasm";
-const SQLITE_WASM_MODULE_URL = `${SQLITE_WASM_BASE}/sqlite3.mjs`;
-const SQLITE_WASM_WASM_URL = `${SQLITE_WASM_BASE}/sqlite3.wasm`;
+const SQLITE_WASM_BASE_URL = new URL("../../public/sqlite/", import.meta.url);
+const SQLITE_WASM_MODULE_URL = new URL("sqlite3.mjs", SQLITE_WASM_BASE_URL).href;
+const SQLITE_WASM_WASM_URL = new URL("sqlite3.wasm", SQLITE_WASM_BASE_URL).href;
+
+function resolveSqliteAsset(filename) {
+  return new URL(filename, SQLITE_WASM_BASE_URL).href;
+}
 
 let sqliteModulePromise = null;
+
+function hasCrossOriginIsolation() {
+  return typeof globalThis !== "undefined" && globalThis.crossOriginIsolated === true;
+}
+
+function hasSharedArrayBufferSupport() {
+  return (
+    typeof globalThis !== "undefined" &&
+    typeof globalThis.SharedArrayBuffer === "function" &&
+    typeof globalThis.Atomics === "object" &&
+    globalThis.Atomics !== null
+  );
+}
 
 /**
  * Determines whether OPFS is available in the current browsing context.
@@ -28,7 +44,9 @@ export async function isOpfsSupported() {
   if (
     typeof navigator === "undefined" ||
     !("storage" in navigator) ||
-    typeof navigator.storage?.getDirectory !== "function"
+    typeof navigator.storage?.getDirectory !== "function" ||
+    !hasSharedArrayBufferSupport() ||
+    !hasCrossOriginIsolation()
   ) {
     return false;
   }
@@ -63,12 +81,7 @@ export async function loadSQLiteModule(moduleOverrides = {}) {
       .then((module) => module.default)
       .then((initSQLite) =>
         initSQLite({
-          locateFile: (file) => {
-            if (file.endsWith(".wasm")) {
-              return SQLITE_WASM_WASM_URL;
-            }
-            return `${SQLITE_WASM_BASE}/${file}`;
-          },
+          locateFile: (file) => (file.endsWith(".wasm") ? SQLITE_WASM_WASM_URL : resolveSqliteAsset(file)),
           print: moduleOverrides.print ?? console.log,
           printErr: moduleOverrides.printErr ?? console.error,
           ...moduleOverrides,
@@ -217,9 +230,9 @@ async function openDatabase(sqlite3, options = {}) {
         let db;
         const isConstructor = typeof OpfsDb === "function" && OpfsDb.prototype;
         if (isConstructor) {
-          db = new OpfsDb(dbName, { flags });
+          db = new OpfsDb(dbName);
         } else {
-          const result = OpfsDb(dbName, { flags });
+          const result = OpfsDb(dbName);
           db = result instanceof Promise ? await result : result;
         }
         return { db, persistent: true };
@@ -228,14 +241,14 @@ async function openDatabase(sqlite3, options = {}) {
       }
     }
     try {
-      const db = new sqlite3.oo1.DB(dbName, { flags, vfs: "opfs" });
+      const db = new sqlite3.oo1.DB(dbName, flags);
       return { db, persistent: true };
     } catch (error) {
       console.warn("oo1.DB OPFS open failed; falling back to memory DB", error);
     }
   }
 
-  const db = new sqlite3.oo1.DB(":memory:", { flags: "c" });
+  const db = new sqlite3.oo1.DB(":memory:", flags);
   return { db, persistent: false };
 }
 

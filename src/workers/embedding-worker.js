@@ -1,4 +1,4 @@
-import { pipeline, env } from '@xenova/transformers';
+import { pipeline, env } from 'https://cdn.jsdelivr.net/npm/@xenova/transformers@2.8.0/dist/transformers.esm.min.js';
 
 const WASM_FALLBACK = 'wasm';
 const DEFAULT_BATCH_SIZE = 8;
