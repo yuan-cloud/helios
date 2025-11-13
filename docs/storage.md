@@ -166,4 +166,13 @@ Embeddings-specific tests:
 For questions or extension requests, reach out on agent mail – storage-agent
 remains available to support Section 6 integrations.
 
+---
+
+## 4. Dependency Packaging Reference
+
+For import-map hardening, CDN fallback procedures, and vendor mirror guidance see
+`docs/dependency-packaging.md`. Follow that audit when adjusting runtime
+dependencies (graphology, 3d-force-graph, transformers, etc.) to avoid breaking
+the OPFS/worker pipeline.
+
 
