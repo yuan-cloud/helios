@@ -10,9 +10,9 @@
     <script type="importmap">
     {
       "imports": {
-          "web-tree-sitter": "/node_modules/web-tree-sitter/tree-sitter.js",
+          "web-tree-sitter": "/public/vendor/tree-sitter.js",
           "3d-force-graph": "https://esm.sh/3d-force-graph@1.79.0",
-          "@xenova/transformers": "https://cdn.jsdelivr.net/npm/@xenova/transformers@2.8.0/dist/transformers.esm.min.js",
+          "@xenova/transformers": "/public/vendor/transformers.min.js",
           "graphology": "https://esm.run/graphology@0.25.4",
           "graphology-communities-louvain": "https://esm.run/graphology-communities-louvain@2.0.2"
       }
@@ -38,7 +38,8 @@
             background-size: 400% 400%;
             animation: gradientShift 15s ease infinite;
             min-height: 100vh;
-            overflow: hidden;
+            overflow-x: hidden;
+            overflow-y: auto;
             position: relative;
         }
 
@@ -522,6 +523,38 @@
 
         .control-button:hover { background: rgba(99, 102, 241, 0.35); border-color: rgba(99, 102, 241, 0.5); }
 
+        .control-segmented {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 0.4rem;
+            margin-bottom: 0.6rem;
+        }
+
+        .control-segmented-btn {
+            padding: 0.45rem 0.6rem;
+            border-radius: 0.5rem;
+            border: 1px solid rgba(99, 102, 241, 0.35);
+            background: rgba(99, 102, 241, 0.18);
+            color: #e0e7ff;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .control-segmented-btn:hover,
+        .control-segmented-btn:focus {
+            outline: none;
+            background: rgba(99, 102, 241, 0.3);
+            border-color: rgba(129, 140, 248, 0.6);
+        }
+
+        .control-segmented-btn.active {
+            background: rgba(129, 140, 248, 0.5);
+            border-color: rgba(165, 180, 252, 0.85);
+            color: #f8fafc;
+            font-weight: 600;
+        }
+
         .control-filter {
             margin-bottom: 0.85rem;
         }
@@ -767,6 +800,8 @@
         const vizCloseBtn = document.getElementById('vizCloseBtn');
         const clearStorageBtn = document.getElementById('clearStorageBtn');
         const storageStatusEl = document.getElementById('storageStatus');
+        const STORAGE_FALLBACK_MESSAGE =
+            'Storage ready (in-memory fallback). Enable COOP/COEP headers to unlock OPFS persistence.';
         if (clearStorageBtn) {
             clearStorageBtn.disabled = true;
         }
@@ -1135,7 +1170,7 @@
                 if (reinitialized) {
                     setStorageStatus(message, 'success');
                 } else {
-                    setStorageStatus(`${message} Persistence fallback only.`, 'warning');
+                    setStorageStatus(`${message} Enable COOP/COEP headers to unlock OPFS persistence.`, 'warning');
                 }
             } catch (err) {
                 console.error('Failed to clear stored data', err);
@@ -1591,16 +1626,16 @@
 
         async function countFiles(directoryHandle) {
             let count = 0;
-            for await (const entry of directoryHandle.values()) {
-                if (entry.kind === 'file') {
-                    count++;
-                } else if (entry.kind === 'directory') {
-                    const dirName = entry.name.toLowerCase();
+                for await (const entry of directoryHandle.values()) {
+                    if (entry.kind === 'file') {
+                        count++;
+                    } else if (entry.kind === 'directory') {
+                        const dirName = entry.name.toLowerCase();
                     if (['node_modules', '.git', 'dist', 'build', '.next', 'out', 'coverage'].includes(dirName)) {
-                        continue;
+                            continue;
+                        }
+                        count += await countFiles(entry);
                     }
-                    count += await countFiles(entry);
-                }
             }
             return count;
         }
@@ -2727,7 +2762,7 @@
                 if (storagePersistent === true) {
                     setStorageStatus('Storage ready (OPFS persistent).', 'success');
                 } else if (storagePersistent === false) {
-                    setStorageStatus('Storage ready (in-memory fallback).', 'warning');
+                    setStorageStatus(STORAGE_FALLBACK_MESSAGE, 'warning');
                 }
                 return true;
             }
@@ -2747,7 +2782,7 @@
                     if (storagePersistent) {
                         setStorageStatus('Storage ready (OPFS persistent).', 'success');
                     } else {
-                        setStorageStatus('Storage ready (in-memory fallback).', 'warning');
+                        setStorageStatus(STORAGE_FALLBACK_MESSAGE, 'warning');
                     }
                     return true;
                 } catch (err) {

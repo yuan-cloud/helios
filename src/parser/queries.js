@@ -1,7 +1,8 @@
+import { Parser } from 'web-tree-sitter';
+
 /**
  * Tree-sitter query patterns - MINIMAL WORKING VERSION
  */
-
 export const JAVASCRIPT_QUERIES = {
   functions: `
     (function_declaration
@@ -50,7 +51,7 @@ export const PYTHON_QUERIES = {
 
 export function compileQuery(language, queryString) {
   try {
-    return language.query(queryString);
+    return new Parser.Query(language, queryString);
   } catch (err) {
     console.error('[Queries] Failed to compile query:', err);
     throw new Error(`Query compilation failed: ${err.message}`);

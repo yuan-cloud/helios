@@ -1,12 +1,52 @@
-import { pipeline, env } from 'https://cdn.jsdelivr.net/npm/@xenova/transformers@2.8.0/dist/transformers.esm.min.js';
+const TRANSFORMERS_LOCAL_URL = '/public/vendor/transformers.min.js';
+const TRANSFORMERS_CDN_URL =
+  'https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.2/dist/transformers.esm.min.js';
+
+let pipeline;
+let env;
+
+async function loadTransformersModule() {
+  try {
+    const mod = await import(TRANSFORMERS_LOCAL_URL);
+    pipeline = mod.pipeline;
+    env = mod.env;
+    console.log('[Embeddings Worker] Loaded transformers from local mirror.');
+    return;
+  } catch (error) {
+    console.warn('[Embeddings Worker] Local transformers load failed, falling back to CDN.', error);
+  }
+
+  try {
+    const mod = await import(TRANSFORMERS_CDN_URL);
+    pipeline = mod.pipeline;
+    env = mod.env;
+    console.log('[Embeddings Worker] Loaded transformers from CDN fallback.');
+  } catch (cdnError) {
+    console.error('[Embeddings Worker] Failed to load transformers from CDN fallback.', cdnError);
+    throw cdnError;
+  }
+}
+
+await loadTransformersModule();
+
+console.log('[Embeddings Worker] Transformers env detected backends:', Object.keys(env?.backends ?? {}));
+console.log('[Embeddings Worker] Initial ONNX wasm config:', env?.backends?.onnx?.wasm);
 
 const WASM_FALLBACK = 'wasm';
 const DEFAULT_BATCH_SIZE = 8;
-const ORT_VERSION = '1.19.2';
+const ORT_WASM_BASE = '/public/vendor/onnxruntime-web/';
 
 env.allowLocalModels = false;
 env.useBrowserCache = true;
-env.backends.onnx.wasm.wasmPaths = `https://cdn.jsdelivr.net/npm/onnxruntime-web@${ORT_VERSION}/dist/`;
+if (env?.backends?.onnx?.wasm) {
+  env.backends.onnx.wasm.wasmPaths = ORT_WASM_BASE;
+  env.backends.onnx.wasm.numThreads = Math.max(1, Math.min(4, navigator.hardwareConcurrency || 1));
+  env.backends.onnx.wasm.simd = true;
+  env.backends.onnx.wasm.proxy = false;
+  console.log('[Embeddings Worker] ONNX wasm config after override:', env.backends.onnx.wasm);
+} else {
+  console.warn('[Embeddings Worker] ONNX wasm backend configuration missing.');
+}
 
 let embeddingPipeline = null;
 let pipelinePromise = null;
