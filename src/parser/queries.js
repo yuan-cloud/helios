@@ -1,5 +1,3 @@
-import * as TreeSitter from 'web-tree-sitter';
-
 /**
  * Tree-sitter query patterns - MINIMAL WORKING VERSION
  */
@@ -49,25 +47,22 @@ export const PYTHON_QUERIES = {
   `
 };
 
+let QueryConstructor = null;
+
+export function registerQueryConstructor(constructor) {
+  if (typeof constructor === 'function') {
+    QueryConstructor = constructor;
+  }
+}
+
 export function compileQuery(language, queryString) {
   try {
     if (!language) {
       throw new Error('Language instance is required');
     }
 
-    const QueryCtor =
-      typeof TreeSitter.Query === 'function'
-        ? TreeSitter.Query
-        : typeof TreeSitter.default?.Query === 'function'
-          ? TreeSitter.default.Query
-          : typeof TreeSitter.Parser?.Query === 'function'
-            ? TreeSitter.Parser.Query
-            : typeof TreeSitter.default?.Parser?.Query === 'function'
-              ? TreeSitter.default.Parser.Query
-              : null;
-
-    if (QueryCtor) {
-      return new QueryCtor(language, queryString);
+    if (QueryConstructor) {
+      return new QueryConstructor(language, queryString);
     }
 
     if (typeof language.query === 'function') {

@@ -1,4 +1,5 @@
 import { Parser, Language } from 'web-tree-sitter';
+import { registerQueryConstructor } from './queries.js';
 
 /**
  * Main TreeSitter module for HELIOS
@@ -48,6 +49,9 @@ class TreeSitterManager {
       }
 
       await this.Parser.init();
+      if (typeof this.Parser?.Query === 'function') {
+        registerQueryConstructor(this.Parser.Query);
+      }
       this.initialized = true;
       console.log('[TreeSitter] Initialized web-tree-sitter');
     } catch (err) {
