@@ -1,4 +1,4 @@
-import { Parser } from 'web-tree-sitter';
+import Parser, { Language } from 'web-tree-sitter';
 
 /**
  * Main TreeSitter module for HELIOS
@@ -25,6 +25,7 @@ const LANGUAGE_MAP = {
 class TreeSitterManager {
   constructor() {
     this.Parser = null;
+    this.Language = null;
     this.languages = new Map();
     this.initialized = false;
   }
@@ -41,6 +42,9 @@ class TreeSitterManager {
     try {
       if (!this.Parser) {
         this.Parser = Parser;
+      }
+      if (!this.Language) {
+        this.Language = Language;
       }
 
       await this.Parser.init();
@@ -83,12 +87,12 @@ class TreeSitterManager {
 
     try {
       console.log(`[TreeSitter] Loading ${language} grammar from ${url}`);
-      const Language = await this.Parser.Language.load(url);
+      const loadedLanguage = await this.Language.load(url);
       
-      this.languages.set(language, Language);
+      this.languages.set(language, loadedLanguage);
       console.log(`[TreeSitter] Loaded ${language} grammar`);
       
-      return Language;
+      return loadedLanguage;
     } catch (err) {
       console.error(`[TreeSitter] Failed to load ${language} grammar:`, err);
       throw new Error(`Grammar load failed for ${language}: ${err.message}`);
