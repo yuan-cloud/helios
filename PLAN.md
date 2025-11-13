@@ -172,7 +172,7 @@ Tree-sitter's query DSL lets you capture these nodes robustly.
 
 ### 3.7 Visualization (3D)
 
-[LilacLake - UPDATED - 2025-11-13 13:18]
+[LilacLake - UPDATED - 2025-11-13 13:35]
 
 ✅ Core 3d-force-graph scaffold hooked to call graph output (directional particles, camera helpers, fit-to-view)  
 ✅ Controls + inspector polish (hover sidebar, neighbor quick jumps, inbound/outbound call lists, Prism-highlighted source)  
@@ -180,11 +180,11 @@ Tree-sitter's query DSL lets you capture these nodes robustly.
 ✅ Similarity edge layer (dashed styling, weight-aware opacity/width, threshold slider, hover + inspector surfacing)  
 ✅ Layout persistence & performance tuning (auto-freeze heuristics, OPFS snapshot provider, embedding reuse stats surfaced)  
 ✅ Payload validation fixtures (contract sample + shared CLI validator for schema sign-off)  
-⏳ Live parser payload hookup (50% done — blocked pending shared payload schema ratification with parser/graph agents)  
+⏳ Live parser payload hookup (55% — viz side ready; still blocked pending shared payload schema ratification with parser/graph agents)  
 ✅ Graphology metrics surfaced in UI (node sizing/color by centrality/community; hover badges for PR/BC/core/community)  
 ✅ Controls panel shows graph-level summaries (counts, top communities, central nodes, cores)  
 ✅ Resume flow integration & regression guard (call/sim edge toggles restored; viz consumes storage snapshots)  
-✅ Demo loader with spinner + export tooling (curated dataset, working PNG/JSON downloads, segmented performance selector)  
+✅ Demo loader with spinner + export tooling (curated dataset, segmented performance selector, verified PNG/JSON downloads)  
 
 - Render with 3d-force-graph:
   - Use directional arrows/particles for call edges; labels on hover; click to focus; fit-to-view; pause/resume simulation. The lib supports directional particles and node/link labels out of the box.
@@ -331,13 +331,13 @@ Persist DB under OPFS (origin-private) so users can reopen the site and continue
 
 ## 11) Visualization Details
 
-[LilacLake - UPDATED - 2025-11-13 13:18]
+[LilacLake - UPDATED - 2025-11-13 13:35]
 
 ✅ Call-edge palette finalized (directional particles, arrowheads, module-aware colors, hover fades)  
 ✅ Interaction polish (hover sidebar metrics, inspector call lists, camera focus + quick-jump syncing)  
 ✅ Resolution state surfacing (hover + inspector badges with import context)  
 ✅ Similarity edge styling (dashed visuals, weight-aware opacity/width, threshold slider, inspector badges)  
-⏳ Data ingestion wiring (50% — blocked pending schema ratification + live worker plumbing with parser/graph agents)  
+⏳ Data ingestion wiring (55% — awaiting schema ratification + live worker plumbing with parser/graph agents; viz export UX now complete)  
 ✅ Layout persistence & freeze UX (OPFS-backed save/restore, auto-freeze presets, resume snapshot hooks)  
 ✅ Demo showcase UX (hero CTA, modal spinner, working PNG/JSON export buttons, segmented performance selector)  
 ✅ Contract validation tooling shared with parser/graph (`docs/payload-sample.json`, `tools/validate-payload.mjs`, `tests/payload/contract.test.mjs`)  
