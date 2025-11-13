@@ -1,4 +1,4 @@
-import Parser, { Language } from 'web-tree-sitter';
+import { Parser, Language } from 'web-tree-sitter';
 
 /**
  * Main TreeSitter module for HELIOS
