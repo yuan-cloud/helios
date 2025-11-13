@@ -1,3 +1,5 @@
+import * as TreeSitter from 'web-tree-sitter';
+
 /**
  * Tree-sitter query patterns - MINIMAL WORKING VERSION
  */
@@ -49,10 +51,30 @@ export const PYTHON_QUERIES = {
 
 export function compileQuery(language, queryString) {
   try {
-    if (!language || typeof language.query !== 'function') {
-      throw new Error('Language instance does not support query()');
+    if (!language) {
+      throw new Error('Language instance is required');
     }
-    return language.query(queryString);
+
+    const QueryCtor =
+      typeof TreeSitter.Query === 'function'
+        ? TreeSitter.Query
+        : typeof TreeSitter.default?.Query === 'function'
+          ? TreeSitter.default.Query
+          : typeof TreeSitter.Parser?.Query === 'function'
+            ? TreeSitter.Parser.Query
+            : typeof TreeSitter.default?.Parser?.Query === 'function'
+              ? TreeSitter.default.Parser.Query
+              : null;
+
+    if (QueryCtor) {
+      return new QueryCtor(language, queryString);
+    }
+
+    if (typeof language.query === 'function') {
+      return language.query(queryString);
+    }
+
+    throw new Error('Neither Query constructor nor language.query() is available');
   } catch (err) {
     console.error('[Queries] Failed to compile query:', err);
     throw new Error(`Query compilation failed: ${err.message}`);
