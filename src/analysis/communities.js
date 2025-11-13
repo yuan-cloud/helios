@@ -29,25 +29,35 @@ export function computeCommunities(graph, options = {}) {
     tempGraph.mergeNode(node, attributes);
   });
 
-  graph.forEachEdge(
-    (edgeKey, attributes, source, target) => {
-      if (source === target) {
-        return;
-      }
-      const weight = typeof attributes?.weight === 'number' ? attributes.weight : 1;
-      const existingKey = tempGraph.undirectedEdge(source, target);
-      if (existingKey) {
-        const currentWeight =
-          typeof tempGraph.getEdgeAttribute(existingKey, 'weight') === 'number'
-            ? tempGraph.getEdgeAttribute(existingKey, 'weight')
-            : 0;
-        tempGraph.setEdgeAttribute(existingKey, 'weight', currentWeight + weight);
-      } else {
-        tempGraph.addEdge(source, target, { weight });
-      }
-    },
-    { attachData: true }
-  );
+  graph.forEachEdge((edgeKey, attributes, source, target) => {
+    if (source === target) {
+      return;
+    }
+    const weight = typeof attributes?.weight === 'number' ? attributes.weight : 1;
+    if (!tempGraph.hasNode(source)) {
+      tempGraph.mergeNode(source, graph.getNodeAttributes(source) || {});
+    }
+    if (!tempGraph.hasNode(target)) {
+      tempGraph.mergeNode(target, graph.getNodeAttributes(target) || {});
+    }
+    if (tempGraph.hasEdge(source, target)) {
+      const existingKey = tempGraph.edge(source, target);
+      const currentWeight =
+        typeof tempGraph.getEdgeAttribute(existingKey, 'weight') === 'number'
+          ? tempGraph.getEdgeAttribute(existingKey, 'weight')
+          : 0;
+      tempGraph.setEdgeAttribute(existingKey, 'weight', currentWeight + weight);
+    } else if (tempGraph.hasEdge(target, source)) {
+      const existingKey = tempGraph.edge(target, source);
+      const currentWeight =
+        typeof tempGraph.getEdgeAttribute(existingKey, 'weight') === 'number'
+          ? tempGraph.getEdgeAttribute(existingKey, 'weight')
+          : 0;
+      tempGraph.setEdgeAttribute(existingKey, 'weight', currentWeight + weight);
+    } else {
+      tempGraph.addEdge(source, target, { weight });
+    }
+  });
 
   let assignments = null;
   let modularity = null;

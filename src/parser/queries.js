@@ -1,5 +1,3 @@
-import { Parser } from 'web-tree-sitter';
-
 /**
  * Tree-sitter query patterns - MINIMAL WORKING VERSION
  */
@@ -51,7 +49,10 @@ export const PYTHON_QUERIES = {
 
 export function compileQuery(language, queryString) {
   try {
-    return new Parser.Query(language, queryString);
+    if (!language || typeof language.query !== 'function') {
+      throw new Error('Language instance does not support query()');
+    }
+    return language.query(queryString);
   } catch (err) {
     console.error('[Queries] Failed to compile query:', err);
     throw new Error(`Query compilation failed: ${err.message}`);

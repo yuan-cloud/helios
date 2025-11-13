@@ -220,36 +220,55 @@ export function ensureSchema(db) {
  */
 async function openDatabase(sqlite3, options = {}) {
   const { dbName = HELIOS_DB_NAME, flags = "c" } = options;
+  const resolvedFlags =
+    typeof flags === "string"
+      ? flags
+      : Array.isArray(flags)
+        ? flags.join("")
+        : typeof flags === "number"
+          ? flags
+          : "c";
 
   const hasOpfs = await isOpfsSupported();
-  if (hasOpfs) {
+  const OpfsDbClass = sqlite3?.oo1?.OpfsDb;
+  const findVfs = sqlite3?.capi?.sqlite3_vfs_find;
+  const opfsVfsAvailable = typeof findVfs === "function" ? Boolean(findVfs("opfs")) : false;
+
+  if (hasOpfs && (OpfsDbClass || opfsVfsAvailable)) {
     await requestPersistentStorage();
-    const OpfsDb = sqlite3?.oo1?.OpfsDb;
-    if (OpfsDb) {
+    if (typeof OpfsDbClass === "function") {
       try {
         let db;
-        const isConstructor = typeof OpfsDb === "function" && OpfsDb.prototype;
-        if (isConstructor) {
-          db = new OpfsDb(dbName);
+        if (OpfsDbClass.prototype) {
+          db = new OpfsDbClass(dbName, resolvedFlags);
         } else {
-          const result = OpfsDb(dbName);
+          const result = OpfsDbClass(dbName, resolvedFlags);
           db = result instanceof Promise ? await result : result;
         }
-        return { db, persistent: true };
+        if (db) {
+          return { db, persistent: true };
+        }
       } catch (error) {
         console.warn("Failed to open OPFS-backed SQLite database, falling back to memory", error);
       }
     }
-    try {
-      const db = new sqlite3.oo1.DB(dbName, flags);
-      return { db, persistent: true };
-    } catch (error) {
-      console.warn("oo1.DB OPFS open failed; falling back to memory DB", error);
+    if (opfsVfsAvailable) {
+      try {
+        const db = new sqlite3.oo1.DB(dbName, resolvedFlags, "opfs");
+        return { db, persistent: true };
+      } catch (error) {
+        console.warn("oo1.DB OPFS open failed; falling back to memory DB", error);
+      }
     }
   }
 
-  const db = new sqlite3.oo1.DB(":memory:", flags);
-  return { db, persistent: false };
+  try {
+    const db = new sqlite3.oo1.DB(":memory:", resolvedFlags);
+    return { db, persistent: false };
+  } catch (error) {
+    error.message = `Failed to open SQLite database (in-memory fallback): ${error.message}`;
+    throw error;
+  }
 }
 
 /**

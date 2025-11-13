@@ -156,7 +156,7 @@ Tree-sitter's query DSL lets you capture these nodes robustly.
 ✅ Storage/viz integration for computed metrics (controls + inspector consume centrality/core/community data)  
 ✅ Payload validation tooling (`src/graph/payload-validator.js`, `tools/validate-payload.mjs`, docs + tests; CLI consolidated + export compatibility preserved for downstream tooling)  
 ✅ Louvain helper now projects mixed graphs to an undirected aggregate before clustering (`src/analysis/communities.js`, `tests/analysis/communities.test.mjs`)  
-⏳ Live parser/embedding wiring & worker messaging (30% done — awaiting final payload handshake)  
+⏳ Live parser/embedding wiring & worker messaging (60% done — graph analysis now runs in dedicated worker; awaiting parser/embedding payload handshake)  
 ❌ Cross-worker message schema finalization (blocked until parser/embedding agents confirm transport format; draft documented in `docs/payloads.md`, pending ratification)
 
 - **Nodes**: One per function `{id, fqName, filePath, range, lang, size (#LOC), metrics…}`.

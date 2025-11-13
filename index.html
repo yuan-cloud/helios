@@ -763,8 +763,7 @@
         import {
             mergeGraphPayload,
             collectGraphPayload,
-            buildAnalyzedGraph,
-            serializeGraph
+            GraphWorkerClient
         } from './src/graph/index.js';
         import { getDemoDataset } from './src/demo/demo-data.js';
 
@@ -882,6 +881,8 @@
             approximateBandSize: 28,
             approximateOversample: 2
         };
+
+        const graphWorkerClient = new GraphWorkerClient();
 
         let graphPayload = {
             functions: [],
@@ -1436,7 +1437,7 @@
                     window.heliosSimilarity = null;
                 }
 
-                updateGraphData({
+                await updateGraphData({
                     functions: allFunctions,
                     callEdges: Array.isArray(callGraph?.edges) ? callGraph.edges : [],
                     similarityEdges: Array.isArray(similarityEdges) ? similarityEdges : []
@@ -1732,7 +1733,7 @@
                     error: embeddingError
                 });
 
-                updateGraphData({
+                await updateGraphData({
                     parser: {
                         functions: allFunctions,
                         callEdges: callGraphEdges,
@@ -2267,7 +2268,7 @@
             return result;
         }
 
-        function updateGraphData(input = {}) {
+        async function updateGraphData(input = {}) {
             const hasLegacyShape =
                 input && !input.parser && !input.embeddings && (input.functions || input.callEdges || input.similarityEdges);
 
@@ -2315,48 +2316,50 @@
             graphPayload = mergedPayload;
             graphExtras = mergedPayload.extras || null;
 
+            let analysisResult = null;
             let collected = null;
             try {
-                collected = collectGraphPayload(mergedPayload);
+                analysisResult = await graphWorkerClient.analyze(mergedPayload, { assignMetrics: true });
+                collected = analysisResult.collected || collectGraphPayload(mergedPayload);
 
-                const { graph, summary } = buildAnalyzedGraph(collected, { assignMetrics: true });
-                const serialized = serializeGraph(graph);
+                graphAnalysis = analysisResult.graph || null;
+                graphSummary = analysisResult.summary || null;
+                graphSerialized = analysisResult.serialized || { nodes: [], edges: [] };
 
-                graphAnalysis = graph;
-                graphSummary = summary;
-                graphSerialized = serialized;
-
-                window.heliosGraph = graph;
-                window.heliosGraphSummary = summary;
-                window.heliosGraphSerialized = serialized;
+                window.heliosGraph = graphAnalysis;
+                window.heliosGraphSummary = graphSummary;
+                window.heliosGraphSerialized = graphSerialized;
                 window.heliosGraphPayload = mergedPayload;
                 window.heliosGraphExtras = graphExtras;
-                window.heliosCallEdges = collected.callEdges;
-                window.heliosSimilarityEdges = collected.similarityEdges;
-                window.heliosGraphStats = summary;
+                window.heliosCallEdges = collected.callEdges || [];
+                window.heliosSimilarityEdges = collected.similarityEdges || [];
+                window.heliosGraphStats = graphSummary;
+                window.heliosGraphWorkerMode = analysisResult?.viaWorker ? 'worker' : 'inline';
+                window.heliosGraphValidation = analysisResult?.validation || null;
 
-                fullVizData = convertCallGraphToVizData(serialized, { includeFallbackSimilarity: false });
+                fullVizData = convertCallGraphToVizData(graphSerialized, { includeFallbackSimilarity: false });
             } catch (err) {
                 console.error('Graph analysis failed:', err);
                 graphAnalysis = null;
                 graphSummary = null;
                 graphSerialized = { nodes: [], edges: [] };
+                collected = collectGraphPayload(mergedPayload);
 
                 window.heliosGraph = null;
                 window.heliosGraphSummary = null;
                 window.heliosGraphSerialized = graphSerialized;
                 window.heliosGraphPayload = mergedPayload;
                 window.heliosGraphExtras = graphExtras;
-                const fallbackCallEdges = collected?.callEdges ?? (Array.isArray(parserPayload.callEdges) ? parserPayload.callEdges : []);
-                const fallbackSimilarityEdges = collected?.similarityEdges ?? (Array.isArray(embeddingPayload.similarityEdges) ? embeddingPayload.similarityEdges : []);
-                window.heliosCallEdges = fallbackCallEdges;
-                window.heliosSimilarityEdges = fallbackSimilarityEdges;
+                window.heliosCallEdges = collected.callEdges || [];
+                window.heliosSimilarityEdges = collected.similarityEdges || [];
                 window.heliosGraphStats = null;
+                window.heliosGraphWorkerMode = 'error';
+                window.heliosGraphValidation = null;
 
                 fullVizData = convertCallGraphToVizData(
                     {
                         nodes: parserPayload.functions || [],
-                        edges: fallbackCallEdges
+                        edges: collected.callEdges || []
                     },
                     { includeFallbackSimilarity: true }
                 );
@@ -2364,6 +2367,15 @@
             if (graphViz && typeof graphViz.setAnalysisSummary === 'function') {
                 graphViz.setAnalysisSummary(graphSummary);
             }
+
+            return {
+                payload: mergedPayload,
+                extras: graphExtras,
+                summary: graphSummary,
+                serialized: graphSerialized,
+                collected,
+                viaWorker: analysisResult?.viaWorker === true
+            };
         }
 
         function convertCallGraphToVizData(graph, { includeFallbackSimilarity = true } = {}) {
@@ -2901,7 +2913,7 @@
             window.heliosEmbeddingStats = embeddingStats;
             window.heliosEmbeddingError = embeddingError;
 
-            updateGraphData({
+            await updateGraphData({
                 functions: allFunctions,
                 callEdges: Array.isArray(callGraph?.edges) ? callGraph.edges : [],
                 similarityEdges: Array.isArray(similarityEdges) ? similarityEdges : []
