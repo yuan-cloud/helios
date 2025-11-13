@@ -46,6 +46,9 @@ export class GraphVisualization {
     this.adjacency = new Map();
     this.filteredLinks = [];
 
+    this.customRenderer = null;
+    this.boundResizeHandler = null;
+
     this.baseLinkOpacity = 0.6;
     this.minFadeOpacity = 0.12;
     this.currentNonNeighborOpacity = this.baseLinkOpacity;
@@ -172,7 +175,7 @@ export class GraphVisualization {
     const ForceGraph3D = ForceGraph3DModule.default || ForceGraph3DModule.ForceGraph3D || ForceGraph3DModule;
 
     // Create 3D force graph
-    this.graph = ForceGraph3D()(this.container)
+    const graphInstance = ForceGraph3D()(this.container)
       .nodeId('id')
       .nodeLabel(node => this.getNodeLabel(node))
       .nodeColor(node => this.getNodeColor(node))
@@ -202,8 +205,42 @@ export class GraphVisualization {
       .showNavInfo(false)
       .cameraPosition({ x: 0, y: 0, z: 1000 });
 
+    const threeLib =
+      ForceGraph3DModule.THREE ||
+      (ForceGraph3DModule.default && ForceGraph3DModule.default.THREE) ||
+      (ForceGraph3DModule.ForceGraph3D && ForceGraph3DModule.ForceGraph3D.THREE) ||
+      (typeof globalThis !== 'undefined' ? globalThis.THREE : null);
+
+    if (threeLib && typeof threeLib.WebGLRenderer === 'function') {
+      const renderer = new threeLib.WebGLRenderer({
+        antialias: true,
+        alpha: true,
+        preserveDrawingBuffer: true
+      });
+      if (typeof renderer.setPixelRatio === 'function' && typeof window !== 'undefined') {
+        renderer.setPixelRatio(window.devicePixelRatio || 1);
+      }
+      const { width, height } = this.getContainerDimensions();
+      if (typeof renderer.setSize === 'function') {
+        renderer.setSize(width, height, false);
+      }
+      if (typeof graphInstance.renderer === 'function') {
+        graphInstance.renderer(renderer);
+        this.customRenderer = renderer;
+      }
+    } else {
+      console.warn('[GraphViz] Unable to configure custom renderer; PNG export may be disabled.');
+    }
+
+    this.graph = graphInstance;
+
     if (typeof this.graph.onEngineStop === 'function') {
       this.graph.onEngineStop(() => this.handleEngineStop());
+    }
+
+    if (typeof window !== 'undefined' && !this.boundResizeHandler) {
+      this.boundResizeHandler = () => this.handleResize();
+      window.addEventListener('resize', this.boundResizeHandler, { passive: true });
     }
 
     // Mount to container
@@ -214,6 +251,26 @@ export class GraphVisualization {
     this.resetCamera();
 
     return this;
+  }
+
+  getContainerDimensions() {
+    const width =
+      (this.container && (this.container.clientWidth || this.container.offsetWidth)) ||
+      (typeof window !== 'undefined' ? window.innerWidth : 800);
+    const height =
+      (this.container && (this.container.clientHeight || this.container.offsetHeight)) ||
+      (typeof window !== 'undefined' ? window.innerHeight : 600);
+    return { width, height };
+  }
+
+  handleResize() {
+    if (!this.customRenderer) {
+      return;
+    }
+    const { width, height } = this.getContainerDimensions();
+    if (typeof this.customRenderer.setSize === 'function') {
+      this.customRenderer.setSize(width, height, false);
+    }
   }
 
   /**
@@ -455,10 +512,8 @@ export class GraphVisualization {
    * Normalize link data to expected format
    */
   normalizeLink(link) {
-    console.log('normalizeLink input:', link.source, link.target);
     const sourceId = this.getLinkNodeId(link, 'source');
     const targetId = this.getLinkNodeId(link, 'target');
-    console.log('getLinkNodeId output:', sourceId, targetId);
     const metadata = link.metadata || {};
     const type = link.type || metadata.type || 'call';
 
@@ -2053,18 +2108,26 @@ export class GraphVisualization {
    * Export graph as PNG
    */
   async exportPNG() {
-    if (!this.graph) return null;
-    
-    // Use 3d-force-graph's screenshot capability
-    return this.graph.screenshot();
+    if (!this.graph || typeof this.graph.screenshot !== 'function') {
+      throw new Error('Graph renderer is not ready to export.');
+    }
+
+    const dataUrl = await this.graph.screenshot();
+    if (!dataUrl) {
+      throw new Error('Screenshot operation did not return an image.');
+    }
+    return dataUrl;
   }
 
   /**
    * Export graph data as JSON
    */
   exportJSON() {
-    return JSON.stringify({
-      nodes: this.data.nodes.map(node => ({
+    const nodes = Array.isArray(this.data?.nodes) ? this.data.nodes : [];
+    const links = Array.isArray(this.data?.links) ? this.data.links : [];
+
+    const payload = {
+      nodes: nodes.map(node => ({
         id: node.id,
         fqName: node.fqName,
         name: node.name,
@@ -2073,13 +2136,15 @@ export class GraphVisualization {
         y: node.y,
         z: node.z
       })),
-      links: this.data.links.map(link => ({
+      links: links.map(link => ({
         source: link.source,
         target: link.target,
         type: link.type,
         weight: link.weight
       }))
-    }, null, 2);
+    };
+
+    return JSON.stringify(payload, null, 2);
   }
 
   /**
@@ -2091,6 +2156,12 @@ export class GraphVisualization {
       // 3d-force-graph doesn't have explicit dispose, but we can clear data
       this.graph.graphData({ nodes: [], links: [] });
       this.graph = null;
+
+    if (typeof window !== 'undefined' && this.boundResizeHandler) {
+      window.removeEventListener('resize', this.boundResizeHandler);
+      this.boundResizeHandler = null;
+    }
+    this.customRenderer = null;
     }
 
     if (this.fadeAnimationFrame) {

@@ -112,14 +112,11 @@ export class VisualizationControls {
           <button class="control-button" id="btnResetLayout">Reset Layout</button>
           <div class="control-hint" id="layoutStatus" aria-live="polite" style="font-size: 0.75rem; color: #94a3b8; margin-top: 0.35rem;"></div>
           <div class="controls-subsection">
-            <label class="control-toggle">
-              <input type="checkbox" id="toggleAutoPerformance" checked>
-              <span>Auto Performance Tuning</span>
-            </label>
-            <label class="control-toggle">
-              <input type="checkbox" id="toggleHighPerformance" disabled>
-              <span>High Performance Mode</span>
-            </label>
+            <div class="control-segmented" id="performanceModeGroup" role="group" aria-label="Performance mode">
+              <button type="button" class="control-segmented-btn active" data-performance="auto" aria-pressed="true">Auto</button>
+              <button type="button" class="control-segmented-btn" data-performance="balanced" aria-pressed="false">Balanced</button>
+              <button type="button" class="control-segmented-btn" data-performance="performance" aria-pressed="false">High Performance</button>
+            </div>
             <div class="control-hint" id="performanceStatus" aria-live="polite" style="font-size: 0.72rem; color: #cbd5f5;"></div>
           </div>
         </div>
@@ -216,9 +213,13 @@ export class VisualizationControls {
     this.setHoverInfo(null);
     this.setLayoutStatus('');
     this.updateSimilarityThresholdDisplay(this.similarityThreshold);
-    this.performanceAutoToggle = this.container.querySelector('#toggleAutoPerformance');
-    this.performanceModeToggle = this.container.querySelector('#toggleHighPerformance');
     this.performanceStatusEl = this.container.querySelector('#performanceStatus');
+    this.performanceModeGroup = this.container.querySelector('#performanceModeGroup');
+    this.performanceButtons = {
+      auto: this.container.querySelector('[data-performance="auto"]'),
+      balanced: this.container.querySelector('[data-performance="balanced"]'),
+      performance: this.container.querySelector('[data-performance="performance"]')
+    };
     this.embeddingStatusEl = this.container.querySelector('#embeddingStatus');
     this.embeddingReuseStatusEl = this.container.querySelector('#embeddingReuseStatus');
     this.similarityStatusEl = this.container.querySelector('#similarityStatus');
@@ -383,20 +384,27 @@ export class VisualizationControls {
       });
     }
 
-    const toggleAutoPerformance = this.container.querySelector('#toggleAutoPerformance');
-    if (toggleAutoPerformance) {
-      toggleAutoPerformance.addEventListener('change', (e) => {
-        if (!this.graphViz) return;
-        this.graphViz.setPerformanceAuto(e.target.checked);
-      });
-    }
-
-    const toggleHighPerformance = this.container.querySelector('#toggleHighPerformance');
-    if (toggleHighPerformance) {
-      toggleHighPerformance.addEventListener('change', (e) => {
-        if (!this.graphViz) return;
-        const mode = e.target.checked ? 'performance' : 'balanced';
-        this.graphViz.setPerformanceMode(mode, { reason: 'manual' });
+    const performanceModeGroup = this.container.querySelector('#performanceModeGroup');
+    if (performanceModeGroup) {
+      performanceModeGroup.addEventListener('click', (event) => {
+        const button = event.target.closest('button[data-performance]');
+        if (!button || !this.graphViz) {
+          return;
+        }
+        event.preventDefault();
+        const selection = button.getAttribute('data-performance');
+        if (selection === 'auto') {
+          this.graphViz.setPerformanceAuto(true);
+        } else if (selection === 'balanced') {
+          this.graphViz.setPerformanceAuto(false);
+          this.graphViz.setPerformanceMode('balanced', { reason: 'manual', auto: false });
+        } else if (selection === 'performance') {
+          this.graphViz.setPerformanceAuto(false);
+          this.graphViz.setPerformanceMode('performance', { reason: 'manual', auto: false });
+        }
+        if (typeof this.graphViz.getPerformanceState === 'function') {
+          this.updatePerformanceControls(this.graphViz.getPerformanceState());
+        }
       });
     }
 
@@ -416,29 +424,7 @@ export class VisualizationControls {
         });
       }
     }
-  }
 
-  setLayoutStatus(message, { tone = 'info', timeout = 3000 } = {}) {
-    if (!this.layoutStatusEl) {
-      return;
-    }
-
-    const palette = {
-      info: '#94a3b8',
-      success: '#34d399',
-      error: '#f87171'
-    };
-
-    const color = palette[tone] || palette.info;
-    this.layoutStatusEl.textContent = message || '';
-    this.layoutStatusEl.style.color = color;
-
-    if (this.layoutStatusTimer) {
-      clearTimeout(this.layoutStatusTimer);
-      this.layoutStatusTimer = null;
-    }
-
-    // Export
     if (this.options.showExport) {
       const btnExportPNG = this.container.querySelector('#btnExportPNG');
       if (btnExportPNG) {
@@ -455,12 +441,13 @@ export class VisualizationControls {
       }
     }
 
-    if (this.similarityThresholdInput) {
+    const similarityThresholdInput = this.container.querySelector('#similarityThreshold');
+    if (similarityThresholdInput) {
       const handler = (event) => {
         this.handleSimilarityThresholdChange(event.target.value);
       };
-      this.similarityThresholdInput.addEventListener('input', handler);
-      this.similarityThresholdInput.addEventListener('change', handler);
+      similarityThresholdInput.addEventListener('input', handler);
+      similarityThresholdInput.addEventListener('change', handler);
     }
   }
 
@@ -543,8 +530,8 @@ export class VisualizationControls {
           this.embeddingStatusEl.textContent = `Embedding backend: ${backendLabel} (${descriptor})`;
           this.embeddingStatusEl.style.color = '#cbd5f5';
         } else {
-          this.embeddingStatusEl.textContent = 'Embeddings not available for this dataset.';
-          this.embeddingStatusEl.style.color = '#cbd5f5';
+        this.embeddingStatusEl.textContent = 'Embeddings not available for this dataset.';
+        this.embeddingStatusEl.style.color = '#cbd5f5';
         }
       } else {
         const backendLabel = metadata.backend ? metadata.backend.toUpperCase() : 'WASM';
@@ -670,13 +657,16 @@ export class VisualizationControls {
       state = { mode: 'balanced', auto: true };
     }
 
-    if (this.performanceAutoToggle) {
-      this.performanceAutoToggle.checked = !!state.auto;
-    }
-
-    if (this.performanceModeToggle) {
-      this.performanceModeToggle.checked = state.mode === 'performance';
-      this.performanceModeToggle.disabled = !!state.auto;
+    if (this.performanceButtons) {
+      const activeMode = state.mode === 'performance' ? 'performance' : 'balanced';
+      Object.entries(this.performanceButtons).forEach(([key, button]) => {
+        if (!button) {
+          return;
+        }
+        const shouldActivate = key === 'auto' ? state.auto : !state.auto && key === activeMode;
+        button.classList.toggle('active', shouldActivate);
+        button.setAttribute('aria-pressed', shouldActivate ? 'true' : 'false');
+      });
     }
 
     if (this.performanceStatusEl) {
@@ -811,20 +801,38 @@ export class VisualizationControls {
    * Export graph as PNG
    */
   async exportPNG() {
-    if (!this.graphViz) return;
+    if (!this.graphViz) {
+      return;
+    }
+
+    const button = this.container.querySelector('#btnExportPNG');
+    const originalLabel = button ? button.textContent : null;
 
     try {
-      const dataUrl = await this.graphViz.exportPNG();
-      if (dataUrl) {
-        // Create download link
-        const link = document.createElement('a');
-        link.download = `helios-graph-${Date.now()}.png`;
-        link.href = dataUrl;
-        link.click();
+      if (button) {
+        button.disabled = true;
+        button.textContent = 'Preparing PNG…';
       }
+      const dataUrl = await this.graphViz.exportPNG();
+      if (!dataUrl) {
+        throw new Error('Graph export returned empty data URL.');
+      }
+
+      const link = document.createElement('a');
+      link.download = `helios-graph-${new Date().toISOString().replace(/[:.]/g, '-')}.png`;
+      link.href = dataUrl;
+      link.style.display = 'none';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
     } catch (err) {
       console.error('Failed to export PNG:', err);
       alert('Failed to export PNG. See console for details.');
+    } finally {
+      if (button) {
+        button.disabled = false;
+        button.textContent = originalLabel || 'Export PNG';
+      }
     }
   }
 
@@ -832,22 +840,44 @@ export class VisualizationControls {
    * Export graph data as JSON
    */
   exportJSON() {
-    if (!this.graphViz) return;
+    if (!this.graphViz) {
+      return;
+    }
+
+    const button = this.container.querySelector('#btnExportJSON');
+    const originalLabel = button ? button.textContent : null;
 
     try {
+      if (button) {
+        button.disabled = true;
+        button.textContent = 'Preparing JSON…';
+      }
+
       const json = this.graphViz.exportJSON();
+      if (typeof json !== 'string' || json.trim().length === 0) {
+        throw new Error('Graph export returned empty payload.');
+      }
+
       const blob = new Blob([json], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
-      
+
       const link = document.createElement('a');
-      link.download = `helios-graph-${Date.now()}.json`;
+      link.download = `helios-graph-${new Date().toISOString().replace(/[:.]/g, '-')}.json`;
       link.href = url;
+      link.style.display = 'none';
+      document.body.appendChild(link);
       link.click();
-      
-      URL.revokeObjectURL(url);
+      document.body.removeChild(link);
+
+      setTimeout(() => URL.revokeObjectURL(url), 0);
     } catch (err) {
       console.error('Failed to export JSON:', err);
       alert('Failed to export JSON. See console for details.');
+    } finally {
+      if (button) {
+        button.disabled = false;
+        button.textContent = originalLabel || 'Export JSON';
+      }
     }
   }
 
