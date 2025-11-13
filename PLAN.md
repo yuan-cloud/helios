@@ -105,13 +105,14 @@ Tree-sitter's query DSL lets you capture these nodes robustly.
 
 ### 3.4 Function Chunking and Embeddings
 
-[BlueBear - UPDATED - 2025-11-13 00:20]
+[BlueBear - UPDATED - 2025-11-13 10:55]
 
 ✅ Chunking scaffolding (line-aware splits with source offsets)
 ✅ Embedding worker inference (Transformers.js MiniLM via WebGPU/WASM)
 ✅ Persistence to storage worker (chunk vectors + metadata cached in SQLite; transaction flow stabilized)
 ✅ Incremental delta updates (reuse cached function chunks, re-embed only changed sources via per-function fingerprints)
 ✅ Runtime backend detection surfaced (WebGPU probe + UI summary to confirm active inference engine)
+✅ Local Transformers/ORT mirrors with worker fallback (prefers `/public/vendor` bundles; CDN-only environments still supported)
 
 - **Chunking**: Within each function, split by syntactic boundaries (statement blocks / loop bodies / logical sections) to keep chunks ~100–200 tokens. Maintain chunk offsets into the source so clicks can highlight text accurately.
 - **Model**: Start with a compact, general-purpose text/code embedding like MiniLM (384-dim) in ONNX via Transformers.js, loading from HF hub through the library's CDN resolver. Models cache in the browser (Cache API/IndexedDB) to avoid re-downloads. Provide a setting to force WebGPU backend when available; fall back to WASM.
@@ -120,14 +121,14 @@ Tree-sitter's query DSL lets you capture these nodes robustly.
 
 ### 3.5 Embedding Aggregation and Similarity
 
-[BlueBear - UPDATED - 2025-11-13 00:20]
+[BlueBear - UPDATED - 2025-11-13 10:55]
 
 ✅ Representative vector computation (per-function mean + normalization)
 ✅ Top-k bundle similarity with cosine metrics (candidate limit + thresholding)
 ✅ Similarity edge export to visualization layer (undirected, capped neighbors)
 ✅ Cached reload path (reuse persisted embeddings/similarity when fingerprint matches; resilience fix validated)
 ✅ Approximate KNN candidate pruning (random-projection LSH seeds, auto-thresholded for large repos)
-⏳ Large-scale ANN benchmarking (50% — harness + CLI ready; awaiting real-repo embedding baselines to feed metrics; blocked until full repo scan captured)
+⏳ Large-scale ANN benchmarking (50% — harness + CLI ready; awaiting real-repo embedding baselines to feed metrics; blocked until full repo scan captured once parser/graph/persistence pipeline runs end-to-end)
 
 - Represent each function by a set `E_f = {e_1 … e_m}` of chunk vectors.
 - **Function-to-function correlation**: Default metric = cosine similarity.
@@ -154,6 +155,7 @@ Tree-sitter's query DSL lets you capture these nodes robustly.
 ✅ Loader integration (`index.html`) using `mergeGraphPayload` with parser stats + symbol tables  
 ✅ Storage/viz integration for computed metrics (controls + inspector consume centrality/core/community data)  
 ✅ Payload validation tooling (`src/graph/payload-validator.js`, `tools/validate-payload.mjs`, docs + tests; CLI consolidated + export compatibility preserved for downstream tooling)  
+✅ Louvain helper now projects mixed graphs to an undirected aggregate before clustering (`src/analysis/communities.js`, `tests/analysis/communities.test.mjs`)  
 ⏳ Live parser/embedding wiring & worker messaging (30% done — awaiting final payload handshake)  
 ❌ Cross-worker message schema finalization (blocked until parser/embedding agents confirm transport format; draft documented in `docs/payloads.md`, pending ratification)
 
@@ -236,7 +238,7 @@ All steps are cancellable and resumable; show clear privacy note ("Remains on yo
 ✅ Clear-data control + OPFS status messaging (`index.html`, storage client reset & tests)
 ✅ COOP/COEP service worker + CDN fallback validated (OPFS + WASM modules load under static dev server)
 ✅ SQLite-WASM assets mirrored locally (`public/sqlite/*`) with loader pointed at same-origin copy (eliminates OPFS worker CORS failures)
-⏳ Dependency packaging audit (graphology/web-tree-sitter import strategy) — 80% (monitoring CDN availability, evaluating local mirrors)
+⏳ Dependency packaging audit (graphology/web-tree-sitter import strategy) — 90% (inventory documented in `docs/dependency-packaging.md`; pending execution of local mirrors for graphology/3d-force-graph and transformers import-map swap)
 ⏳ Multi-session retention policy doc (draft at `docs/retention-policy.md`, awaiting product/design sign-off on retention window)
 
 **Tables:**
