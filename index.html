@@ -1467,6 +1467,10 @@
                 progressContainer.classList.add('hidden');
                 resultsContainer.classList.remove('hidden');
                 
+                // Show visualize button when results container is shown
+                // (will be hidden again if no data, but shown by default)
+                visualizeBtn.classList.remove('hidden');
+                
                 counter.textContent = formatCounterMessage();
                 const resolutionDetails = [];
                 if (typeof stats.resolvedEdges === 'number') {
@@ -1558,7 +1562,12 @@
                     }
                 }
 
-                if (allFunctions.length > 0 && stats.totalEdges >= 0) {
+                // Ensure visualize button is shown if we have any graph data
+                // Button was already shown when resultsContainer was displayed,
+                // but hide it if we truly have no data
+                if (allFunctions.length === 0 && (!callGraph || !callGraph.nodes || callGraph.nodes.length === 0)) {
+                    visualizeBtn.classList.add('hidden');
+                } else {
                     visualizeBtn.classList.remove('hidden');
                 }
 
