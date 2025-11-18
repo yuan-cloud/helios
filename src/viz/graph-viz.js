@@ -2136,32 +2136,16 @@ export class GraphVisualization {
       }
     }
 
-    // Try custom renderer's canvas first (has preserveDrawingBuffer)
-    if (this.customRenderer && this.customRenderer.domElement) {
-      const canvas = this.customRenderer.domElement;
-      if (canvas && typeof canvas.toDataURL === 'function') {
-        try {
-          // Ensure the graph is rendered before capturing
-          if (typeof this.graph.render === 'function') {
-            this.graph.render();
-          }
-          // Wait a frame to ensure rendering completes
-          await new Promise(resolve => requestAnimationFrame(resolve));
-          const dataUrl = canvas.toDataURL('image/png');
-          if (dataUrl && dataUrl !== 'data:,') {
-            return dataUrl;
-          }
-        } catch (err) {
-          console.warn('[GraphViz] Custom renderer canvas export failed:', err?.message || err);
-        }
-      }
-    }
-
-    // Try to get renderer from graph instance (might be set internally)
+    // Try to get renderer from graph instance or use custom renderer
+    let renderer = null;
     let canvas = null;
-    if (this.graph && typeof this.graph.renderer === 'function') {
+
+    if (this.customRenderer && this.customRenderer.domElement) {
+      renderer = this.customRenderer;
+      canvas = this.customRenderer.domElement;
+    } else if (this.graph && typeof this.graph.renderer === 'function') {
       try {
-        const renderer = this.graph.renderer();
+        renderer = this.graph.renderer();
         if (renderer && renderer.domElement) {
           canvas = renderer.domElement;
         }
@@ -2175,33 +2159,106 @@ export class GraphVisualization {
       canvas = this.container.querySelector('canvas');
     }
 
-    if (canvas && typeof canvas.toDataURL === 'function') {
-      try {
-        // Try to render first if possible
-        if (typeof this.graph.render === 'function') {
-          this.graph.render();
-        }
-        // Wait a frame to ensure rendering completes
-        await new Promise(resolve => requestAnimationFrame(resolve));
-        const dataUrl = canvas.toDataURL('image/png');
-        if (dataUrl && dataUrl !== 'data:,') {
-          // Even if preserveDrawingBuffer wasn't set, sometimes it still works
-          return dataUrl;
-        } else {
-          console.warn('[GraphViz] Canvas toDataURL returned empty/invalid data; preserveDrawingBuffer may not be enabled');
-        }
-      } catch (err) {
-        console.warn('[GraphViz] Canvas export failed:', err?.message || err);
-      }
+    if (!canvas || typeof canvas.toDataURL !== 'function') {
+      const hasCustomRenderer = !!this.customRenderer;
+      const hasCanvas = !!canvas;
+      throw new Error(
+        `Graph renderer is not ready to export. ` +
+        `Screenshot functionality requires a WebGL canvas. ` +
+        `(customRenderer: ${hasCustomRenderer}, canvas: ${hasCanvas})`
+      );
     }
 
-    const hasCustomRenderer = !!this.customRenderer;
-    const hasCanvas = !!canvas;
-    throw new Error(
-      `Graph renderer is not ready to export. ` +
-      `Screenshot functionality requires a WebGL canvas with preserveDrawingBuffer enabled. ` +
-      `(customRenderer: ${hasCustomRenderer}, canvas: ${hasCanvas})`
-    );
+    try {
+      // Force a render before capturing
+      // If we have access to the renderer, try to render the scene explicitly
+      if (renderer && typeof renderer.render === 'function') {
+        // Try to get scene and camera from the graph instance
+        if (typeof this.graph.scene === 'function' && typeof this.graph.camera === 'function') {
+          try {
+            const scene = this.graph.scene();
+            const camera = this.graph.camera();
+            if (scene && camera) {
+              renderer.render(scene, camera);
+            }
+          } catch (err) {
+            // Scene/camera access might not be available
+          }
+        }
+      }
+
+      // Also try the graph's render method if available
+      if (typeof this.graph.render === 'function') {
+        this.graph.render();
+      }
+
+      // Wait for multiple frames to ensure rendering completes
+      // This is important because WebGL rendering is asynchronous
+      await new Promise(resolve => requestAnimationFrame(resolve));
+      await new Promise(resolve => requestAnimationFrame(resolve));
+      
+      // Get the WebGL context and check if preserveDrawingBuffer is enabled
+      // Note: There's no direct way to check preserveDrawingBuffer, but we can try to read pixels
+      const gl = canvas.getContext('webgl', { preserveDrawingBuffer: true }) || 
+                 canvas.getContext('webgl2', { preserveDrawingBuffer: true }) ||
+                 canvas.getContext('webgl') || 
+                 canvas.getContext('webgl2');
+      
+      if (gl) {
+        // Try to read pixels to see if the buffer has content
+        const pixelBuffer = new Uint8Array(4);
+        gl.readPixels(Math.floor(canvas.width / 2), Math.floor(canvas.height / 2), 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, pixelBuffer);
+        const hasContent = pixelBuffer[0] > 0 || pixelBuffer[1] > 0 || pixelBuffer[2] > 0 || pixelBuffer[3] > 0;
+        if (!hasContent) {
+          console.warn('[GraphViz] Canvas appears empty at center pixel. preserveDrawingBuffer may not be enabled or scene not rendered.');
+        }
+      }
+
+      const dataUrl = canvas.toDataURL('image/png');
+      
+      // Check if the data URL is valid (not empty/black)
+      if (dataUrl && dataUrl !== 'data:,' && dataUrl.length > 100) {
+        // Basic check: decode first few bytes to see if it's not just black
+        // A valid PNG should start with PNG signature bytes
+        try {
+          const base64 = dataUrl.split(',')[1];
+          const bytes = atob(base64);
+          // PNG signature is: 89 50 4E 47 0D 0A 1A 0A
+          if (bytes.length > 8 && bytes.charCodeAt(0) === 0x89 && bytes.charCodeAt(1) === 0x50) {
+            return dataUrl;
+          } else {
+            console.warn('[GraphViz] Canvas export returned invalid PNG data');
+          }
+        } catch (err) {
+          console.warn('[GraphViz] Failed to validate PNG data:', err?.message || err);
+        }
+      }
+
+      // If we got here but have a renderer, try one more explicit render
+      if (renderer && typeof renderer.render === 'function') {
+        if (typeof this.graph.scene === 'function' && typeof this.graph.camera === 'function') {
+          try {
+            const scene = this.graph.scene();
+            const camera = this.graph.camera();
+            if (scene && camera) {
+              renderer.render(scene, camera);
+              await new Promise(resolve => requestAnimationFrame(resolve));
+              const retryDataUrl = canvas.toDataURL('image/png');
+              if (retryDataUrl && retryDataUrl !== 'data:,' && retryDataUrl.length > 100) {
+                return retryDataUrl;
+              }
+            }
+          } catch (err) {
+            // Ignore errors
+          }
+        }
+      }
+
+      throw new Error('Canvas export returned empty or invalid image data. The canvas may not have preserveDrawingBuffer enabled.');
+    } catch (err) {
+      console.error('[GraphViz] Canvas export failed:', err?.message || err);
+      throw err;
+    }
   }
 
   /**
