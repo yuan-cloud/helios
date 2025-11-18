@@ -248,6 +248,59 @@ export class GraphVisualization {
         threeLib = window.THREE;
       }
     }
+    
+    // Try one more time: get THREE from the graph's renderer constructor
+    // 3d-force-graph bundles THREE.js internally, we can extract it from the renderer
+    if (!threeLib && graphInstance) {
+      try {
+        // Get renderer from graph instance
+        let renderer = null;
+        if (typeof graphInstance.renderer === 'function') {
+          renderer = graphInstance.renderer();
+        }
+        
+        if (renderer && renderer.constructor) {
+          // THREE.js classes store the namespace in various places
+          const RendererClass = renderer.constructor;
+          
+          // Method 1: Check if constructor has THREE property (some bundlers expose it)
+          if (RendererClass.THREE && RendererClass.THREE.WebGLRenderer) {
+            threeLib = RendererClass.THREE;
+          }
+          
+          // Method 2: Try to find THREE via the scene object
+          if (!threeLib && typeof graphInstance.scene === 'function') {
+            try {
+              const scene = graphInstance.scene();
+              if (scene && scene.constructor) {
+                const SceneClass = scene.constructor;
+                // Check if Scene class has THREE reference
+                if (SceneClass.THREE || (SceneClass.WebGLRenderer && SceneClass.Scene)) {
+                  threeLib = SceneClass.THREE || SceneClass;
+                }
+              }
+            } catch (err) {
+              // Ignore
+            }
+          }
+          
+          // Method 3: Look for THREE in the renderer's prototype chain
+          if (!threeLib) {
+            let proto = RendererClass;
+            while (proto && !threeLib) {
+              // Some bundlers attach THREE to the constructor
+              if (proto.THREE && typeof proto.THREE.WebGLRenderer === 'function') {
+                threeLib = proto.THREE;
+                break;
+              }
+              proto = Object.getPrototypeOf(proto);
+            }
+          }
+        }
+      } catch (err) {
+        // Ignore errors
+      }
+    }
 
     if (threeLib && typeof threeLib.WebGLRenderer === 'function') {
       try {
