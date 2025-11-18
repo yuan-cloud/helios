@@ -1058,7 +1058,7 @@
             };
         }
 
-        function resetAnalysisState({ showProgress = false, progressLabel = 'Preparing analysis...' } = {}) {
+        function resetAnalysisState({ showProgress = false, progressLabel = 'Preparing analysis...', resetVisualization = false } = {}) {
             sourceFiles = [];
             fileHandles = new Map();
             sourceFileIndex.clear();
@@ -1079,6 +1079,18 @@
                 dimension: null
             };
             embeddingError = null;
+            
+            // Reset visualization state if requested (when selecting new repo or loading demo)
+            if (resetVisualization && graphViz) {
+                try {
+                    graphViz.dispose?.();
+                } catch (err) {
+                    console.warn('[resetAnalysisState] Error disposing graphViz:', err);
+                }
+                graphViz = null;
+                controls = null;
+                inspector = null;
+            }
             embeddingFingerprint = null;
             usedCachedEmbeddings = false;
             embeddingReuseCounts = { reused: 0, embedded: 0 };
@@ -1288,7 +1300,7 @@
             try {
                 const directoryHandle = await window.showDirectoryPicker();
                 
-                resetAnalysisState({ showProgress: true, progressLabel: 'Initializing parser...' });
+                resetAnalysisState({ showProgress: true, progressLabel: 'Initializing parser...', resetVisualization: true });
                 embeddingMetadata.backend = embeddingEnvironment.backend || null;
                 updateEmbeddingSummary(embeddingEnvironmentSummary || null);
 
@@ -1729,6 +1741,8 @@
             
             if (inspector) inspector.hide();
             
+            // UX Improvement: After closing visualization, clear results and return to hero page
+            // This provides a clean slate and makes it clear the user can select a new repo
             // Show hero container again when closing visualization
             const heroContainer = document.querySelector('.hero-container');
             if (heroContainer) {
@@ -1739,37 +1753,21 @@
                 heroContainer.style.setProperty('z-index', '5', 'important');
             }
             
-            // Show results container again if it exists AND we have actual repo data (not demo)
-            // Don't show results if we were in demo mode
-            if (resultsContainer && !isDemoMode) {
-                resultsContainer.classList.remove('hidden');
-                resultsContainer.style.setProperty('display', 'block', 'important');
-                resultsContainer.style.setProperty('visibility', 'visible', 'important');
-                resultsContainer.style.setProperty('opacity', '1', 'important');
-            } else {
-                // Hide results if it was demo data
-                if (resultsContainer) {
-                    resultsContainer.classList.add('hidden');
-                    resultsContainer.style.setProperty('display', 'none', 'important');
-                }
+            // Hide results container and visualize button to return to clean state
+            // User can then select a new repo or load demo from the hero page
+            if (resultsContainer) {
+                resultsContainer.classList.add('hidden');
+                resultsContainer.style.setProperty('display', 'none', 'important');
             }
             
-            // Also show visualize button again ONLY if we have actual repo data (not demo)
-            if (visualizeBtn && !isDemoMode) {
-                visualizeBtn.classList.remove('hidden');
-                visualizeBtn.style.display = 'block';
-                visualizeBtn.style.visibility = 'visible';
-                visualizeBtn.style.opacity = '1';
-            } else if (visualizeBtn) {
-                // Hide visualize button if it was demo
+            if (visualizeBtn) {
                 visualizeBtn.classList.add('hidden');
                 visualizeBtn.style.display = 'none';
+                visualizeBtn.blur(); // Remove focus to prevent auto-click
             }
             
-            // Prevent any auto-click on visualize button
-            if (visualizeBtn) {
-                visualizeBtn.blur(); // Remove focus
-            }
+            // Reset demo mode flag when closing
+            isDemoMode = false;
         }
 
         if (vizCloseBtn) {
@@ -1843,7 +1841,7 @@
                 await ensureStorageClient();
                 const demo = getDemoDataset();
 
-                resetAnalysisState({ showProgress: false, progressLabel: 'Preparing demo dataset...' });
+                resetAnalysisState({ showProgress: false, progressLabel: 'Preparing demo dataset...', resetVisualization: true });
 
                 sourceFiles = Array.isArray(demo.sourceFiles)
                     ? demo.sourceFiles.map(file => ({ ...file }))
@@ -2382,11 +2380,26 @@
                     console.log('[Visualization] GraphVisualization initialized');
                 }
 
-            if (!inspector) {
-                inspector = new InspectorPanel(vizInspector);
+            // Always create fresh inspector and controls to avoid state pollution
+            if (inspector) {
+                try {
+                    inspector.hide?.();
+                    inspector = null;
+                } catch (err) {
+                    console.warn('[Visualization] Error disposing inspector:', err);
+                }
             }
+            inspector = new InspectorPanel(vizInspector);
 
-                if (!controls && vizControls) {
+            if (controls) {
+                try {
+                    controls = null;
+                } catch (err) {
+                    console.warn('[Visualization] Error disposing controls:', err);
+                }
+            }
+            
+            if (vizControls) {
                     console.log('[Visualization] Creating VisualizationControls...');
                     console.log('[Visualization] vizControls element:', {
                         exists: !!vizControls,
