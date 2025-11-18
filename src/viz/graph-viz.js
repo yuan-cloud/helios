@@ -209,10 +209,25 @@ export class GraphVisualization {
     // 3d-force-graph may load THREE.js internally, check multiple sources
     let threeLib = null;
     
+    // Method 0: Try to import THREE.js directly (if available as a module)
+    // The "Multiple instances" warning suggests THREE.js is being loaded
+    try {
+      const threeModule = await import('three');
+      if (threeModule && threeModule.WebGLRenderer) {
+        threeLib = threeModule;
+      } else if (threeModule.default && threeModule.default.WebGLRenderer) {
+        threeLib = threeModule.default;
+      }
+    } catch (err) {
+      // THREE.js might not be available as a separate module
+    }
+    
     // First try the module itself
-    threeLib = ForceGraph3DModule.THREE ||
-               (ForceGraph3DModule.default && ForceGraph3DModule.default.THREE) ||
-               (ForceGraph3DModule.ForceGraph3D && ForceGraph3DModule.ForceGraph3D.THREE);
+    if (!threeLib) {
+      threeLib = ForceGraph3DModule.THREE ||
+                 (ForceGraph3DModule.default && ForceGraph3DModule.default.THREE) ||
+                 (ForceGraph3DModule.ForceGraph3D && ForceGraph3DModule.ForceGraph3D.THREE);
+    }
     
     // If not found, check global scope (3d-force-graph may attach it)
     if (!threeLib) {
@@ -241,11 +256,15 @@ export class GraphVisualization {
     }
     
     // Last resort: check if THREE was added to window after module load
+    // Wait longer for async loading (3d-force-graph may load THREE.js async)
     if (!threeLib && typeof window !== 'undefined') {
-      // Wait one tick for async loading
-      await new Promise(resolve => setTimeout(resolve, 0));
-      if (window.THREE) {
-        threeLib = window.THREE;
+      // Wait multiple ticks for async loading
+      for (let i = 0; i < 3 && !threeLib; i++) {
+        await new Promise(resolve => requestAnimationFrame(resolve));
+        if (window.THREE && typeof window.THREE.WebGLRenderer === 'function') {
+          threeLib = window.THREE;
+          break;
+        }
       }
     }
     
@@ -330,7 +349,9 @@ export class GraphVisualization {
         console.warn('[GraphViz] Failed to create custom renderer:', err?.message || err);
       }
     } else {
-      console.warn('[GraphViz] THREE.js not found in module; PNG export will use fallback canvas lookup');
+      // THREE.js not found - this is okay, we'll use fallback canvas lookup for PNG export
+      // The "Multiple instances" warning from THREE.js suggests it's loaded but not accessible
+      console.debug('[GraphViz] THREE.js not found in module; PNG export will use fallback canvas lookup');
     }
 
     this.graph = graphInstance;
