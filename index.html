@@ -1228,6 +1228,17 @@
                 
                 const stats = callGraph?.stats || { totalEdges: 0, staticEdges: 0, dynamicEdges: 0 };
 
+                // Show results container and visualize button immediately after parsing/call graph
+                // Embeddings can continue in background
+                progressContainer.classList.add('hidden');
+                resultsContainer.classList.remove('hidden');
+                visualizeBtn.classList.remove('hidden');
+                
+                counter.textContent = formatCounterMessage();
+                functionsCounter.textContent = `${allFunctions.length} function${allFunctions.length !== 1 ? 's' : ''} extracted · ${stats.totalEdges} call edge${stats.totalEdges !== 1 ? 's' : ''} (${stats.staticEdges} static · ${stats.dynamicEdges} dynamic)`;
+                displayResults();
+
+                // Continue with embeddings in background (non-blocking)
                 if (embeddingManager) {
                     try {
                         embeddingFingerprint = await computeFunctionFingerprint(allFunctions);
@@ -1460,6 +1471,7 @@
                     window.heliosSimilarity = null;
                 }
 
+                // Update graph data as embeddings complete
                 await updateGraphData({
                     functions: allFunctions,
                     callEdges: Array.isArray(callGraph?.edges) ? callGraph.edges : [],
@@ -1485,14 +1497,7 @@
                         : null
                 });
 
-                progressContainer.classList.add('hidden');
-                resultsContainer.classList.remove('hidden');
-                
-                // Show visualize button when results container is shown
-                // (will be hidden again if no data, but shown by default)
-                visualizeBtn.classList.remove('hidden');
-                
-                counter.textContent = formatCounterMessage();
+                // Update counter with embedding info if available
                 const resolutionDetails = [];
                 if (typeof stats.resolvedEdges === 'number') {
                     resolutionDetails.push(`${stats.resolvedEdges} resolved`);
@@ -1529,6 +1534,7 @@
                     similaritySummary = ` · ${similarityEdges.length.toLocaleString()} similarity edge${similarityEdges.length !== 1 ? 's' : ''}`;
                 }
 
+                // Update functions counter with embedding info as it becomes available
                 functionsCounter.textContent = `${allFunctions.length} function${allFunctions.length !== 1 ? 's' : ''} extracted · ${stats.totalEdges} call edge${stats.totalEdges !== 1 ? 's' : ''} (${stats.staticEdges} static · ${stats.dynamicEdges} dynamic)${resolutionSummary}${embeddingSummary}${similaritySummary}`;
 
                 if (!usedCachedEmbeddings && embeddingVectors.length > 0) {
