@@ -1739,11 +1739,8 @@
             }
             
             // Show results container again if it exists AND we have actual repo data (not demo)
-            // Check if we have sourceFiles from actual repo scan
-            const hasActualRepoData = sourceFiles && sourceFiles.length > 0 && 
-                sourceFiles.some(file => file.path && !file.path.includes('demo'));
-            
-            if (resultsContainer && hasActualRepoData) {
+            // Don't show results if we were in demo mode
+            if (resultsContainer && !isDemoMode) {
                 resultsContainer.classList.remove('hidden');
                 resultsContainer.style.setProperty('display', 'block', 'important');
                 resultsContainer.style.setProperty('visibility', 'visible', 'important');
@@ -1756,8 +1753,8 @@
                 }
             }
             
-            // Also show visualize button again ONLY if we have actual repo data
-            if (visualizeBtn && hasActualRepoData) {
+            // Also show visualize button again ONLY if we have actual repo data (not demo)
+            if (visualizeBtn && !isDemoMode) {
                 visualizeBtn.classList.remove('hidden');
                 visualizeBtn.style.display = 'block';
                 visualizeBtn.style.visibility = 'visible';
