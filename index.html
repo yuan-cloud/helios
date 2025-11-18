@@ -316,6 +316,13 @@
         .file-item:hover { background: rgba(30, 41, 59, 0.8); border-left-color: #8b5cf6; transform: translateX(4px); }
 
         .hidden { display: none !important; }
+        
+        /* EMERGENCY: Ensure hero container is always visible unless explicitly hidden */
+        .hero-container:not(.hidden) {
+            display: flex !important;
+            visibility: visible !important;
+            opacity: 1 !important;
+        }
 
         .viz-container {
             position: fixed !important;
@@ -841,20 +848,47 @@
         const vizInspector = document.getElementById('vizInspector');
         const vizCloseBtn = document.getElementById('vizCloseBtn');
         
-        // Ensure hero container is visible on startup
+        // EMERGENCY: Force hero container visible on startup
         const heroContainer = document.querySelector('.hero-container');
         if (heroContainer) {
             heroContainer.classList.remove('hidden');
-            heroContainer.style.display = 'flex';
-            heroContainer.style.visibility = 'visible';
+            heroContainer.style.setProperty('display', 'flex', 'important');
+            heroContainer.style.setProperty('visibility', 'visible', 'important');
+            heroContainer.style.setProperty('opacity', '1', 'important');
+            heroContainer.style.setProperty('z-index', '5', 'important');
+            console.log('[STARTUP] Hero container forced visible');
+        } else {
+            console.error('[STARTUP] CRITICAL: Hero container not found!');
         }
         
-        // Ensure viz container is hidden on startup
+        // EMERGENCY: Force viz container hidden on startup
         if (vizContainer) {
             vizContainer.classList.add('hidden');
-            vizContainer.style.display = 'none';
-            vizContainer.style.visibility = 'hidden';
+            vizContainer.style.setProperty('display', 'none', 'important');
+            vizContainer.style.setProperty('visibility', 'hidden', 'important');
+            vizContainer.style.setProperty('opacity', '0', 'important');
+            console.log('[STARTUP] Viz container forced hidden');
         }
+        
+        // EMERGENCY: Verify we can see something
+        setTimeout(() => {
+            const hero = document.querySelector('.hero-container');
+            const viz = document.getElementById('vizContainer');
+            console.log('[STARTUP] Visibility check:', {
+                heroVisible: hero && window.getComputedStyle(hero).display !== 'none',
+                heroDisplay: hero ? window.getComputedStyle(hero).display : 'MISSING',
+                vizHidden: viz && (viz.classList.contains('hidden') || window.getComputedStyle(viz).display === 'none'),
+                bodyChildren: document.body.children.length
+            });
+            
+            if (!hero || window.getComputedStyle(hero).display === 'none') {
+                console.error('[STARTUP] CRITICAL: Hero container not visible! Forcing again...');
+                if (hero) {
+                    hero.style.setProperty('display', 'flex', 'important');
+                    hero.style.setProperty('visibility', 'visible', 'important');
+                }
+            }
+        }, 100);
         const clearStorageBtn = document.getElementById('clearStorageBtn');
         const storageStatusEl = document.getElementById('storageStatus');
         const STORAGE_FALLBACK_MESSAGE =
