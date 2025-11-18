@@ -1630,6 +1630,17 @@
         vizCloseBtn.addEventListener('click', () => {
             vizContainer.classList.add('hidden');
             if (inspector) inspector.hide();
+            
+            // Show hero container again when closing visualization
+            const heroContainer = document.querySelector('.hero-container');
+            if (heroContainer) {
+                heroContainer.classList.remove('hidden');
+            }
+            
+            // Show results container again
+            if (resultsContainer) {
+                resultsContainer.classList.remove('hidden');
+            }
         });
 
         async function scanDirectory(directoryHandle, currentPath) {
@@ -2117,6 +2128,17 @@
                 }
 
                 vizContainer.classList.remove('hidden');
+                
+                // Hide hero container when showing visualization
+                const heroContainer = document.querySelector('.hero-container');
+                if (heroContainer) {
+                    heroContainer.classList.add('hidden');
+                }
+                
+                // Also hide results container
+                if (resultsContainer) {
+                    resultsContainer.classList.add('hidden');
+                }
 
                 if (!graphViz) {
                     console.log('[Visualization] Creating GraphVisualization instance...');
