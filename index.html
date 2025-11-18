@@ -364,6 +364,8 @@
             visibility: visible !important;
             opacity: 1 !important;
             width: 360px !important;
+            z-index: 150 !important;
+            position: relative !important;
         }
 
         .viz-controls,
@@ -373,6 +375,8 @@
             display: block !important;
             visibility: visible !important;
             opacity: 1 !important;
+            z-index: 151 !important;
+            position: relative !important;
         }
 
         .viz-controls {
@@ -943,6 +947,7 @@
         let inspector = null;
         let controls = null;
         let fullVizData = null;
+        let isDemoMode = false;
         let functionMapById = new Map();
         let embeddingManager = null;
         let embeddingChunks = [];
@@ -1733,20 +1738,39 @@
                 heroContainer.style.setProperty('z-index', '5', 'important');
             }
             
-            // Show results container again if it exists
-            if (resultsContainer) {
+            // Show results container again if it exists AND we have actual repo data (not demo)
+            // Check if we have sourceFiles from actual repo scan
+            const hasActualRepoData = sourceFiles && sourceFiles.length > 0 && 
+                sourceFiles.some(file => file.path && !file.path.includes('demo'));
+            
+            if (resultsContainer && hasActualRepoData) {
                 resultsContainer.classList.remove('hidden');
                 resultsContainer.style.setProperty('display', 'block', 'important');
                 resultsContainer.style.setProperty('visibility', 'visible', 'important');
                 resultsContainer.style.setProperty('opacity', '1', 'important');
+            } else {
+                // Hide results if it was demo data
+                if (resultsContainer) {
+                    resultsContainer.classList.add('hidden');
+                    resultsContainer.style.setProperty('display', 'none', 'important');
+                }
             }
             
-            // Also show visualize button again
-            if (visualizeBtn) {
+            // Also show visualize button again ONLY if we have actual repo data
+            if (visualizeBtn && hasActualRepoData) {
                 visualizeBtn.classList.remove('hidden');
                 visualizeBtn.style.display = 'block';
                 visualizeBtn.style.visibility = 'visible';
                 visualizeBtn.style.opacity = '1';
+            } else if (visualizeBtn) {
+                // Hide visualize button if it was demo
+                visualizeBtn.classList.add('hidden');
+                visualizeBtn.style.display = 'none';
+            }
+            
+            // Prevent any auto-click on visualize button
+            if (visualizeBtn) {
+                visualizeBtn.blur(); // Remove focus
             }
         }
 
