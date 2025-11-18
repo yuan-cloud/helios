@@ -321,32 +321,24 @@ export class GraphVisualization {
       }
     }
 
+    // Try to get existing renderer from graph instance
+    // Don't create a new one - 3d-force-graph already created a WebGL context
+    // and we can't replace it (would cause "Canvas has an existing context" error)
     if (threeLib && typeof threeLib.WebGLRenderer === 'function') {
       try {
-        const renderer = new threeLib.WebGLRenderer({
-          antialias: true,
-          alpha: true,
-          preserveDrawingBuffer: true
-        });
-        if (typeof renderer.setPixelRatio === 'function' && typeof window !== 'undefined') {
-          renderer.setPixelRatio(window.devicePixelRatio || 1);
-        }
-        const { width, height } = this.getContainerDimensions();
-        if (typeof renderer.setSize === 'function') {
-          renderer.setSize(width, height, false);
-        }
-        // Try to set the renderer on the graph instance
+        // Check if graph instance already has a renderer
         if (typeof graphInstance.renderer === 'function') {
-          graphInstance.renderer(renderer);
-          this.customRenderer = renderer;
-          console.log('[GraphViz] Custom renderer configured with preserveDrawingBuffer for PNG export');
-        } else {
-          // Store renderer anyway, might be accessible via the canvas later
-          this.customRenderer = renderer;
-          console.warn('[GraphViz] Renderer created but graphInstance.renderer() not available; using fallback canvas lookup');
+          const existingRenderer = graphInstance.renderer();
+          if (existingRenderer && existingRenderer.domElement) {
+            // Use existing renderer - can't change preserveDrawingBuffer after creation
+            // but we can try to use it for PNG export via html2canvas fallback
+            this.customRenderer = existingRenderer;
+            console.debug('[GraphViz] Using existing renderer from 3d-force-graph (preserveDrawingBuffer may not be enabled; PNG export will use html2canvas fallback)');
+          }
         }
       } catch (err) {
-        console.warn('[GraphViz] Failed to create custom renderer:', err?.message || err);
+        // If we can't get the renderer, that's okay - we'll use html2canvas fallback
+        console.debug('[GraphViz] Could not access renderer from graph instance; PNG export will use html2canvas fallback');
       }
     } else {
       // THREE.js not found - this is okay, we'll use fallback canvas lookup for PNG export
