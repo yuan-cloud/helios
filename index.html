@@ -361,6 +361,12 @@
             display: block !important;
             width: 100% !important;
             height: 100% !important;
+            pointer-events: auto !important;
+            cursor: grab !important;
+        }
+        
+        .viz-graph canvas:active {
+            cursor: grabbing !important;
         }
 
         .viz-sidebar {

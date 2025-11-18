@@ -442,6 +442,14 @@ export class GraphVisualization {
     this.applyGraphData();
     console.log('[GraphViz] applyGraphData completed');
     this.evaluatePerformancePreset(true);
+    
+    // Ensure simulation is running initially (don't start paused)
+    // Animation and interaction should work right away
+    if (this.graph) {
+      this.graph.resumeAnimation();
+      this.pauseSimulation(false);
+    }
+    
     this.emitAnalysisSummary();
 
     return this;
@@ -605,7 +613,10 @@ export class GraphVisualization {
       this.performance.lastSettleMs = Math.max(0, now - this.performance.runStart);
       this.performance.runStart = null;
     }
-    if (this.performanceAutoFreeze && this.autoFreezeOnStability) {
+    // Only auto-freeze if we've been running for a bit and stability is detected
+    // Don't freeze immediately on first engine stop (which happens very quickly)
+    const hasRunForAWhile = this.performance.lastSettleMs && this.performance.lastSettleMs > 2000;
+    if (this.performanceAutoFreeze && this.autoFreezeOnStability && hasRunForAWhile) {
       this.pauseSimulation(true);
     }
     this.scheduleAutoSave();
