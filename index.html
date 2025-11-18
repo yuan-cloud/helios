@@ -856,6 +856,23 @@
             console.error('[STARTUP] CRITICAL ERROR: Required visualization elements missing!');
             alert('ERROR: Visualization elements not found in DOM. Check HTML structure.');
         }
+        
+        // EMERGENCY: Ensure hero container is visible on startup
+        const heroContainer = document.querySelector('.hero-container');
+        if (heroContainer) {
+            heroContainer.classList.remove('hidden');
+            heroContainer.style.display = 'flex';
+            heroContainer.style.visibility = 'visible';
+            console.error('[STARTUP] Hero container forced visible');
+        }
+        
+        // EMERGENCY: Ensure viz container is hidden on startup
+        if (vizContainer) {
+            vizContainer.classList.add('hidden');
+            vizContainer.style.display = 'none';
+            vizContainer.style.visibility = 'hidden';
+            console.error('[STARTUP] Viz container forced hidden');
+        }
         const clearStorageBtn = document.getElementById('clearStorageBtn');
         const storageStatusEl = document.getElementById('storageStatus');
         const STORAGE_FALLBACK_MESSAGE =
@@ -1666,10 +1683,12 @@
         vizCloseBtn?.addEventListener('click', (e) => {
             e.preventDefault();
             e.stopPropagation();
-            console.log('[Visualization] Close button clicked');
+            console.error('[Visualization] Close button clicked - hiding visualization');
             
+            // Hide visualization container
             vizContainer.classList.add('hidden');
             vizContainer.style.display = 'none';
+            vizContainer.style.visibility = 'hidden';
             if (inspector) inspector.hide();
             
             // Show hero container again when closing visualization
@@ -1677,12 +1696,17 @@
             if (heroContainer) {
                 heroContainer.classList.remove('hidden');
                 heroContainer.style.display = 'flex';
+                heroContainer.style.visibility = 'visible';
+                console.error('[Visualization] Hero container restored');
+            } else {
+                console.error('[Visualization] ERROR: Hero container not found!');
             }
             
-            // Show results container again
+            // Show results container again if it exists
             if (resultsContainer) {
                 resultsContainer.classList.remove('hidden');
                 resultsContainer.style.display = 'block';
+                resultsContainer.style.visibility = 'visible';
             }
         });
 
