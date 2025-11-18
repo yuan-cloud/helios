@@ -2146,11 +2146,11 @@
 
         async function initializeVisualization() {
             try {
-                console.log('[Visualization] Initializing visualization...');
+                console.error('[Visualization] ===== INITIALIZING VISUALIZATION =====');
                 
                 if (!callGraph || !callGraph.nodes || callGraph.nodes.length === 0) {
-                    console.error('[Visualization] No call graph data available');
-                    alert('No call graph data available. Please parse a repository first.');
+                    console.error('[Visualization] ERROR: No call graph data available');
+                    alert('ERROR: No call graph data available. Please parse a repository first.');
                     return;
                 }
 
@@ -2161,13 +2161,43 @@
                 vizContainer.style.opacity = '1';
                 vizContainer.style.zIndex = '100';
                 
-                console.log('[Visualization] Viz container visibility:', {
-                    hasHidden: vizContainer.classList.contains('hidden'),
-                    display: window.getComputedStyle(vizContainer).display,
-                    visibility: window.getComputedStyle(vizContainer).visibility,
-                    zIndex: window.getComputedStyle(vizContainer).zIndex,
-                    width: vizContainer.offsetWidth,
-                    height: vizContainer.offsetHeight
+                // EMERGENCY: Force all child elements visible
+                const vizGraphEl = document.getElementById('vizGraph');
+                const vizSidebarEl = vizContainer.querySelector('.viz-sidebar');
+                const vizControlsEl = document.getElementById('vizControls');
+                
+                if (vizGraphEl) {
+                    vizGraphEl.style.display = 'block';
+                    vizGraphEl.style.visibility = 'visible';
+                    vizGraphEl.style.opacity = '1';
+                    vizGraphEl.style.width = '100%';
+                    vizGraphEl.style.height = '100%';
+                }
+                
+                if (vizSidebarEl) {
+                    vizSidebarEl.style.display = 'flex';
+                    vizSidebarEl.style.visibility = 'visible';
+                    vizSidebarEl.style.opacity = '1';
+                }
+                
+                if (vizControlsEl) {
+                    vizControlsEl.style.display = 'block';
+                    vizControlsEl.style.visibility = 'visible';
+                    vizControlsEl.style.opacity = '1';
+                }
+                
+                console.error('[VISUALIZATION] EMERGENCY DEBUG - Container state:', {
+                    containerVisible: !vizContainer.classList.contains('hidden'),
+                    containerDisplay: window.getComputedStyle(vizContainer).display,
+                    containerWidth: vizContainer.offsetWidth,
+                    containerHeight: vizContainer.offsetHeight,
+                    hasVizGraph: !!vizGraphEl,
+                    vizGraphWidth: vizGraphEl?.offsetWidth,
+                    vizGraphHeight: vizGraphEl?.offsetHeight,
+                    hasSidebar: !!vizSidebarEl,
+                    sidebarWidth: vizSidebarEl?.offsetWidth,
+                    hasControls: !!vizControlsEl,
+                    hasCanvas: !!vizGraphEl?.querySelector('canvas')
                 });
                 
                 // Hide hero container when showing visualization
@@ -2184,14 +2214,19 @@
                 }
 
                 if (!graphViz) {
-                    console.log('[Visualization] Creating GraphVisualization instance...');
+                    console.error('[Visualization] Creating GraphVisualization instance...');
+                    if (!vizGraph) {
+                        console.error('[Visualization] ERROR: vizGraph element not found!');
+                        alert('ERROR: Graph container element not found!');
+                        return;
+                    }
                     graphViz = new GraphVisualization(vizGraph);
-                    console.log('[Visualization] Initializing GraphVisualization...');
+                    console.error('[Visualization] Initializing GraphVisualization...');
                     await graphViz.initialize();
                     graphViz.onNodeClick = handleNodeClick;
                     graphViz.onNodeHover = handleNodeHover;
                     graphViz.onFilterChange = applyVisualizationFilters;
-                    console.log('[Visualization] GraphVisualization initialized');
+                    console.error('[Visualization] GraphVisualization initialized');
                 }
 
             if (!inspector) {
@@ -2199,14 +2234,15 @@
             }
 
                 if (!controls && vizControls) {
-                console.log('[Visualization] Creating VisualizationControls...');
+                console.error('[Visualization] Creating VisualizationControls...');
                 controls = new VisualizationControls(vizControls, graphViz);
                 if (typeof controls.setEmbeddingSummary === 'function') {
                     controls.setEmbeddingSummary(latestEmbeddingSummary || null);
                 }
-                console.log('[Visualization] VisualizationControls created');
+                console.error('[Visualization] VisualizationControls created');
             } else if (!vizControls) {
-                console.error('[Visualization] vizControls element not found!');
+                console.error('[Visualization] ERROR: vizControls element not found!');
+                alert('ERROR: Controls container not found!');
             }
 
             graphViz.onHoverDetails = (info) => {
@@ -2267,24 +2303,27 @@
                 graphViz.setLayoutStorageProvider(null);
             }
 
-            console.log('[Visualization] Preparing visualization data...');
-            console.log('[Visualization] fullVizData:', {
+            console.error('[Visualization] Preparing visualization data...');
+            console.error('[Visualization] fullVizData:', {
                 nodes: fullVizData?.nodes?.length || 0,
                 links: fullVizData?.links?.length || 0,
-                hasData: !!(fullVizData && fullVizData.nodes && fullVizData.nodes.length > 0)
+                hasData: !!(fullVizData && fullVizData.nodes && fullVizData.nodes.length > 0),
+                callGraphNodes: callGraph?.nodes?.length || 0,
+                callGraphEdges: callGraph?.edges?.length || 0
             });
             
             if (!fullVizData || !fullVizData.nodes || fullVizData.nodes.length === 0) {
-                console.error('[Visualization] No visualization data available!', { fullVizData, callGraph, graphSerialized });
-                alert('No graph data available to visualize. Please ensure parsing completed successfully.');
+                console.error('[Visualization] ERROR: No visualization data available!', { fullVizData, callGraph, graphSerialized });
+                alert('ERROR: No graph data available to visualize. Please ensure parsing completed successfully.');
                 return;
             }
             
             const initialFilters = controls ? controls.getFilters() : {};
+            console.error('[Visualization] Calling applyVisualizationFilters with', fullVizData.nodes.length, 'nodes');
             applyVisualizationFilters(initialFilters);
-            console.log('[Visualization] Filters applied, data loaded to graph');
+            console.error('[Visualization] Filters applied, data loaded to graph');
 
-            console.log('[Visualization] Restoring layout...');
+            console.error('[Visualization] Restoring layout...');
             const restored = await graphViz.restoreLayoutFromStorage({ freeze: true });
             const loadInfo = graphViz.getLastLayoutLoadResult
                 ? graphViz.getLastLayoutLoadResult()
@@ -2298,14 +2337,35 @@
                 });
             }
 
-            console.log('[Visualization] Fitting to view...');
+            console.error('[Visualization] Fitting to view...');
             if (!restored) {
                 setTimeout(() => graphViz.fitToView(), 400);
             } else {
                 graphViz.fitToView();
             }
             
-            console.log('[Visualization] Initialization complete');
+            // EMERGENCY: Final check - verify everything is visible and has data
+            setTimeout(() => {
+              const canvas = vizGraph?.querySelector('canvas');
+              console.error('[Visualization] FINAL CHECK:', {
+                hasCanvas: !!canvas,
+                canvasWidth: canvas?.width,
+                canvasHeight: canvas?.height,
+                graphHasData: graphViz?.data?.nodes?.length || 0,
+                graphInstance: !!graphViz?.graph,
+                sidebarVisible: window.getComputedStyle(vizSidebarEl || {}).display !== 'none',
+                controlsVisible: window.getComputedStyle(vizControlsEl || {}).display !== 'none'
+              });
+              
+              if (!canvas) {
+                alert('ERROR: Canvas not found! Graph may not be rendering.');
+              }
+              if (!graphViz?.data?.nodes?.length) {
+                alert('ERROR: Graph has no data!');
+              }
+            }, 1000);
+            
+            console.error('[Visualization] Initialization complete');
             } catch (error) {
                 console.error('[Visualization] Failed to initialize visualization:', error);
                 alert(`Failed to initialize visualization: ${error.message || error}. Check console for details.`);
