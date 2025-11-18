@@ -414,10 +414,12 @@ export class GraphVisualization {
       throw new Error('Invalid graph data format');
     }
 
-    console.log('[GraphViz] loadData:', data.nodes.length, 'nodes,', data.links.length, 'links');
+    console.log('[GraphViz] loadData called:', data.nodes.length, 'nodes,', data.links.length, 'links');
 
     const normalizedNodes = data.nodes.map(node => this.normalizeNode(node));
     const normalizedLinks = data.links.map(link => this.normalizeLink(link));
+
+    console.log('[GraphViz] Data normalized:', normalizedNodes.length, 'nodes,', normalizedLinks.length, 'links');
 
     this.data = {
       nodes: normalizedNodes,
@@ -433,9 +435,12 @@ export class GraphVisualization {
     this.cancelPendingAutoSave();
 
     this.filteredLinks = this.filterLinks(normalizedLinks);
+    console.log('[GraphViz] Filtered links:', this.filteredLinks.length);
     this.buildAdjacencyMap(normalizedNodes, this.filteredLinks);
 
+    console.log('[GraphViz] Calling applyGraphData...');
     this.applyGraphData();
+    console.log('[GraphViz] applyGraphData completed');
     this.evaluatePerformancePreset(true);
     this.emitAnalysisSummary();
 
@@ -1742,14 +1747,14 @@ export class GraphVisualization {
       return true;
     });
   
-    console.debug('[GraphViz] Rendering', nodes.length, 'nodes and', links.length, 'links');
+    console.log('[GraphViz] Rendering', nodes.length, 'nodes and', links.length, 'links');
 
     if (!this.graph) {
       console.error('[GraphViz] ERROR: graph instance is null! Cannot render.');
       return;
     }
 
-    this.graph.graphData({ 
+    const graphDataToSet = {
       nodes, 
       links: links.map(link => ({
         ...link,
@@ -1758,8 +1763,28 @@ export class GraphVisualization {
         sourceId: link.sourceId || link.source,
         targetId: link.targetId || link.target
       }))
-    });
-    this.repaintGraph();
+    };
+    
+    console.log('[GraphViz] Setting graphData with', graphDataToSet.nodes.length, 'nodes and', graphDataToSet.links.length, 'links');
+    
+    try {
+      this.graph.graphData(graphDataToSet);
+      console.log('[GraphViz] graphData() called successfully');
+      
+      this.repaintGraph();
+      console.log('[GraphViz] repaintGraph() called');
+      
+      // Verify canvas exists after render
+      const canvas = this.container?.querySelector('canvas');
+      if (canvas) {
+        console.log('[GraphViz] Canvas found after render:', canvas.width, 'x', canvas.height);
+      } else {
+        console.error('[GraphViz] ERROR: Canvas not found after render!');
+      }
+    } catch (err) {
+      console.error('[GraphViz] ERROR in graphData() or repaintGraph():', err);
+      throw err;
+    }
 
     // Refresh hover detail listeners with current state
     if (this.onHoverDetails) {

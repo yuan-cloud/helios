@@ -2769,10 +2769,15 @@
             const allowedIds = new Set(filteredNodes.map(node => node.id));
             const filteredLinks = fullVizData.links.filter(link => allowedIds.has(link.source) && allowedIds.has(link.target));
 
+            console.log('[applyVisualizationFilters] Filtered to', filteredNodes.length, 'nodes and', filteredLinks.length, 'links');
+            console.log('[applyVisualizationFilters] Calling graphViz.loadData...');
+            
             try {
                 graphViz.loadData({ nodes: filteredNodes, links: filteredLinks });
+                console.log('[applyVisualizationFilters] loadData() completed successfully');
             } catch (err) {
                 console.error('[applyVisualizationFilters] ERROR in graphViz.loadData():', err);
+                alert('ERROR: Failed to load graph data: ' + (err.message || err));
                 throw err;
             }
         }
