@@ -1709,32 +1709,63 @@
             await initializeVisualization();
         });
 
-        vizCloseBtn?.addEventListener('click', (e) => {
-            e.preventDefault();
-            e.stopPropagation();
+        function handleCloseVisualization() {
             console.log('[Visualization] Close button clicked');
             
             // Hide visualization container
-            vizContainer.classList.add('hidden');
-            vizContainer.style.display = 'none';
-            vizContainer.style.visibility = 'hidden';
+            if (vizContainer) {
+                vizContainer.classList.add('hidden');
+                vizContainer.style.setProperty('display', 'none', 'important');
+                vizContainer.style.setProperty('visibility', 'hidden', 'important');
+                vizContainer.style.setProperty('opacity', '0', 'important');
+                vizContainer.style.setProperty('z-index', '-1', 'important');
+            }
+            
             if (inspector) inspector.hide();
             
             // Show hero container again when closing visualization
             const heroContainer = document.querySelector('.hero-container');
             if (heroContainer) {
                 heroContainer.classList.remove('hidden');
-                heroContainer.style.display = 'flex';
-                heroContainer.style.visibility = 'visible';
+                heroContainer.style.setProperty('display', 'flex', 'important');
+                heroContainer.style.setProperty('visibility', 'visible', 'important');
+                heroContainer.style.setProperty('opacity', '1', 'important');
+                heroContainer.style.setProperty('z-index', '5', 'important');
             }
             
             // Show results container again if it exists
             if (resultsContainer) {
                 resultsContainer.classList.remove('hidden');
-                resultsContainer.style.display = 'block';
-                resultsContainer.style.visibility = 'visible';
+                resultsContainer.style.setProperty('display', 'block', 'important');
+                resultsContainer.style.setProperty('visibility', 'visible', 'important');
+                resultsContainer.style.setProperty('opacity', '1', 'important');
             }
-        });
+            
+            // Also show visualize button again
+            if (visualizeBtn) {
+                visualizeBtn.classList.remove('hidden');
+                visualizeBtn.style.display = 'block';
+                visualizeBtn.style.visibility = 'visible';
+                visualizeBtn.style.opacity = '1';
+            }
+        }
+
+        if (vizCloseBtn) {
+            console.log('[STARTUP] Setting up close button handler, button exists:', !!vizCloseBtn);
+            vizCloseBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                handleCloseVisualization();
+            });
+            // Also try mousedown/touchstart as fallback
+            vizCloseBtn.addEventListener('mousedown', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                handleCloseVisualization();
+            });
+        } else {
+            console.error('[STARTUP] ERROR: vizCloseBtn not found!');
+        }
 
         async function scanDirectory(directoryHandle, currentPath) {
                 for await (const entry of directoryHandle.values()) {
