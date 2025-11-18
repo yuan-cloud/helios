@@ -2324,7 +2324,12 @@ export class GraphVisualization {
     }
 
     this.currentNonNeighborOpacity += diff * 0.2;
-    this.repaintGraph();
+    // Only repaint every other frame during animation to reduce work per frame
+    // The graph will still animate smoothly, but with less per-frame overhead
+    const shouldRepaint = Math.abs(diff) > 0.05; // Only skip repaint when very close to target
+    if (shouldRepaint) {
+      this.repaintGraph();
+    }
     this.fadeAnimationFrame = requestAnimationFrame(() => this.animateFadeStep());
   }
 }
