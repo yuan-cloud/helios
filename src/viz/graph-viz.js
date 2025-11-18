@@ -358,7 +358,25 @@ export class GraphVisualization {
     }
 
     // Mount to container
-   // this.graph(this.container);
+    // Note: graphInstance is already mounted via ForceGraph3D()(this.container) above
+    
+    // Ensure container is visible and has dimensions
+    if (this.container) {
+      const containerStyle = window.getComputedStyle(this.container);
+      const width = this.container.clientWidth || this.container.offsetWidth;
+      const height = this.container.clientHeight || this.container.offsetHeight;
+      
+      console.log(`[GraphViz] Container dimensions: ${width}x${height}, display: ${containerStyle.display}, visibility: ${containerStyle.visibility}`);
+      
+      // Verify canvas was created
+      const canvas = this.container.querySelector('canvas');
+      if (canvas) {
+        const canvasStyle = window.getComputedStyle(canvas);
+        console.log(`[GraphViz] Canvas found: ${canvas.width}x${canvas.height}, display: ${canvasStyle.display}, visibility: ${canvasStyle.visibility}`);
+      } else {
+        console.warn('[GraphViz] Canvas not found in container - graph may not be rendering');
+      }
+    }
 
     this.applyPerformancePreset(this.performance.mode);
     // Set initial camera
