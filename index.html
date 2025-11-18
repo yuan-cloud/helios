@@ -840,6 +840,22 @@
         const vizControls = document.getElementById('vizControls');
         const vizInspector = document.getElementById('vizInspector');
         const vizCloseBtn = document.getElementById('vizCloseBtn');
+        
+        // EMERGENCY: Verify all visualization elements exist at startup
+        console.error('[STARTUP] Checking visualization DOM elements:', {
+            hasVizContainer: !!vizContainer,
+            hasVizGraph: !!vizGraph,
+            hasVizControls: !!vizControls,
+            hasVizInspector: !!vizInspector,
+            hasVizCloseBtn: !!vizCloseBtn,
+            vizContainerHTML: vizContainer ? vizContainer.innerHTML.substring(0, 200) : 'MISSING',
+            vizGraphHTML: vizGraph ? vizGraph.innerHTML.substring(0, 200) : 'MISSING'
+        });
+        
+        if (!vizContainer || !vizGraph || !vizControls) {
+            console.error('[STARTUP] CRITICAL ERROR: Required visualization elements missing!');
+            alert('ERROR: Visualization elements not found in DOM. Check HTML structure.');
+        }
         const clearStorageBtn = document.getElementById('clearStorageBtn');
         const storageStatusEl = document.getElementById('storageStatus');
         const STORAGE_FALLBACK_MESSAGE =
