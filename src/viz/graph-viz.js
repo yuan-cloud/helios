@@ -205,31 +205,43 @@ export class GraphVisualization {
       .showNavInfo(false)
       .cameraPosition({ x: 0, y: 0, z: 1000 });
 
+    // Try to access THREE.js from various locations
     const threeLib =
       ForceGraph3DModule.THREE ||
       (ForceGraph3DModule.default && ForceGraph3DModule.default.THREE) ||
       (ForceGraph3DModule.ForceGraph3D && ForceGraph3DModule.ForceGraph3D.THREE) ||
-      (typeof globalThis !== 'undefined' ? globalThis.THREE : null);
+      (typeof globalThis !== 'undefined' ? globalThis.THREE : null) ||
+      (typeof window !== 'undefined' ? window.THREE : null);
 
     if (threeLib && typeof threeLib.WebGLRenderer === 'function') {
-      const renderer = new threeLib.WebGLRenderer({
-        antialias: true,
-        alpha: true,
-        preserveDrawingBuffer: true
-      });
-      if (typeof renderer.setPixelRatio === 'function' && typeof window !== 'undefined') {
-        renderer.setPixelRatio(window.devicePixelRatio || 1);
-      }
-      const { width, height } = this.getContainerDimensions();
-      if (typeof renderer.setSize === 'function') {
-        renderer.setSize(width, height, false);
-      }
-      if (typeof graphInstance.renderer === 'function') {
-        graphInstance.renderer(renderer);
-        this.customRenderer = renderer;
+      try {
+        const renderer = new threeLib.WebGLRenderer({
+          antialias: true,
+          alpha: true,
+          preserveDrawingBuffer: true
+        });
+        if (typeof renderer.setPixelRatio === 'function' && typeof window !== 'undefined') {
+          renderer.setPixelRatio(window.devicePixelRatio || 1);
+        }
+        const { width, height } = this.getContainerDimensions();
+        if (typeof renderer.setSize === 'function') {
+          renderer.setSize(width, height, false);
+        }
+        // Try to set the renderer on the graph instance
+        if (typeof graphInstance.renderer === 'function') {
+          graphInstance.renderer(renderer);
+          this.customRenderer = renderer;
+          console.log('[GraphViz] Custom renderer configured with preserveDrawingBuffer for PNG export');
+        } else {
+          // Store renderer anyway, might be accessible via the canvas later
+          this.customRenderer = renderer;
+          console.warn('[GraphViz] Renderer created but graphInstance.renderer() not available; using fallback canvas lookup');
+        }
+      } catch (err) {
+        console.warn('[GraphViz] Failed to create custom renderer:', err?.message || err);
       }
     } else {
-      console.warn('[GraphViz] Unable to configure custom renderer; PNG export may be disabled.');
+      console.warn('[GraphViz] THREE.js not found in module; PNG export will use fallback canvas lookup');
     }
 
     this.graph = graphInstance;
@@ -2114,28 +2126,82 @@ export class GraphVisualization {
 
     // Try to use 3d-force-graph's screenshot method if available
     if (typeof this.graph.screenshot === 'function') {
-      const dataUrl = await this.graph.screenshot();
-      if (dataUrl) {
-        return dataUrl;
+      try {
+        const dataUrl = await this.graph.screenshot();
+        if (dataUrl && dataUrl !== 'data:,') {
+          return dataUrl;
+        }
+      } catch (err) {
+        console.warn('[GraphViz] Screenshot method failed:', err?.message || err);
       }
     }
 
-    // Fallback: use custom renderer's canvas
+    // Try custom renderer's canvas first (has preserveDrawingBuffer)
     if (this.customRenderer && this.customRenderer.domElement) {
       const canvas = this.customRenderer.domElement;
       if (canvas && typeof canvas.toDataURL === 'function') {
-        // Ensure the graph is rendered before capturing
-        if (typeof this.graph.render === 'function') {
-          this.graph.render();
-        }
-        const dataUrl = canvas.toDataURL('image/png');
-        if (dataUrl) {
-          return dataUrl;
+        try {
+          // Ensure the graph is rendered before capturing
+          if (typeof this.graph.render === 'function') {
+            this.graph.render();
+          }
+          // Wait a frame to ensure rendering completes
+          await new Promise(resolve => requestAnimationFrame(resolve));
+          const dataUrl = canvas.toDataURL('image/png');
+          if (dataUrl && dataUrl !== 'data:,') {
+            return dataUrl;
+          }
+        } catch (err) {
+          console.warn('[GraphViz] Custom renderer canvas export failed:', err?.message || err);
         }
       }
     }
 
-    throw new Error('Graph renderer is not ready to export. Screenshot functionality requires a custom WebGL renderer with preserveDrawingBuffer enabled.');
+    // Try to get renderer from graph instance (might be set internally)
+    let canvas = null;
+    if (this.graph && typeof this.graph.renderer === 'function') {
+      try {
+        const renderer = this.graph.renderer();
+        if (renderer && renderer.domElement) {
+          canvas = renderer.domElement;
+        }
+      } catch (err) {
+        // graphInstance.renderer() might not be a getter
+      }
+    }
+
+    // Fallback: find canvas element in container (3d-force-graph creates one)
+    if (!canvas && this.container) {
+      canvas = this.container.querySelector('canvas');
+    }
+
+    if (canvas && typeof canvas.toDataURL === 'function') {
+      try {
+        // Try to render first if possible
+        if (typeof this.graph.render === 'function') {
+          this.graph.render();
+        }
+        // Wait a frame to ensure rendering completes
+        await new Promise(resolve => requestAnimationFrame(resolve));
+        const dataUrl = canvas.toDataURL('image/png');
+        if (dataUrl && dataUrl !== 'data:,') {
+          // Even if preserveDrawingBuffer wasn't set, sometimes it still works
+          return dataUrl;
+        } else {
+          console.warn('[GraphViz] Canvas toDataURL returned empty/invalid data; preserveDrawingBuffer may not be enabled');
+        }
+      } catch (err) {
+        console.warn('[GraphViz] Canvas export failed:', err?.message || err);
+      }
+    }
+
+    const hasCustomRenderer = !!this.customRenderer;
+    const hasCanvas = !!canvas;
+    throw new Error(
+      `Graph renderer is not ready to export. ` +
+      `Screenshot functionality requires a WebGL canvas with preserveDrawingBuffer enabled. ` +
+      `(customRenderer: ${hasCustomRenderer}, canvas: ${hasCanvas})`
+    );
   }
 
   /**
