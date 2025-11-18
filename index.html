@@ -1311,6 +1311,7 @@
                 // Show results container and visualize button immediately after parsing/call graph
                 // Embeddings can continue in background
                 progressContainer.classList.add('hidden');
+                isDemoMode = false; // Mark that we're parsing actual repo, not demo
                 resultsContainer.classList.remove('hidden');
                 visualizeBtn.classList.remove('hidden');
                 visualizeBtn.style.display = 'block';
