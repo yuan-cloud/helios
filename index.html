@@ -3268,6 +3268,9 @@
             progressContainer.classList.add('hidden');
             resultsContainer.classList.remove('hidden');
             visualizeBtn.classList.remove('hidden');
+            visualizeBtn.style.display = 'block';
+            visualizeBtn.style.visibility = 'visible';
+            visualizeBtn.style.opacity = '1';
 
             resumeSnapshot = snapshot;
             await initializeVisualization();
