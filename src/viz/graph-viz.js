@@ -1719,7 +1719,7 @@ export class GraphVisualization {
       return true;
     });
   
-    console.log(`Rendering ${nodes.length} nodes and ${links.length} links (filtered from ${allLinks.length})`);
+    console.debug(`Rendering ${nodes.length} nodes and ${links.length} links (filtered from ${allLinks.length})`);
 
     this.graph.graphData({ 
       nodes, 

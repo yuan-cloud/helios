@@ -74,13 +74,8 @@ export class GraphWorkerClient {
           viaWorker: true
         };
       } catch (error) {
-        // Only log if it's not an expected disposal during fallback
-        const isExpectedDisposal = error?.message?.includes('Graph worker disposed');
-        if (!isExpectedDisposal) {
-          console.warn('[GraphWorkerClient] Worker request failed, falling back to inline computation:', error);
-        } else {
-          console.debug('[GraphWorkerClient] Falling back to inline computation (worker already disposed)');
-        }
+        // Worker failure is expected - fallback to inline computation silently
+        // (initial failure already logged at debug level)
         this.useWorker = false;
         this.dispose(true); // Mark as fallback to reduce noise
       }
