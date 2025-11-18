@@ -821,6 +821,20 @@
                 }
             }
         });
+        
+        // Suppress console warnings about multiple d3.js instances (harmless - 3d-force-graph bundles d3-force)
+        const originalWarn = console.warn;
+        console.warn = function(...args) {
+            const message = args.join(' ');
+            if (typeof message === 'string' && 
+                (message.includes('Multiple instances of d3') || 
+                 message.includes('Multiple instances of D3'))) {
+                // Suppress the warning - it's harmless (3d-force-graph bundles d3-force)
+                console.debug('[HELIOS] Suppressed multiple d3.js instance warning (harmless)');
+                return;
+            }
+            originalWarn.apply(console, args);
+        };
 
         import { parserManager } from './src/parser/parser.js';
         import { extractJavaScript } from './src/extractors/javascript.js';
