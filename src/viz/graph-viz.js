@@ -2108,15 +2108,34 @@ export class GraphVisualization {
    * Export graph as PNG
    */
   async exportPNG() {
-    if (!this.graph || typeof this.graph.screenshot !== 'function') {
+    if (!this.graph) {
       throw new Error('Graph renderer is not ready to export.');
     }
 
-    const dataUrl = await this.graph.screenshot();
-    if (!dataUrl) {
-      throw new Error('Screenshot operation did not return an image.');
+    // Try to use 3d-force-graph's screenshot method if available
+    if (typeof this.graph.screenshot === 'function') {
+      const dataUrl = await this.graph.screenshot();
+      if (dataUrl) {
+        return dataUrl;
+      }
     }
-    return dataUrl;
+
+    // Fallback: use custom renderer's canvas
+    if (this.customRenderer && this.customRenderer.domElement) {
+      const canvas = this.customRenderer.domElement;
+      if (canvas && typeof canvas.toDataURL === 'function') {
+        // Ensure the graph is rendered before capturing
+        if (typeof this.graph.render === 'function') {
+          this.graph.render();
+        }
+        const dataUrl = canvas.toDataURL('image/png');
+        if (dataUrl) {
+          return dataUrl;
+        }
+      }
+    }
+
+    throw new Error('Graph renderer is not ready to export. Screenshot functionality requires a custom WebGL renderer with preserveDrawingBuffer enabled.');
   }
 
   /**
