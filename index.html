@@ -2277,15 +2277,32 @@
                 }
                 
                 if (vizSidebarEl) {
-                    vizSidebarEl.style.display = 'flex';
-                    vizSidebarEl.style.visibility = 'visible';
-                    vizSidebarEl.style.opacity = '1';
+                    vizSidebarEl.style.setProperty('display', 'flex', 'important');
+                    vizSidebarEl.style.setProperty('visibility', 'visible', 'important');
+                    vizSidebarEl.style.setProperty('opacity', '1', 'important');
+                    vizSidebarEl.style.setProperty('width', '360px', 'important');
+                    vizSidebarEl.style.setProperty('min-width', '360px', 'important');
+                    vizSidebarEl.style.setProperty('max-width', '360px', 'important');
+                    console.log('[Visualization] Sidebar forced visible, width:', vizSidebarEl.offsetWidth);
+                } else {
+                    console.error('[Visualization] ERROR: vizSidebarEl not found!');
                 }
                 
                 if (vizControlsEl) {
-                    vizControlsEl.style.display = 'block';
-                    vizControlsEl.style.visibility = 'visible';
-                    vizControlsEl.style.opacity = '1';
+                    vizControlsEl.style.setProperty('display', 'block', 'important');
+                    vizControlsEl.style.setProperty('visibility', 'visible', 'important');
+                    vizControlsEl.style.setProperty('opacity', '1', 'important');
+                    console.log('[Visualization] Controls forced visible, has content:', vizControlsEl.innerHTML.length > 0);
+                } else {
+                    console.error('[Visualization] ERROR: vizControlsEl not found!');
+                }
+                
+                // Also check inspector
+                const vizInspectorEl = document.getElementById('vizInspector');
+                if (vizInspectorEl) {
+                    vizInspectorEl.style.setProperty('display', 'block', 'important');
+                    vizInspectorEl.style.setProperty('visibility', 'visible', 'important');
+                    vizInspectorEl.style.setProperty('opacity', '1', 'important');
                 }
                 
                 // Ensure close button is visible and clickable
@@ -2786,8 +2803,8 @@
         }
 
         function applyVisualizationFilters(filters = {}) {
-            console.error('[applyVisualizationFilters] Called with filters:', filters);
-            console.error('[applyVisualizationFilters] graphViz exists:', !!graphViz, 'fullVizData exists:', !!fullVizData);
+            console.log('[applyVisualizationFilters] Called with filters:', filters);
+            console.log('[applyVisualizationFilters] graphViz exists:', !!graphViz, 'fullVizData exists:', !!fullVizData);
             
             if (!graphViz || !fullVizData) {
                 console.error('[applyVisualizationFilters] ERROR: Missing graphViz or fullVizData!', {
@@ -2799,6 +2816,16 @@
             }
             
             console.log('[applyVisualizationFilters] fullVizData has', fullVizData.nodes.length, 'nodes and', fullVizData.links.length, 'links');
+            
+            // Verify data structure
+            if (!Array.isArray(fullVizData.nodes)) {
+                console.error('[applyVisualizationFilters] ERROR: fullVizData.nodes is not an array!', typeof fullVizData.nodes, fullVizData);
+                return;
+            }
+            if (!Array.isArray(fullVizData.links)) {
+                console.error('[applyVisualizationFilters] ERROR: fullVizData.links is not an array!', typeof fullVizData.links, fullVizData);
+                return;
+            }
 
             try {
                 const moduleFilter = filters.module?.toLowerCase() || filters.folder?.toLowerCase() || '';
