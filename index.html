@@ -2008,15 +2008,18 @@
                     demoLoadingLabel.textContent = 'Rendering visualization...';
                 }
 
+                console.log('[Demo] Auto-opening visualization...');
                 await initializeVisualization();
                 if (controls && similarityStats) {
                     controls.updateSimilarityControls(similarityStats, { minWeight: similarityStats.min ?? 0 });
                 }
 
                 setStorageStatus('Demo dataset loaded (in-memory sample).', 'info');
+                console.log('[Demo] Visualization should now be visible');
             } catch (err) {
-                console.error('Failed to load demo dataset:', err);
-                alert('Failed to load demo dataset. See console for details.');
+                console.error('[Demo] Failed to load demo dataset:', err);
+                console.error('[Demo] Error details:', err?.stack || err);
+                alert('Failed to load demo dataset: ' + (err?.message || err) + '\n\nCheck console for details.');
             } finally {
                 hideDemoLoading();
                 loadDemoBtn.disabled = false;
@@ -2274,12 +2277,20 @@
         async function initializeVisualization() {
             try {
                 console.log('[Visualization] Initializing visualization...');
+                console.log('[Visualization] callGraph exists:', !!callGraph);
+                console.log('[Visualization] callGraph.nodes:', callGraph?.nodes?.length || 0);
                 
                 if (!callGraph || !callGraph.nodes || callGraph.nodes.length === 0) {
-                    console.warn('[Visualization] No call graph data available');
+                    console.error('[Visualization] No call graph data available!', {
+                        hasCallGraph: !!callGraph,
+                        nodesLength: callGraph?.nodes?.length || 0,
+                        allFunctionsLength: allFunctions.length
+                    });
                     alert('No call graph data available. Please parse a repository first.');
                     return;
                 }
+                
+                console.log('[Visualization] Call graph validated, proceeding with initialization...');
 
                 // Force show viz container
                 vizContainer.classList.remove('hidden');
