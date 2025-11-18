@@ -33,7 +33,7 @@ export class GraphWorkerClient {
     this.pending = new Map();
   }
 
-  dispose() {
+  dispose(isFallback = false) {
     if (this.worker) {
       this.worker.terminate();
       this.worker = null;
@@ -42,11 +42,18 @@ export class GraphWorkerClient {
     // (not during normal error fallback)
     if (this.pending.size > 0) {
       const pendingCount = this.pending.size;
-      this.pending.forEach(entry => entry.reject(new Error('Graph worker disposed')));
+      const error = isFallback 
+        ? new Error('Graph worker disposed (fallback)')
+        : new Error('Graph worker disposed');
+      this.pending.forEach(entry => entry.reject(error));
       this.pending.clear();
-      // Only warn if there were pending requests (unexpected disposal)
+      // Only log if there were pending requests (debug level for fallback)
       if (pendingCount > 0) {
-        console.debug(`[GraphWorkerClient] Disposed worker with ${pendingCount} pending request(s)`);
+        if (isFallback) {
+          console.debug(`[GraphWorkerClient] Disposed worker with ${pendingCount} pending request(s) during fallback`);
+        } else {
+          console.debug(`[GraphWorkerClient] Disposed worker with ${pendingCount} pending request(s)`);
+        }
       }
     }
   }
@@ -67,9 +74,15 @@ export class GraphWorkerClient {
           viaWorker: true
         };
       } catch (error) {
-        console.warn('[GraphWorkerClient] Worker request failed, falling back to inline computation:', error);
+        // Only log if it's not an expected disposal during fallback
+        const isExpectedDisposal = error?.message?.includes('Graph worker disposed');
+        if (!isExpectedDisposal) {
+          console.warn('[GraphWorkerClient] Worker request failed, falling back to inline computation:', error);
+        } else {
+          console.debug('[GraphWorkerClient] Falling back to inline computation (worker already disposed)');
+        }
         this.useWorker = false;
-        this.dispose();
+        this.dispose(true); // Mark as fallback to reduce noise
       }
     }
 
@@ -113,9 +126,10 @@ export class GraphWorkerClient {
         event?.message ||
         event?.error?.message ||
         (event?.filename ? `${event.filename}:${event.lineno ?? 0}:${event.colno ?? 0}` : 'unknown error');
-      console.warn(`[GraphWorkerClient] Graph worker failed (${message}); falling back to inline analysis.`);
+      // Use debug level - fallback to inline computation is automatic and expected
+      console.debug(`[GraphWorkerClient] Graph worker failed (${message}); falling back to inline analysis.`);
       this.useWorker = false;
-      this.dispose();
+      this.dispose(true); // Mark as fallback to reduce noise
     });
     return this.worker;
   }
