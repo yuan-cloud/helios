@@ -1337,7 +1337,15 @@
                 // Auto-open visualization after parsing repo (consistent with demo behavior)
                 // This provides better UX - user doesn't need to click another button
                 console.log('[Repo Selection] Auto-opening visualization after parsing...');
-                await initializeVisualization();
+                try {
+                    await initializeVisualization();
+                } catch (err) {
+                    console.error('[Repo Selection] Failed to auto-open visualization:', err);
+                    console.error('[Repo Selection] Error details:', err?.stack || err);
+                    // Don't hide results container on error - let user retry with visualize button
+                    // The error is logged, but we keep the UI visible so user can click "Visualize Graph" to retry
+                    alert('Visualization failed to open automatically. Please click "Visualize Graph" to retry.\n\nError: ' + (err?.message || err));
+                }
 
                 // Continue with embeddings in background (non-blocking)
                 if (embeddingManager) {
@@ -2368,13 +2376,15 @@
                 });
                 
                 // Hide hero container when showing visualization
+                // Only hide if we successfully got past validation
                 const heroContainer = document.querySelector('.hero-container');
                 if (heroContainer) {
                     heroContainer.classList.add('hidden');
                     heroContainer.style.display = 'none';
                 }
                 
-                // Also hide results container
+                // Also hide results container (but only after validation passes)
+                // This way if there's an error earlier, the button stays visible
                 if (resultsContainer) {
                     resultsContainer.classList.add('hidden');
                     resultsContainer.style.display = 'none';
@@ -2554,8 +2564,35 @@
             console.log('[Visualization] Initialization complete');
             } catch (error) {
                 console.error('[Visualization] Failed to initialize visualization:', error);
-                alert(`Failed to initialize visualization: ${error.message || error}. Check console for details.`);
+                console.error('[Visualization] Error details:', error?.stack || error);
+                
+                // Restore results container and visualize button if initialization failed
+                // This allows the user to retry
+                if (resultsContainer) {
+                    resultsContainer.classList.remove('hidden');
+                    resultsContainer.style.display = 'block';
+                    resultsContainer.style.visibility = 'visible';
+                }
+                if (visualizeBtn) {
+                    visualizeBtn.classList.remove('hidden');
+                    visualizeBtn.style.display = 'block';
+                    visualizeBtn.style.visibility = 'visible';
+                    visualizeBtn.style.opacity = '1';
+                }
+                
+                // Restore hero container too
+                const heroContainer = document.querySelector('.hero-container');
+                if (heroContainer) {
+                    heroContainer.classList.remove('hidden');
+                    heroContainer.style.display = 'flex';
+                }
+                
+                // Hide viz container
                 vizContainer.classList.add('hidden');
+                vizContainer.style.setProperty('display', 'none', 'important');
+                
+                alert(`Failed to initialize visualization: ${error.message || error}. Check console for details.\n\nYou can click "Visualize Graph" to retry.`);
+                throw error; // Re-throw so caller knows it failed
             }
         }
 
