@@ -2335,7 +2335,46 @@ export class GraphVisualization {
           const bytes = atob(base64);
           // PNG signature is: 89 50 4E 47 0D 0A 1A 0A
           if (bytes.length > 8 && bytes.charCodeAt(0) === 0x89 && bytes.charCodeAt(1) === 0x50) {
-            return dataUrl;
+            // Check if the image is actually empty (all transparent pixels)
+            // Create an image to check pixel data
+            const img = new Image();
+            await new Promise((resolve, reject) => {
+              img.onload = resolve;
+              img.onerror = reject;
+              img.src = dataUrl;
+            });
+            
+            // Check a few sample pixels to see if there's actual content
+            const checkCanvas = document.createElement('canvas');
+            checkCanvas.width = img.width;
+            checkCanvas.height = img.height;
+            const ctx = checkCanvas.getContext('2d');
+            ctx.drawImage(img, 0, 0);
+            
+            // Sample pixels from center and corners
+            const samplePoints = [
+              [Math.floor(img.width / 2), Math.floor(img.height / 2)],
+              [10, 10],
+              [img.width - 10, 10],
+              [10, img.height - 10],
+              [img.width - 10, img.height - 10]
+            ];
+            
+            let hasContent = false;
+            for (const [x, y] of samplePoints) {
+              const pixelData = ctx.getImageData(x, y, 1, 1).data;
+              // Check if pixel has any non-transparent content (alpha > 0 and RGB not all 0)
+              if (pixelData[3] > 0 && (pixelData[0] > 0 || pixelData[1] > 0 || pixelData[2] > 0)) {
+                hasContent = true;
+                break;
+              }
+            }
+            
+            if (hasContent) {
+              return dataUrl;
+            } else {
+              console.warn('[GraphViz] Canvas export returned empty/transparent PNG (no visible content)');
+            }
           } else {
             console.warn('[GraphViz] Canvas export returned invalid PNG data');
           }
@@ -2364,7 +2403,40 @@ export class GraphVisualization {
         }
       }
 
-      throw new Error('Canvas export returned empty or invalid image data. The canvas may not have preserveDrawingBuffer enabled.');
+      // Final fallback: use html2canvas to capture the container
+      // This works even without preserveDrawingBuffer but may have quality issues
+      console.warn('[GraphViz] Canvas export returned empty data; trying html2canvas fallback');
+      try {
+        const html2canvas = await import('https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js');
+        const html2canvasFn = html2canvas.default || html2canvas;
+        
+        if (typeof html2canvasFn === 'function' && this.container) {
+          // Ensure graph is rendered
+          if (typeof this.graph.render === 'function') {
+            this.graph.render();
+          }
+          await new Promise(resolve => requestAnimationFrame(resolve));
+          
+          const canvas = await html2canvasFn(this.container, {
+            backgroundColor: '#0a0e27', // Match the background
+            useCORS: true,
+            logging: false,
+            scale: 1,
+            width: this.container.clientWidth,
+            height: this.container.clientHeight
+          });
+          
+          const dataUrl = canvas.toDataURL('image/png');
+          if (dataUrl && dataUrl !== 'data:,' && dataUrl.length > 100) {
+            console.log('[GraphViz] PNG exported using html2canvas fallback');
+            return dataUrl;
+          }
+        }
+      } catch (html2canvasErr) {
+        console.warn('[GraphViz] html2canvas fallback also failed:', html2canvasErr?.message || html2canvasErr);
+      }
+
+      throw new Error('Canvas export returned empty or invalid image data. The canvas may not have preserveDrawingBuffer enabled, and html2canvas fallback also failed.');
     } catch (err) {
       console.error('[GraphViz] Canvas export failed:', err?.message || err);
       throw err;
