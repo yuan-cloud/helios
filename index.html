@@ -732,6 +732,27 @@
     </div>
 
     <script type="module">
+        // Suppress harmless browser extension messaging errors
+        window.addEventListener('error', (event) => {
+            if (event.message && event.message.includes('message channel closed before a response was received')) {
+                // This is a harmless browser extension messaging error - suppress it
+                event.preventDefault();
+                console.debug('[HELIOS] Suppressed browser extension messaging error (harmless)');
+                return false;
+            }
+        });
+
+        window.addEventListener('unhandledrejection', (event) => {
+            if (event.reason && typeof event.reason === 'object' && event.reason.message) {
+                if (event.reason.message.includes('message channel closed before a response was received')) {
+                    // This is a harmless browser extension messaging error - suppress it
+                    event.preventDefault();
+                    console.debug('[HELIOS] Suppressed browser extension messaging promise rejection (harmless)');
+                    return false;
+                }
+            }
+        });
+
         import { parserManager } from './src/parser/parser.js';
         import { extractJavaScript } from './src/extractors/javascript.js';
         import { SymbolTableManager } from './src/extractors/symbol-table.js';
