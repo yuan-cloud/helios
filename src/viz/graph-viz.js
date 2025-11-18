@@ -2352,24 +2352,25 @@ export class GraphVisualization {
       await new Promise(resolve => requestAnimationFrame(resolve));
       await new Promise(resolve => requestAnimationFrame(resolve));
       
-      // Get the WebGL context and check if preserveDrawingBuffer is enabled
-      // Note: There's no direct way to check preserveDrawingBuffer, but we can try to read pixels
-      const gl = canvas.getContext('webgl', { preserveDrawingBuffer: true }) || 
-                 canvas.getContext('webgl2', { preserveDrawingBuffer: true }) ||
-                 canvas.getContext('webgl') || 
-                 canvas.getContext('webgl2');
-      
-      if (gl) {
-        // Try to read pixels to see if the buffer has content
-        const pixelBuffer = new Uint8Array(4);
-        gl.readPixels(Math.floor(canvas.width / 2), Math.floor(canvas.height / 2), 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, pixelBuffer);
-        const hasContent = pixelBuffer[0] > 0 || pixelBuffer[1] > 0 || pixelBuffer[2] > 0 || pixelBuffer[3] > 0;
-        if (!hasContent) {
-          console.warn('[GraphViz] Canvas appears empty at center pixel. preserveDrawingBuffer may not be enabled or scene not rendered.');
-        }
+      // Get the EXISTING WebGL context (don't try to create a new one with different options)
+      // The canvas already has a context from 3d-force-graph, and we can't create a new one
+      // with preserveDrawingBuffer: true if it wasn't set initially
+      let gl = null;
+      try {
+        // Try to get existing context without passing options (which would try to create new one)
+        gl = canvas.getContext('webgl2') || canvas.getContext('webgl');
+      } catch (err) {
+        console.warn('[GraphViz] Could not get WebGL context:', err?.message || err);
       }
-
-      const dataUrl = canvas.toDataURL('image/png');
+      
+      // Try canvas.toDataURL first (will only work if preserveDrawingBuffer was enabled at context creation)
+      // Since 3d-force-graph likely didn't enable it, this will likely fail, but we try anyway
+      let dataUrl = null;
+      try {
+        dataUrl = canvas.toDataURL('image/png');
+      } catch (err) {
+        console.debug('[GraphViz] canvas.toDataURL failed (preserveDrawingBuffer likely not enabled):', err?.message || err);
+      }
       
       // Check if the data URL is valid (not empty/black)
       if (dataUrl && dataUrl !== 'data:,' && dataUrl.length > 100) {
