@@ -2368,90 +2368,60 @@ export class GraphVisualization {
       let dataUrl = null;
       try {
         dataUrl = canvas.toDataURL('image/png');
+        
+        // Quick validation: check if we got valid data
+        if (dataUrl && dataUrl !== 'data:,' && dataUrl.length > 100) {
+          // Verify it's a valid PNG by checking signature
+          const base64 = dataUrl.split(',')[1];
+          if (base64 && base64.length > 8) {
+            const bytes = atob(base64);
+            // PNG signature is: 89 50 4E 47 0D 0A 1A 0A
+            if (bytes.charCodeAt(0) === 0x89 && bytes.charCodeAt(1) === 0x50) {
+              // Valid PNG signature - check if it has content
+              const img = new Image();
+              await new Promise((resolve, reject) => {
+                img.onload = resolve;
+                img.onerror = reject;
+                img.src = dataUrl;
+              });
+              
+              // Sample pixels to verify content
+              const checkCanvas = document.createElement('canvas');
+              checkCanvas.width = img.width;
+              checkCanvas.height = img.height;
+              const ctx = checkCanvas.getContext('2d');
+              ctx.drawImage(img, 0, 0);
+              
+              const samplePoints = [
+                [Math.floor(img.width / 2), Math.floor(img.height / 2)],
+                [10, 10],
+                [img.width - 10, 10],
+                [10, img.height - 10],
+                [img.width - 10, img.height - 10]
+              ];
+              
+              let hasContent = false;
+              for (const [x, y] of samplePoints) {
+                const pixelData = ctx.getImageData(x, y, 1, 1).data;
+                if (pixelData[3] > 0 && (pixelData[0] > 0 || pixelData[1] > 0 || pixelData[2] > 0)) {
+                  hasContent = true;
+                  break;
+                }
+              }
+              
+              if (hasContent) {
+                return dataUrl;
+              }
+            }
+          }
+        }
       } catch (err) {
         console.debug('[GraphViz] canvas.toDataURL failed (preserveDrawingBuffer likely not enabled):', err?.message || err);
       }
       
-      // Check if the data URL is valid (not empty/black)
-      if (dataUrl && dataUrl !== 'data:,' && dataUrl.length > 100) {
-        // Basic check: decode first few bytes to see if it's not just black
-        // A valid PNG should start with PNG signature bytes
-        try {
-          const base64 = dataUrl.split(',')[1];
-          const bytes = atob(base64);
-          // PNG signature is: 89 50 4E 47 0D 0A 1A 0A
-          if (bytes.length > 8 && bytes.charCodeAt(0) === 0x89 && bytes.charCodeAt(1) === 0x50) {
-            // Check if the image is actually empty (all transparent pixels)
-            // Create an image to check pixel data
-            const img = new Image();
-            await new Promise((resolve, reject) => {
-              img.onload = resolve;
-              img.onerror = reject;
-              img.src = dataUrl;
-            });
-            
-            // Check a few sample pixels to see if there's actual content
-            const checkCanvas = document.createElement('canvas');
-            checkCanvas.width = img.width;
-            checkCanvas.height = img.height;
-            const ctx = checkCanvas.getContext('2d');
-            ctx.drawImage(img, 0, 0);
-            
-            // Sample pixels from center and corners
-            const samplePoints = [
-              [Math.floor(img.width / 2), Math.floor(img.height / 2)],
-              [10, 10],
-              [img.width - 10, 10],
-              [10, img.height - 10],
-              [img.width - 10, img.height - 10]
-            ];
-            
-            let hasContent = false;
-            for (const [x, y] of samplePoints) {
-              const pixelData = ctx.getImageData(x, y, 1, 1).data;
-              // Check if pixel has any non-transparent content (alpha > 0 and RGB not all 0)
-              if (pixelData[3] > 0 && (pixelData[0] > 0 || pixelData[1] > 0 || pixelData[2] > 0)) {
-                hasContent = true;
-                break;
-              }
-            }
-            
-            if (hasContent) {
-              return dataUrl;
-            } else {
-              console.warn('[GraphViz] Canvas export returned empty/transparent PNG (no visible content)');
-            }
-          } else {
-            console.warn('[GraphViz] Canvas export returned invalid PNG data');
-          }
-        } catch (err) {
-          console.warn('[GraphViz] Failed to validate PNG data:', err?.message || err);
-        }
-      }
-
-      // If we got here but have a renderer, try one more explicit render
-      if (renderer && typeof renderer.render === 'function') {
-        if (typeof this.graph.scene === 'function' && typeof this.graph.camera === 'function') {
-          try {
-            const scene = this.graph.scene();
-            const camera = this.graph.camera();
-            if (scene && camera) {
-              renderer.render(scene, camera);
-              await new Promise(resolve => requestAnimationFrame(resolve));
-              const retryDataUrl = canvas.toDataURL('image/png');
-              if (retryDataUrl && retryDataUrl !== 'data:,' && retryDataUrl.length > 100) {
-                return retryDataUrl;
-              }
-            }
-          } catch (err) {
-            // Ignore errors
-          }
-        }
-      }
-
-      // Final fallback: use html2canvas to capture the container
-      // This works even without preserveDrawingBuffer but may have quality issues
-      console.warn('[GraphViz] Canvas export returned empty data; trying html2canvas fallback');
+      // If direct canvas export failed (likely because preserveDrawingBuffer not enabled),
+      // use html2canvas fallback - this is the reliable method
+      console.log('[GraphViz] Using html2canvas fallback for PNG export (preserveDrawingBuffer not enabled on WebGL context)');
       try {
         const html2canvas = await import('https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js');
         const html2canvasFn = html2canvas.default || html2canvas;
