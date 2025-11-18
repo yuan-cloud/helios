@@ -414,6 +414,8 @@ export class GraphVisualization {
       throw new Error('Invalid graph data format');
     }
 
+    console.log(`[GraphViz] loadData called with ${data.nodes.length} nodes and ${data.links.length} links`);
+
     const normalizedNodes = data.nodes.map(node => this.normalizeNode(node));
     const normalizedLinks = data.links.map(link => this.normalizeLink(link));
 
@@ -421,6 +423,8 @@ export class GraphVisualization {
       nodes: normalizedNodes,
       links: normalizedLinks
     };
+    
+    console.log(`[GraphViz] Data normalized: ${normalizedNodes.length} nodes, ${normalizedLinks.length} links`);
 
     this.updateSimilarityStats(normalizedLinks);
     this.hoveredNode = null;
@@ -1715,11 +1719,14 @@ export class GraphVisualization {
 
   applyGraphData() {
     if (!this.graph || !this.data) {
+      console.warn('[GraphViz] applyGraphData: graph or data missing', { hasGraph: !!this.graph, hasData: !!this.data });
       return;
     }
 
     const nodes = this.data.nodes || [];
     const allLinks = this.filteredLinks || this.data.links || [];
+    
+    console.log(`[GraphViz] applyGraphData: applying ${nodes.length} nodes and ${allLinks.length} links to graph`);
   
     // Filter out links with undefined source/target
     const nodeIds = new Set(nodes.map(n => n.id));

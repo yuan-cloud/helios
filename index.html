@@ -2247,8 +2247,21 @@
             }
 
             console.log('[Visualization] Preparing visualization data...');
+            console.log('[Visualization] fullVizData:', {
+                nodes: fullVizData?.nodes?.length || 0,
+                links: fullVizData?.links?.length || 0,
+                hasData: !!(fullVizData && fullVizData.nodes && fullVizData.nodes.length > 0)
+            });
+            
+            if (!fullVizData || !fullVizData.nodes || fullVizData.nodes.length === 0) {
+                console.error('[Visualization] No visualization data available!', { fullVizData, callGraph, graphSerialized });
+                alert('No graph data available to visualize. Please ensure parsing completed successfully.');
+                return;
+            }
+            
             const initialFilters = controls ? controls.getFilters() : {};
             applyVisualizationFilters(initialFilters);
+            console.log('[Visualization] Filters applied, data loaded to graph');
 
             console.log('[Visualization] Restoring layout...');
             const restored = await graphViz.restoreLayoutFromStorage({ freeze: true });
