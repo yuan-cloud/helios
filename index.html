@@ -318,12 +318,14 @@
         .hidden { display: none !important; }
 
         .viz-container {
-            position: fixed;
-            inset: 0;
-            display: grid;
-            grid-template-columns: 1fr 360px;
-            background: rgba(10, 14, 39, 0.97);
-            z-index: 50;
+            position: fixed !important;
+            inset: 0 !important;
+            display: grid !important;
+            grid-template-columns: 1fr 360px !important;
+            background: rgba(10, 14, 39, 1) !important;
+            z-index: 100 !important;
+            visibility: visible !important;
+            opacity: 1 !important;
         }
 
         .viz-graph {
@@ -2135,17 +2137,33 @@
                     return;
                 }
 
+                // Force show viz container
                 vizContainer.classList.remove('hidden');
+                vizContainer.style.display = 'grid';
+                vizContainer.style.visibility = 'visible';
+                vizContainer.style.opacity = '1';
+                vizContainer.style.zIndex = '100';
+                
+                console.log('[Visualization] Viz container visibility:', {
+                    hasHidden: vizContainer.classList.contains('hidden'),
+                    display: window.getComputedStyle(vizContainer).display,
+                    visibility: window.getComputedStyle(vizContainer).visibility,
+                    zIndex: window.getComputedStyle(vizContainer).zIndex,
+                    width: vizContainer.offsetWidth,
+                    height: vizContainer.offsetHeight
+                });
                 
                 // Hide hero container when showing visualization
                 const heroContainer = document.querySelector('.hero-container');
                 if (heroContainer) {
                     heroContainer.classList.add('hidden');
+                    heroContainer.style.display = 'none';
                 }
                 
                 // Also hide results container
                 if (resultsContainer) {
                     resultsContainer.classList.add('hidden');
+                    resultsContainer.style.display = 'none';
                 }
 
                 if (!graphViz) {
