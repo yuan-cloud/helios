@@ -1333,6 +1333,11 @@
                 counter.textContent = formatCounterMessage();
                 functionsCounter.textContent = `${allFunctions.length} function${allFunctions.length !== 1 ? 's' : ''} extracted · ${stats.totalEdges} call edge${stats.totalEdges !== 1 ? 's' : ''} (${stats.staticEdges} static · ${stats.dynamicEdges} dynamic)`;
                 displayResults();
+                
+                // Auto-open visualization after parsing repo (consistent with demo behavior)
+                // This provides better UX - user doesn't need to click another button
+                console.log('[Repo Selection] Auto-opening visualization after parsing...');
+                await initializeVisualization();
 
                 // Continue with embeddings in background (non-blocking)
                 if (embeddingManager) {
