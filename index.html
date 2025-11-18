@@ -2714,9 +2714,19 @@
         }
 
         function applyVisualizationFilters(filters = {}) {
+            console.error('[applyVisualizationFilters] Called with filters:', filters);
+            console.error('[applyVisualizationFilters] graphViz exists:', !!graphViz, 'fullVizData exists:', !!fullVizData);
+            
             if (!graphViz || !fullVizData) {
+                console.error('[applyVisualizationFilters] ERROR: Missing graphViz or fullVizData!', {
+                    hasGraphViz: !!graphViz,
+                    hasFullVizData: !!fullVizData,
+                    fullVizDataNodes: fullVizData?.nodes?.length || 0
+                });
                 return;
             }
+            
+            console.error('[applyVisualizationFilters] fullVizData has', fullVizData.nodes.length, 'nodes and', fullVizData.links.length, 'links');
 
             const moduleFilter = filters.module?.toLowerCase() || filters.folder?.toLowerCase() || '';
             const languageFilter = filters.language || '';
@@ -2742,7 +2752,17 @@
             const allowedIds = new Set(filteredNodes.map(node => node.id));
             const filteredLinks = fullVizData.links.filter(link => allowedIds.has(link.source) && allowedIds.has(link.target));
 
-            graphViz.loadData({ nodes: filteredNodes, links: filteredLinks });
+            console.error('[applyVisualizationFilters] Filtered to', filteredNodes.length, 'nodes and', filteredLinks.length, 'links');
+            console.error('[applyVisualizationFilters] Calling graphViz.loadData...');
+            
+            try {
+                graphViz.loadData({ nodes: filteredNodes, links: filteredLinks });
+                console.error('[applyVisualizationFilters] graphViz.loadData() completed successfully');
+            } catch (err) {
+                console.error('[applyVisualizationFilters] ERROR in graphViz.loadData():', err);
+                alert('ERROR: Failed to load graph data: ' + (err.message || err));
+                throw err;
+            }
         }
 
         async function handleNodeClick(node, edgeSummary) {
