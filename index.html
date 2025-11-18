@@ -2107,15 +2107,27 @@
         }
 
         async function initializeVisualization() {
-            vizContainer.classList.remove('hidden');
+            try {
+                console.log('[Visualization] Initializing visualization...');
+                
+                if (!callGraph || !callGraph.nodes || callGraph.nodes.length === 0) {
+                    console.error('[Visualization] No call graph data available');
+                    alert('No call graph data available. Please parse a repository first.');
+                    return;
+                }
 
-            if (!graphViz) {
-                graphViz = new GraphVisualization(vizGraph);
-                await graphViz.initialize();
-                graphViz.onNodeClick = handleNodeClick;
-                graphViz.onNodeHover = handleNodeHover;
-                graphViz.onFilterChange = applyVisualizationFilters;
-            }
+                vizContainer.classList.remove('hidden');
+
+                if (!graphViz) {
+                    console.log('[Visualization] Creating GraphVisualization instance...');
+                    graphViz = new GraphVisualization(vizGraph);
+                    console.log('[Visualization] Initializing GraphVisualization...');
+                    await graphViz.initialize();
+                    graphViz.onNodeClick = handleNodeClick;
+                    graphViz.onNodeHover = handleNodeHover;
+                    graphViz.onFilterChange = applyVisualizationFilters;
+                    console.log('[Visualization] GraphVisualization initialized');
+                }
 
             if (!inspector) {
                 inspector = new InspectorPanel(vizInspector);
@@ -2186,9 +2198,11 @@
                 graphViz.setLayoutStorageProvider(null);
             }
 
+            console.log('[Visualization] Preparing visualization data...');
             const initialFilters = controls ? controls.getFilters() : {};
             applyVisualizationFilters(initialFilters);
 
+            console.log('[Visualization] Restoring layout...');
             const restored = await graphViz.restoreLayoutFromStorage({ freeze: true });
             const loadInfo = graphViz.getLastLayoutLoadResult
                 ? graphViz.getLastLayoutLoadResult()
@@ -2202,10 +2216,18 @@
                 });
             }
 
+            console.log('[Visualization] Fitting to view...');
             if (!restored) {
                 setTimeout(() => graphViz.fitToView(), 400);
             } else {
                 graphViz.fitToView();
+            }
+            
+            console.log('[Visualization] Initialization complete');
+            } catch (error) {
+                console.error('[Visualization] Failed to initialize visualization:', error);
+                alert(`Failed to initialize visualization: ${error.message || error}. Check console for details.`);
+                vizContainer.classList.add('hidden');
             }
         }
 
