@@ -2798,41 +2798,61 @@
                 return;
             }
             
-            console.error('[applyVisualizationFilters] fullVizData has', fullVizData.nodes.length, 'nodes and', fullVizData.links.length, 'links');
+            console.log('[applyVisualizationFilters] fullVizData has', fullVizData.nodes.length, 'nodes and', fullVizData.links.length, 'links');
 
-            const moduleFilter = filters.module?.toLowerCase() || filters.folder?.toLowerCase() || '';
-            const languageFilter = filters.language || '';
-            const minSize = Number.isFinite(filters.minSize) ? filters.minSize : 0;
-            const maxSize = Number.isFinite(filters.maxSize) ? filters.maxSize : Infinity;
-
-            const filteredNodes = fullVizData.nodes.filter(node => {
-                if (moduleFilter && !(node.filePath || '').toLowerCase().includes(moduleFilter)) {
-                    return false;
-                }
-                if (languageFilter && node.lang !== languageFilter) {
-                    return false;
-                }
-                if (node.size < minSize) {
-                    return false;
-                }
-                if (Number.isFinite(maxSize) && node.size > maxSize) {
-                    return false;
-                }
-                return true;
-            });
-
-            const allowedIds = new Set(filteredNodes.map(node => node.id));
-            const filteredLinks = fullVizData.links.filter(link => allowedIds.has(link.source) && allowedIds.has(link.target));
-
-            console.log('[applyVisualizationFilters] Filtered to', filteredNodes.length, 'nodes and', filteredLinks.length, 'links');
-            console.log('[applyVisualizationFilters] Calling graphViz.loadData...');
-            
             try {
+                const moduleFilter = filters.module?.toLowerCase() || filters.folder?.toLowerCase() || '';
+                const languageFilter = filters.language || '';
+                const minSize = Number.isFinite(filters.minSize) ? filters.minSize : 0;
+                const maxSize = Number.isFinite(filters.maxSize) ? filters.maxSize : Infinity;
+
+                console.log('[applyVisualizationFilters] Filter params:', { moduleFilter, languageFilter, minSize, maxSize });
+
+                const filteredNodes = fullVizData.nodes.filter(node => {
+                    try {
+                        if (moduleFilter && !(node.filePath || '').toLowerCase().includes(moduleFilter)) {
+                            return false;
+                        }
+                        if (languageFilter && node.lang !== languageFilter) {
+                            return false;
+                        }
+                        if (node.size < minSize) {
+                            return false;
+                        }
+                        if (Number.isFinite(maxSize) && node.size > maxSize) {
+                            return false;
+                        }
+                        return true;
+                    } catch (nodeErr) {
+                        console.error('[applyVisualizationFilters] Error filtering node:', node, nodeErr);
+                        return false;
+                    }
+                });
+
+                console.log('[applyVisualizationFilters] Filtered nodes:', filteredNodes.length, 'out of', fullVizData.nodes.length);
+
+                const allowedIds = new Set(filteredNodes.map(node => node.id));
+                console.log('[applyVisualizationFilters] Allowed node IDs:', Array.from(allowedIds));
+
+                const filteredLinks = fullVizData.links.filter(link => {
+                    const sourceId = link.sourceId || link.source;
+                    const targetId = link.targetId || link.target;
+                    return allowedIds.has(sourceId) && allowedIds.has(targetId);
+                });
+
+                console.log('[applyVisualizationFilters] Filtered to', filteredNodes.length, 'nodes and', filteredLinks.length, 'links');
+                console.log('[applyVisualizationFilters] Calling graphViz.loadData...');
+                
+                if (!graphViz || typeof graphViz.loadData !== 'function') {
+                    throw new Error('graphViz.loadData is not a function! graphViz:', graphViz);
+                }
+
                 graphViz.loadData({ nodes: filteredNodes, links: filteredLinks });
                 console.log('[applyVisualizationFilters] loadData() completed successfully');
             } catch (err) {
-                console.error('[applyVisualizationFilters] ERROR in graphViz.loadData():', err);
-                alert('ERROR: Failed to load graph data: ' + (err.message || err));
+                console.error('[applyVisualizationFilters] ERROR:', err);
+                console.error('[applyVisualizationFilters] Stack:', err.stack);
+                alert('ERROR: Failed to apply visualization filters: ' + (err.message || err));
                 throw err;
             }
         }
