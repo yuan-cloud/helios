@@ -2365,15 +2365,35 @@
             }
 
                 if (!controls && vizControls) {
-                console.log('[Visualization] Creating VisualizationControls...');
-                controls = new VisualizationControls(vizControls, graphViz);
-                if (typeof controls.setEmbeddingSummary === 'function') {
-                    controls.setEmbeddingSummary(latestEmbeddingSummary || null);
+                    console.log('[Visualization] Creating VisualizationControls...');
+                    console.log('[Visualization] vizControls element:', {
+                        exists: !!vizControls,
+                        display: window.getComputedStyle(vizControls).display,
+                        visibility: window.getComputedStyle(vizControls).visibility,
+                        width: vizControls.offsetWidth,
+                        height: vizControls.offsetHeight,
+                        innerHTML: vizControls.innerHTML.length
+                    });
+                    controls = new VisualizationControls(vizControls, graphViz);
+                    if (typeof controls.setEmbeddingSummary === 'function') {
+                        controls.setEmbeddingSummary(latestEmbeddingSummary || null);
+                    }
+                    console.log('[Visualization] VisualizationControls created, container has content:', vizControls.innerHTML.length > 0);
+                    
+                    // Force sidebar visible again after controls are created
+                    const sidebar = vizContainer.querySelector('.viz-sidebar');
+                    if (sidebar) {
+                        sidebar.style.setProperty('display', 'flex', 'important');
+                        sidebar.style.setProperty('visibility', 'visible', 'important');
+                        sidebar.style.setProperty('opacity', '1', 'important');
+                        sidebar.style.setProperty('width', '360px', 'important');
+                        console.log('[Visualization] Sidebar re-checked after controls creation, width:', sidebar.offsetWidth);
+                    }
+                } else if (!vizControls) {
+                    console.error('[Visualization] ERROR: vizControls element not found!');
+                } else if (controls) {
+                    console.log('[Visualization] VisualizationControls already exists, reusing');
                 }
-                console.log('[Visualization] VisualizationControls created');
-            } else if (!vizControls) {
-                console.error('[Visualization] ERROR: vizControls element not found!');
-            }
 
             graphViz.onHoverDetails = (info) => {
                 if (controls && typeof controls.setHoverInfo === 'function') {
