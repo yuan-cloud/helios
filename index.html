@@ -2364,21 +2364,31 @@
                     resultsContainer.style.display = 'none';
                 }
 
-                if (!graphViz) {
-                    console.log('[Visualization] Creating GraphVisualization instance...');
-                    if (!vizGraph) {
-                        console.error('[Visualization] ERROR: vizGraph element not found!');
-                        alert('Error: Graph container element not found!');
-                        return;
+                // Always create a fresh GraphVisualization instance to avoid state pollution
+                // between different repos/demos
+                if (graphViz) {
+                    console.log('[Visualization] Disposing existing GraphVisualization instance...');
+                    try {
+                        graphViz.dispose?.();
+                    } catch (err) {
+                        console.warn('[Visualization] Error disposing existing graphViz:', err);
                     }
-                    graphViz = new GraphVisualization(vizGraph);
-                    console.log('[Visualization] Initializing GraphVisualization...');
-                    await graphViz.initialize();
-                    graphViz.onNodeClick = handleNodeClick;
-                    graphViz.onNodeHover = handleNodeHover;
-                    graphViz.onFilterChange = applyVisualizationFilters;
-                    console.log('[Visualization] GraphVisualization initialized');
+                    graphViz = null;
                 }
+                
+                console.log('[Visualization] Creating GraphVisualization instance...');
+                if (!vizGraph) {
+                    console.error('[Visualization] ERROR: vizGraph element not found!');
+                    alert('Error: Graph container element not found!');
+                    return;
+                }
+                graphViz = new GraphVisualization(vizGraph);
+                console.log('[Visualization] Initializing GraphVisualization...');
+                await graphViz.initialize();
+                graphViz.onNodeClick = handleNodeClick;
+                graphViz.onNodeHover = handleNodeHover;
+                graphViz.onFilterChange = applyVisualizationFilters;
+                console.log('[Visualization] GraphVisualization initialized');
 
             // Always create fresh inspector and controls to avoid state pollution
             if (inspector) {
