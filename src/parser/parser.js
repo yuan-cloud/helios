@@ -1,3 +1,4 @@
+import * as TreeSitter from 'web-tree-sitter';
 import { Parser, Language } from 'web-tree-sitter';
 import { registerQueryConstructor } from './queries.js';
 
@@ -49,9 +50,22 @@ class TreeSitterManager {
       }
 
       await this.Parser.init();
-      if (typeof this.Parser?.Query === 'function') {
-        registerQueryConstructor(this.Parser.Query);
+      
+      // Try to find Query constructor in various locations
+      const QueryCtor = 
+        TreeSitter.Query ||
+        TreeSitter.default?.Query ||
+        this.Parser?.Query ||
+        Parser?.Query ||
+        (typeof globalThis !== 'undefined' ? globalThis.treeSitter?.Query : null);
+      
+      if (QueryCtor && typeof QueryCtor === 'function') {
+        registerQueryConstructor(QueryCtor);
+        console.log('[TreeSitter] Query constructor registered');
+      } else {
+        console.warn('[TreeSitter] Query constructor not found; will use deprecated language.query()');
       }
+      
       this.initialized = true;
       console.log('[TreeSitter] Initialized web-tree-sitter');
     } catch (err) {

@@ -206,12 +206,48 @@ export class GraphVisualization {
       .cameraPosition({ x: 0, y: 0, z: 1000 });
 
     // Try to access THREE.js from various locations
-    const threeLib =
-      ForceGraph3DModule.THREE ||
-      (ForceGraph3DModule.default && ForceGraph3DModule.default.THREE) ||
-      (ForceGraph3DModule.ForceGraph3D && ForceGraph3DModule.ForceGraph3D.THREE) ||
-      (typeof globalThis !== 'undefined' ? globalThis.THREE : null) ||
-      (typeof window !== 'undefined' ? window.THREE : null);
+    // 3d-force-graph may load THREE.js internally, check multiple sources
+    let threeLib = null;
+    
+    // First try the module itself
+    threeLib = ForceGraph3DModule.THREE ||
+               (ForceGraph3DModule.default && ForceGraph3DModule.default.THREE) ||
+               (ForceGraph3DModule.ForceGraph3D && ForceGraph3DModule.ForceGraph3D.THREE);
+    
+    // If not found, check global scope (3d-force-graph may attach it)
+    if (!threeLib) {
+      if (typeof window !== 'undefined' && window.THREE) {
+        threeLib = window.THREE;
+      } else if (typeof globalThis !== 'undefined' && globalThis.THREE) {
+        threeLib = globalThis.THREE;
+      }
+    }
+    
+    // If still not found, wait a bit and check again (3d-force-graph may load THREE.js async)
+    // Or try to access it from the graph instance's internal renderer
+    if (!threeLib && graphInstance) {
+      // Try to get renderer from graph instance
+      try {
+        if (typeof graphInstance.renderer === 'function') {
+          const existingRenderer = graphInstance.renderer();
+          if (existingRenderer && existingRenderer.constructor && existingRenderer.constructor.name === 'WebGLRenderer') {
+            // We have a renderer - get THREE from its constructor
+            threeLib = existingRenderer.constructor || null;
+          }
+        }
+      } catch (err) {
+        // graphInstance.renderer() might not be available yet
+      }
+    }
+    
+    // Last resort: check if THREE was added to window after module load
+    if (!threeLib && typeof window !== 'undefined') {
+      // Wait one tick for async loading
+      await new Promise(resolve => setTimeout(resolve, 0));
+      if (window.THREE) {
+        threeLib = window.THREE;
+      }
+    }
 
     if (threeLib && typeof threeLib.WebGLRenderer === 'function') {
       try {
