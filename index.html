@@ -2258,10 +2258,10 @@
 
                 // Force show viz container
                 vizContainer.classList.remove('hidden');
-                vizContainer.style.display = 'grid';
-                vizContainer.style.visibility = 'visible';
-                vizContainer.style.opacity = '1';
-                vizContainer.style.zIndex = '100';
+                vizContainer.style.setProperty('display', 'grid', 'important');
+                vizContainer.style.setProperty('visibility', 'visible', 'important');
+                vizContainer.style.setProperty('opacity', '1', 'important');
+                vizContainer.style.setProperty('z-index', '100', 'important');
                 
                 // EMERGENCY: Force all child elements visible
                 const vizGraphEl = document.getElementById('vizGraph');
@@ -2286,6 +2286,18 @@
                     vizControlsEl.style.display = 'block';
                     vizControlsEl.style.visibility = 'visible';
                     vizControlsEl.style.opacity = '1';
+                }
+                
+                // Ensure close button is visible and clickable
+                if (vizCloseBtn) {
+                    vizCloseBtn.style.setProperty('display', 'block', 'important');
+                    vizCloseBtn.style.setProperty('visibility', 'visible', 'important');
+                    vizCloseBtn.style.setProperty('opacity', '1', 'important');
+                    vizCloseBtn.style.setProperty('z-index', '200', 'important');
+                    vizCloseBtn.style.setProperty('pointer-events', 'auto', 'important');
+                    console.log('[Visualization] Close button forced visible');
+                } else {
+                    console.error('[Visualization] ERROR: vizCloseBtn not found during initialization!');
                 }
                 
                 console.log('[Visualization] Container state:', {
