@@ -7,7 +7,7 @@
 import { StorageWorkerClient } from "./client.js";
 
 const SNAPSHOT_KEY = "analysis.snapshot.v1";
-const SNAPSHOT_VERSION = 1;
+export const SNAPSHOT_VERSION = 1;
 const MAX_SOURCE_CHAR_LENGTH = 8_192;
 const MAX_SOURCE_LINES = 400;
 

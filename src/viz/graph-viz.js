@@ -206,21 +206,9 @@ export class GraphVisualization {
       .cameraPosition({ x: 0, y: 0, z: 1000 });
 
     // Try to access THREE.js from various locations
-    // 3d-force-graph may load THREE.js internally, check multiple sources
+    // 3d-force-graph bundles THREE.js internally, so we extract it from there
+    // DO NOT import 'three' directly - it causes "Multiple instances" warning
     let threeLib = null;
-    
-    // Method 0: Try to import THREE.js directly (if available as a module)
-    // The "Multiple instances" warning suggests THREE.js is being loaded
-    try {
-      const threeModule = await import('three');
-      if (threeModule && threeModule.WebGLRenderer) {
-        threeLib = threeModule;
-      } else if (threeModule.default && threeModule.default.WebGLRenderer) {
-        threeLib = threeModule.default;
-      }
-    } catch (err) {
-      // THREE.js might not be available as a separate module
-    }
     
     // First try the module itself
     if (!threeLib) {

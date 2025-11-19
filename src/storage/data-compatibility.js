@@ -69,8 +69,11 @@ export async function checkDataCompatibility(client) {
   }
 
   // Determine compatibility
-  const compatible = storedAppVersion === HELIOS_APP_VERSION && 
-                     (storedSchemaVersion === null || storedSchemaVersion === HELIOS_SCHEMA_VERSION);
+  // New database (no metadata) is compatible - will be initialized with current versions
+  // Existing database is compatible only if versions match
+  const compatible = (storedAppVersion === null && storedSchemaVersion === null) || // New database
+                     (storedAppVersion === HELIOS_APP_VERSION && 
+                      (storedSchemaVersion === null || storedSchemaVersion === HELIOS_SCHEMA_VERSION)); // Existing database with matching versions
 
   // Collect issues
   if (storedAppVersion && storedAppVersion !== HELIOS_APP_VERSION) {
