@@ -3361,7 +3361,11 @@
             }
             storageClientInitPromise = (async () => {
                 try {
-                    const client = new StorageWorkerClient();
+                    const client = new StorageWorkerClient({
+                        initConfig: {
+                            retention: { enabled: true }  // Enable retention cleanup (24h default)
+                        }
+                    });
                     const initResult = await client.ensureInitialized();
                     
                     // Check data compatibility after initialization

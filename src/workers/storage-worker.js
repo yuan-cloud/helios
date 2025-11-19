@@ -78,8 +78,8 @@ async function handleInit(id, payload) {
   const initResult = await initializationPromise;
   
   // Retention cleanup: enabled via config.retention.enabled flag
-  // Structure is ready, but disabled by default until product sign-off
-  // Once approved, set config.retention.enabled = true to activate
+  // Active by default in production (24h default retention window)
+  // See docs/retention-policy.md for details
   // Note: dbHandle is guaranteed to be set after initializationPromise resolves
   if (config?.retention?.enabled === true && dbHandle) {
     try {

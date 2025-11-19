@@ -1,11 +1,10 @@
 // Retention policy enforcement for HELIOS SQLite storage.
 // Implements the cleanup strategy defined in docs/retention-policy.md.
-// This module is structured to be ready for activation once product/design
-// sign-off is received on retention window defaults.
+// Active in production with 24-hour default retention window.
 
 const RETENTION_KEY = "retention.maxAgeHours";
 const RESUME_NAMESPACE = "resume::";
-const DEFAULT_RETENTION_HOURS = 24; // Will be configurable once product confirms
+const DEFAULT_RETENTION_HOURS = 24; // Default retention window (configurable via kv table)
 
 /**
  * Reads the retention policy from kv table.

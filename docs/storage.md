@@ -154,7 +154,36 @@ Embeddings-specific tests:
 
 ---
 
-## 3. Quick Reference
+## 3. Retention Policy
+
+HELIOS automatically cleans up old data to respect privacy and manage storage usage.
+
+### Active Policy (MVP)
+
+- **Default retention:** 24 hours
+- **Cleanup runs:** Automatically on app bootstrap (if `config.retention.enabled = true`)
+- **What gets cleaned:**
+  - Layout snapshots older than 24 hours (`updated_at < cutoff`)
+  - Resume flow payloads (keys prefixed with `resume::`) older than 24 hours
+  - Uses `updated_at` timestamp, so active snapshots stay fresh
+
+### Configuration
+
+Retention window is configurable via `kv` table:
+
+```javascript
+// Change retention to 48 hours
+await storageClient.setKv('retention.maxAgeHours', '48');
+
+// Manual cleanup trigger
+await storageClient.send('retention:enforce');
+```
+
+Default is 24 hours if not set. See `docs/retention-policy.md` for full details.
+
+---
+
+## 4. Quick Reference
 
 | Feature | Entry Points | Notes |
 | ------- | ------------ | ----- |
@@ -168,7 +197,7 @@ remains available to support Section 6 integrations.
 
 ---
 
-## 4. Dependency Packaging Reference
+## 5. Dependency Packaging Reference
 
 For import-map hardening, CDN fallback procedures, and vendor mirror guidance see
 `docs/dependency-packaging.md`. Follow that audit when adjusting runtime
