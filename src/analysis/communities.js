@@ -2,8 +2,13 @@
  * Community detection utilities (Louvain).
  */
 
-import Graph from 'graphology';
-import louvain from 'graphology-communities-louvain';
+// Workers don't inherit import maps, so check for globally-provided modules first
+// The worker will set self.__graphology and self.__graphologyLouvain before importing
+// In main thread, these will be undefined and we'll use the normal imports (via import map)
+import GraphDefault from 'graphology';
+import louvainDefault from 'graphology-communities-louvain';
+const Graph = (typeof self !== 'undefined' && self.__graphology) || GraphDefault;
+const louvain = (typeof self !== 'undefined' && self.__graphologyLouvain) || louvainDefault;
 import { assertGraph, mergeNodeMetrics } from './utils.js';
 
 const DEFAULT_ATTRIBUTE = 'community';

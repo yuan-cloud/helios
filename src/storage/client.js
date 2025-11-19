@@ -291,6 +291,24 @@ export class StorageWorkerClient {
     return this.send("layout:list", payload);
   }
 
+  /**
+   * Export the database as a binary blob for download.
+   * Returns an object with bytes (Uint8Array) and metadata.
+   * @returns {Promise<{bytes: Uint8Array, size: number, dbName: string}>}
+   */
+  async exportDatabase() {
+    await this.ensureInitialized();
+    const result = await this.send("export");
+    // Convert array back to Uint8Array
+    if (result && Array.isArray(result.bytes)) {
+      return {
+        ...result,
+        bytes: new Uint8Array(result.bytes),
+      };
+    }
+    throw new Error("Invalid export result format");
+  }
+
   async close(options = {}) {
     if (!this.worker) {
       return;

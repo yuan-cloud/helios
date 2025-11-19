@@ -1,3 +1,19 @@
+// Workers don't inherit import maps, so we need to pre-load graphology using absolute URLs
+// and make it available globally before importing modules that depend on it
+const graphologyUrl = '/public/vendor/graphology/graphology.esm.js';
+const louvainUrl = '/public/vendor/graphology-communities-louvain/index.js';
+
+// Pre-load graphology modules and store them globally so dependent modules can use them
+const [graphologyModule, louvainModule] = await Promise.all([
+  import(graphologyUrl),
+  import(louvainUrl)
+]);
+
+// Store in global scope so graph-builder.js and communities.js can access them
+self.__graphology = graphologyModule.default || graphologyModule;
+self.__graphologyLouvain = louvainModule.default || louvainModule;
+
+// Now import modules that depend on graphology
 import { mergeGraphPayload } from '../graph/merge.js';
 import { collectGraphPayload, buildAnalyzedGraph, serializeGraph } from '../graph/pipeline.js';
 import { validateGraphPayload } from '../graph/payload-validator.js';

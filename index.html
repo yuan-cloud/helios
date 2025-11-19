@@ -766,6 +766,9 @@
                 <button class="button" id="clearStorageBtn" type="button" style="background: rgba(248, 113, 113, 0.15); border: 1px solid rgba(248, 113, 113, 0.35); color: #fecaca;">
                     Clear Stored Data
                 </button>
+                <button class="button" id="exportDbBtn" type="button" style="background: rgba(59, 130, 246, 0.15); border: 1px solid rgba(59, 130, 246, 0.35); color: #bfdbfe;" title="Export database for benchmarking">
+                    Export Database
+                </button>
                 <div class="storage-status" id="storageStatus" role="status" aria-live="polite"></div>
             </div>
         </div>
@@ -947,11 +950,15 @@
             }
         }, 100);
         const clearStorageBtn = document.getElementById('clearStorageBtn');
+        const exportDbBtn = document.getElementById('exportDbBtn');
         const storageStatusEl = document.getElementById('storageStatus');
         const STORAGE_FALLBACK_MESSAGE =
             'Storage ready (in-memory fallback). Enable COOP/COEP headers to unlock OPFS persistence.';
         if (clearStorageBtn) {
             clearStorageBtn.disabled = true;
+        }
+        if (exportDbBtn) {
+            exportDbBtn.disabled = true;
         }
 
         function setProgressDetail(detailText) {
@@ -1340,6 +1347,41 @@
                 setStorageStatus('Failed to clear stored data. See console for details.', 'error');
             } finally {
                 clearStorageBtn.disabled = false;
+            }
+        });
+
+        exportDbBtn?.addEventListener('click', async () => {
+            if (exportDbBtn.disabled || !storageReady || !storageClient) {
+                if (!storageReady || !storageClient) {
+                    setStorageStatus('Storage not ready. Load a repository first.', 'warning');
+                }
+                return;
+            }
+            exportDbBtn.disabled = true;
+            setStorageStatus('Exporting database…', 'info');
+            try {
+                const result = await storageClient.exportDatabase();
+                if (!result || !result.bytes) {
+                    throw new Error('Export returned no data');
+                }
+
+                // Create download link
+                const blob = new Blob([result.bytes], { type: 'application/x-sqlite3' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = result.dbName || 'helios.sqlite3';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+
+                setStorageStatus(`Database exported (${(result.size / 1024).toFixed(1)} KB)`, 'success');
+            } catch (err) {
+                console.error('Failed to export database', err);
+                setStorageStatus('Failed to export database. See console for details.', 'error');
+            } finally {
+                exportDbBtn.disabled = false;
             }
         });
 
@@ -3292,6 +3334,9 @@
             if (storageReady && storageClient) {
                 if (clearStorageBtn) {
                     clearStorageBtn.disabled = false;
+                    if (exportDbBtn) {
+                        exportDbBtn.disabled = false;
+                    }
                 }
                 if (storagePersistent === true) {
                     setStorageStatus('Storage ready (OPFS persistent).', 'success');
@@ -3335,6 +3380,9 @@
                     storagePersistent = initResult?.persistent === true;
                     if (clearStorageBtn) {
                         clearStorageBtn.disabled = false;
+                    if (exportDbBtn) {
+                        exportDbBtn.disabled = false;
+                    }
                     }
                     if (storagePersistent) {
                         setStorageStatus('Storage ready (OPFS persistent).', 'success');

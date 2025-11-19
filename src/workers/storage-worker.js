@@ -227,6 +227,38 @@ async function resetDatabase(options = {}) {
   };
 }
 
+async function exportDatabase() {
+  const db = ensureDbReady();
+  
+  // SQLite-WASM oo1 API: use serialize() to get database as Uint8Array
+  if (typeof db.export === "function") {
+    const bytes = db.export();
+    // Convert Uint8Array to Array for JSON serialization
+    return {
+      bytes: Array.from(bytes),
+      size: bytes.length,
+      dbName: currentDbName,
+    };
+  }
+  
+  // Fallback: try sqlite3_serialize via capi if available
+  if (sqlite3Module?.capi?.sqlite3_serialize) {
+    const dbPtr = db.pointer || db.handle;
+    if (dbPtr) {
+      const bytes = sqlite3Module.capi.sqlite3_serialize(dbPtr, "main", null, 0);
+      if (bytes && bytes.length > 0) {
+        return {
+          bytes: Array.from(bytes),
+          size: bytes.length,
+          dbName: currentDbName,
+        };
+      }
+    }
+  }
+  
+  throw new Error("Database export not supported - serialize API not available");
+}
+
 async function processMessage(event) {
   const { data } = event;
   if (!data || typeof data.id !== "number") {

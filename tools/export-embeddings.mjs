@@ -7,7 +7,8 @@
  *   node tools/export-embeddings.mjs --db path/to/helios.sqlite3 --output dataset.json
  *
  * The database file can be:
- * - Exported from OPFS in the browser (download the database)
+ * - Exported from the browser UI: Click "Export Database" button (downloads helios.sqlite3)
+ * - Or manually exported from OPFS via browser DevTools → Application → OPFS
  * - Or a local SQLite file path
  *
  * Output format matches the benchmark CLI input:
