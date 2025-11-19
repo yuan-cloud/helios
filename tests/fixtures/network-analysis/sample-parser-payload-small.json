@@ -1,0 +1,311 @@
+{
+  "functions": [
+    {
+      "id": "src/utils/func1.js::func1",
+      "name": "func1",
+      "fqName": "utils.func1",
+      "filePath": "src/utils/func1.js",
+      "moduleId": "utils",
+      "lang": "javascript",
+      "isVirtual": false,
+      "startLine": 1,
+      "endLine": 25,
+      "startColumn": 0,
+      "endColumn": 0,
+      "loc": 25,
+      "doc": "Function func1 in utils",
+      "source": "function func1() { /* ... */ }",
+      "metrics": {}
+    },
+    {
+      "id": "src/api/func2.ts::func2",
+      "name": "func2",
+      "fqName": "api.func2",
+      "filePath": "src/api/func2.ts",
+      "moduleId": "api",
+      "lang": "typescript",
+      "isVirtual": false,
+      "startLine": 11,
+      "endLine": 35,
+      "startColumn": 0,
+      "endColumn": 0,
+      "loc": 25,
+      "doc": "Function func2 in api",
+      "source": "function func2() { /* ... */ }",
+      "metrics": {}
+    },
+    {
+      "id": "src/components/func3.py::func3",
+      "name": "func3",
+      "fqName": "components.func3",
+      "filePath": "src/components/func3.py",
+      "moduleId": "components",
+      "lang": "python",
+      "isVirtual": false,
+      "startLine": 21,
+      "endLine": 45,
+      "startColumn": 0,
+      "endColumn": 0,
+      "loc": 25,
+      "doc": "Function func3 in components",
+      "source": "function func3() { /* ... */ }",
+      "metrics": {}
+    },
+    {
+      "id": "src/lib/func4.js::func4",
+      "name": "func4",
+      "fqName": "lib.func4",
+      "filePath": "src/lib/func4.js",
+      "moduleId": "lib",
+      "lang": "javascript",
+      "isVirtual": false,
+      "startLine": 31,
+      "endLine": 55,
+      "startColumn": 0,
+      "endColumn": 0,
+      "loc": 25,
+      "doc": "Function func4 in lib",
+      "source": "function func4() { /* ... */ }",
+      "metrics": {}
+    },
+    {
+      "id": "src/services/func5.ts::func5",
+      "name": "func5",
+      "fqName": "services.func5",
+      "filePath": "src/services/func5.ts",
+      "moduleId": "services",
+      "lang": "typescript",
+      "isVirtual": false,
+      "startLine": 41,
+      "endLine": 65,
+      "startColumn": 0,
+      "endColumn": 0,
+      "loc": 25,
+      "doc": "Function func5 in services",
+      "source": "function func5() { /* ... */ }",
+      "metrics": {}
+    },
+    {
+      "id": "src/models/func6.py::func6",
+      "name": "func6",
+      "fqName": "models.func6",
+      "filePath": "src/models/func6.py",
+      "moduleId": "models",
+      "lang": "python",
+      "isVirtual": false,
+      "startLine": 51,
+      "endLine": 75,
+      "startColumn": 0,
+      "endColumn": 0,
+      "loc": 25,
+      "doc": "Function func6 in models",
+      "source": "function func6() { /* ... */ }",
+      "metrics": {}
+    },
+    {
+      "id": "src/helpers/func7.js::func7",
+      "name": "func7",
+      "fqName": "helpers.func7",
+      "filePath": "src/helpers/func7.js",
+      "moduleId": "helpers",
+      "lang": "javascript",
+      "isVirtual": false,
+      "startLine": 61,
+      "endLine": 85,
+      "startColumn": 0,
+      "endColumn": 0,
+      "loc": 25,
+      "doc": "Function func7 in helpers",
+      "source": "function func7() { /* ... */ }",
+      "metrics": {}
+    },
+    {
+      "id": "src/utils/func8.ts::func8",
+      "name": "func8",
+      "fqName": "utils.func8",
+      "filePath": "src/utils/func8.ts",
+      "moduleId": "utils",
+      "lang": "typescript",
+      "isVirtual": false,
+      "startLine": 71,
+      "endLine": 95,
+      "startColumn": 0,
+      "endColumn": 0,
+      "loc": 25,
+      "doc": "Function func8 in utils",
+      "source": "function func8() { /* ... */ }",
+      "metrics": {}
+    },
+    {
+      "id": "src/api/func9.py::func9",
+      "name": "func9",
+      "fqName": "api.func9",
+      "filePath": "src/api/func9.py",
+      "moduleId": "api",
+      "lang": "python",
+      "isVirtual": false,
+      "startLine": 81,
+      "endLine": 105,
+      "startColumn": 0,
+      "endColumn": 0,
+      "loc": 25,
+      "doc": "Function func9 in api",
+      "source": "function func9() { /* ... */ }",
+      "metrics": {}
+    },
+    {
+      "id": "src/components/func10.js::func10",
+      "name": "func10",
+      "fqName": "components.func10",
+      "filePath": "src/components/func10.js",
+      "moduleId": "components",
+      "lang": "javascript",
+      "isVirtual": false,
+      "startLine": 91,
+      "endLine": 115,
+      "startColumn": 0,
+      "endColumn": 0,
+      "loc": 25,
+      "doc": "Function func10 in components",
+      "source": "function func10() { /* ... */ }",
+      "metrics": {}
+    }
+  ],
+  "callEdges": [
+    {
+      "id": "call::src/utils/func1.js::func1→src/api/func2.ts::func2",
+      "source": "src/utils/func1.js::func1",
+      "target": "src/api/func2.ts::func2",
+      "weight": 2,
+      "isDynamic": false,
+      "language": "javascript",
+      "callSites": [
+        {
+          "filePath": "src/utils/func1.js",
+          "line": 6,
+          "column": 10,
+          "context": "func2();"
+        }
+      ],
+      "resolution": {
+        "status": "ambiguous",
+        "reason": null,
+        "candidates": [
+          {
+            "id": "src/api/func2.ts::func2",
+            "confidence": 0.9
+          }
+        ]
+      }
+    },
+    {
+      "id": "call::src/components/func3.py::func3→src/lib/func4.js::func4",
+      "source": "src/components/func3.py::func3",
+      "target": "src/lib/func4.js::func4",
+      "weight": 2,
+      "isDynamic": false,
+      "language": "python",
+      "callSites": [
+        {
+          "filePath": "src/components/func3.py",
+          "line": 26,
+          "column": 10,
+          "context": "func4();"
+        }
+      ],
+      "resolution": {
+        "status": "resolved",
+        "reason": "Cannot resolve statically",
+        "candidates": [
+          {
+            "id": "src/lib/func4.js::func4",
+            "confidence": 0.9
+          }
+        ]
+      }
+    },
+    {
+      "id": "call::src/services/func5.ts::func5→src/models/func6.py::func6",
+      "source": "src/services/func5.ts::func5",
+      "target": "src/models/func6.py::func6",
+      "weight": 3,
+      "isDynamic": false,
+      "language": "typescript",
+      "callSites": [
+        {
+          "filePath": "src/services/func5.ts",
+          "line": 46,
+          "column": 10,
+          "context": "func6();"
+        }
+      ],
+      "resolution": {
+        "status": "ambiguous",
+        "reason": null,
+        "candidates": [
+          {
+            "id": "src/models/func6.py::func6",
+            "confidence": 0.9
+          }
+        ]
+      }
+    },
+    {
+      "id": "call::src/helpers/func7.js::func7→src/utils/func8.ts::func8",
+      "source": "src/helpers/func7.js::func7",
+      "target": "src/utils/func8.ts::func8",
+      "weight": 1,
+      "isDynamic": false,
+      "language": "javascript",
+      "callSites": [
+        {
+          "filePath": "src/helpers/func7.js",
+          "line": 66,
+          "column": 10,
+          "context": "func8();"
+        }
+      ],
+      "resolution": {
+        "status": "resolved",
+        "reason": null,
+        "candidates": [
+          {
+            "id": "src/utils/func8.ts::func8",
+            "confidence": 0.85
+          },
+          {
+            "id": "src/services/func5.ts::func5",
+            "confidence": 0.6
+          }
+        ]
+      }
+    },
+    {
+      "id": "call::src/api/func9.py::func9→src/components/func10.js::func10",
+      "source": "src/api/func9.py::func9",
+      "target": "src/components/func10.js::func10",
+      "weight": 2,
+      "isDynamic": false,
+      "language": "python",
+      "callSites": [
+        {
+          "filePath": "src/api/func9.py",
+          "line": 86,
+          "column": 10,
+          "context": "func10();"
+        }
+      ],
+      "resolution": {
+        "status": "resolved",
+        "reason": null,
+        "candidates": [
+          {
+            "id": "src/components/func10.js::func10",
+            "confidence": 0.9
+          }
+        ]
+      }
+    }
+  ],
+  "similarityEdges": []
+}
