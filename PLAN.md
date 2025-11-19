@@ -228,7 +228,7 @@ All steps are cancellable and resumable; show clear privacy note ("Remains on yo
 
 ## 6) Data Model (SQLite)
 
-[ChartreuseHill - UPDATED - 2025-11-13 09:18]
+[ChartreuseHill - UPDATED - 2025-11-19 13:59]
 
 ✅ SQLite-WASM bootstrap w/ OPFS fallback (`src/storage/sqlite.js`)
 ✅ Schema definition & metadata helpers (`src/storage/schema.js`, `src/storage/migrations.js`)
