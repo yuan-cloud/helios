@@ -346,7 +346,7 @@ Persist DB under OPFS (origin-private) so users can reopen the site and continue
 
 ## 11) Visualization Details
 
-[LilacLake - UPDATED - 2025-11-20 01:00]
+[LilacLake - UPDATED - 2025-11-20 01:20]
 
 ✅ Call-edge palette finalized (directional particles, arrowheads, module-aware colors, hover fades)  
 ✅ Interaction polish (hover sidebar metrics, inspector call lists, camera focus + quick-jump syncing)  
@@ -354,7 +354,7 @@ Persist DB under OPFS (origin-private) so users can reopen the site and continue
 ✅ Similarity edge styling (dashed visuals, weight-aware opacity/width, threshold slider, inspector badges)  
 ✅ Local vendor dependency support (Three.js and peer deps added to import map; visualization works with ChartreuseHill's local vendor files)  
 ✅ Visualization payload compatibility test (end-to-end test suite: payload validation → graph pipeline → visualization format conversion → visualization consumption; updated for BlueBear's schema-compliant similarity edge format with type field, metadata, undirected flag; 8 tests, all passing)  
-✅ Data ingestion wiring (100% — schema ratification complete; worker plumbing complete; visualization auto-refreshes when embeddings finish; end-to-end integration complete)  
+✅ Data ingestion wiring (100% — schema ratification complete; worker plumbing complete; visualization auto-refreshes when embeddings finish; end-to-end integration complete; defensive check added to avoid refreshing with empty data)  
 ✅ Layout persistence & freeze UX (OPFS-backed save/restore, auto-freeze presets, resume snapshot hooks)  
 ✅ Demo showcase UX (hero CTA, modal spinner, working PNG/JSON export buttons, segmented performance selector)  
 ✅ Contract validation tooling shared with parser/graph (`docs/payload-sample.json`, `tools/validate-payload.mjs`, `tests/payload/contract.test.mjs`)  
