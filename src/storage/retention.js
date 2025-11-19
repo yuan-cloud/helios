@@ -4,6 +4,7 @@
 
 const RETENTION_KEY = "retention.maxAgeHours";
 const RESUME_NAMESPACE = "resume::";
+const ANALYSIS_SNAPSHOT_KEY = "analysis.snapshot.v1";
 const DEFAULT_RETENTION_HOURS = 24; // Default retention window (configurable via kv table)
 
 /**
@@ -85,11 +86,12 @@ export function cleanupExpiredLayoutSnapshots(db, cutoffTs) {
 }
 
 /**
- * Deletes expired resume flow entries from the kv table.
+ * Deletes expired resume flow entries and analysis snapshots from the kv table.
  * Resume entries are stored with keys prefixed by RESUME_NAMESPACE.
+ * Analysis snapshots are stored with key ANALYSIS_SNAPSHOT_KEY.
  * @param {Object} db - SQLite database handle
  * @param {string} cutoffTs - ISO timestamp cutoff
- * @returns {{ deleted: number }} Number of resume entries deleted
+ * @returns {{ deleted: number }} Number of entries deleted (resume entries + snapshot if expired)
  */
 export function cleanupExpiredResumeEntries(db, cutoffTs) {
   if (!db || typeof db.exec !== "function" && typeof db.prepare !== "function") {
@@ -137,6 +139,40 @@ export function cleanupExpiredResumeEntries(db, cutoffTs) {
       // Invalid JSON - log but don't delete (might be non-resume data with resume prefix)
       console.warn(`[Retention] Failed to parse resume entry ${row.key}:`, error);
     }
+  }
+  
+  // Also check analysis snapshot (stored with key "analysis.snapshot.v1")
+  // Analysis snapshots use "savedAt" timestamp field
+  try {
+    const snapshotRows = [];
+    if (typeof db.exec === "function") {
+      db.exec({
+        sql: "SELECT key, value FROM kv WHERE key = ?1",
+        bind: [ANALYSIS_SNAPSHOT_KEY],
+        rowMode: "object",
+        callback: (row) => {
+          snapshotRows.push(row);
+        },
+      });
+    }
+    
+    for (const row of snapshotRows) {
+      try {
+        const parsed = JSON.parse(row.value);
+        // Analysis snapshots use "savedAt" timestamp (ISO string)
+        const savedAt = parsed?.savedAt;
+        
+        if (typeof savedAt === "string" && savedAt < cutoffTs) {
+          toDelete.push(ANALYSIS_SNAPSHOT_KEY);
+        }
+      } catch (error) {
+        // Invalid JSON - log but don't delete (might be corrupted snapshot)
+        console.warn(`[Retention] Failed to parse analysis snapshot:`, error);
+      }
+    }
+  } catch (error) {
+    // If snapshot check fails, log but don't fail entire cleanup
+    console.warn(`[Retention] Failed to check analysis snapshot:`, error);
   }
   
   let deleted = 0;

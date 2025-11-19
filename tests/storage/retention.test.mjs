@@ -164,6 +164,188 @@ test("cleanupExpiredResumeEntries - rejects invalid database handle", () => {
   assert.throws(() => cleanupExpiredResumeEntries(null, cutoff), TypeError);
 });
 
+test("cleanupExpiredResumeEntries - deletes expired analysis snapshot", () => {
+  const resumeRows = [
+    {
+      key: "resume::session1",
+      value: JSON.stringify({ updated_at: new Date(Date.now() - 30 * 60 * 60 * 1000).toISOString() }),
+    },
+  ];
+  
+  const snapshotValue = JSON.stringify({
+    savedAt: new Date(Date.now() - 30 * 60 * 60 * 1000).toISOString(),
+    version: 1,
+    functions: []
+  });
+
+  const deletedKeys = new Set();
+  let snapshotQueried = false;
+  const mockDb = {
+    exec: (options) => {
+      if (options.sql && options.sql.includes("SELECT")) {
+        if (options.sql.includes("LIKE")) {
+          // Resume entries query
+          resumeRows.forEach((row) => {
+            if (options.callback) {
+              options.callback(row);
+            }
+          });
+        } else if (options.sql.includes("key =") && options.bind && options.bind[0] === "analysis.snapshot.v1") {
+          // Analysis snapshot query
+          snapshotQueried = true;
+          if (options.callback) {
+            options.callback({
+              key: "analysis.snapshot.v1",
+              value: snapshotValue,
+            });
+          }
+        }
+      }
+    },
+    prepare: (sql) => {
+      let boundKey = null;
+      return {
+        bind: (params) => {
+          boundKey = params[0];
+        },
+        step: () => {
+          if (boundKey) {
+            deletedKeys.add(boundKey);
+          }
+        },
+        finalize: () => {},
+      };
+    },
+    changes: () => deletedKeys.size,
+  };
+
+  const cutoff = new Date(Date.now() - 25 * 60 * 60 * 1000).toISOString();
+  const result = cleanupExpiredResumeEntries(mockDb, cutoff);
+  
+  assert.ok(snapshotQueried, "Should query analysis snapshot");
+  assert.ok(result.deleted >= 1, "Should delete at least one entry");
+  assert.ok(deletedKeys.has("resume::session1"), "Should delete expired resume entry");
+  assert.ok(deletedKeys.has("analysis.snapshot.v1"), "Should delete expired analysis snapshot");
+});
+
+test("cleanupExpiredResumeEntries - preserves recent analysis snapshot", () => {
+  const resumeRows = [
+    {
+      key: "resume::session1",
+      value: JSON.stringify({ updated_at: new Date(Date.now() - 30 * 60 * 60 * 1000).toISOString() }),
+    },
+  ];
+  
+  const snapshotValue = JSON.stringify({
+    savedAt: new Date(Date.now() - 10 * 60 * 60 * 1000).toISOString(), // Recent (10h ago)
+    version: 1,
+    functions: []
+  });
+
+  const deletedKeys = new Set();
+  let snapshotQueried = false;
+  const mockDb = {
+    exec: (options) => {
+      if (options.sql && options.sql.includes("SELECT")) {
+        if (options.sql.includes("LIKE")) {
+          // Resume entries query
+          resumeRows.forEach((row) => {
+            if (options.callback) {
+              options.callback(row);
+            }
+          });
+        } else if (options.sql.includes("key =") && options.bind && options.bind[0] === "analysis.snapshot.v1") {
+          // Analysis snapshot query
+          snapshotQueried = true;
+          if (options.callback) {
+            options.callback({
+              key: "analysis.snapshot.v1",
+              value: snapshotValue,
+            });
+          }
+        }
+      }
+    },
+    prepare: (sql) => {
+      let boundKey = null;
+      return {
+        bind: (params) => {
+          boundKey = params[0];
+        },
+        step: () => {
+          if (boundKey) {
+            deletedKeys.add(boundKey);
+          }
+        },
+        finalize: () => {},
+      };
+    },
+    changes: () => deletedKeys.size,
+  };
+
+  const cutoff = new Date(Date.now() - 25 * 60 * 60 * 1000).toISOString();
+  const result = cleanupExpiredResumeEntries(mockDb, cutoff);
+  
+  assert.ok(snapshotQueried, "Should query analysis snapshot");
+  assert.strictEqual(result.deleted, 1, "Should delete only expired resume entry");
+  assert.ok(deletedKeys.has("resume::session1"), "Should delete expired resume entry");
+  assert.ok(!deletedKeys.has("analysis.snapshot.v1"), "Should NOT delete recent analysis snapshot");
+});
+
+test("cleanupExpiredResumeEntries - handles missing analysis snapshot gracefully", () => {
+  const resumeRows = [
+    {
+      key: "resume::session1",
+      value: JSON.stringify({ updated_at: new Date(Date.now() - 30 * 60 * 60 * 1000).toISOString() }),
+    },
+  ];
+
+  const deletedKeys = new Set();
+  let snapshotQueried = false;
+  const mockDb = {
+    exec: (options) => {
+      if (options.sql && options.sql.includes("SELECT")) {
+        if (options.sql.includes("LIKE")) {
+          // Resume entries query
+          resumeRows.forEach((row) => {
+            if (options.callback) {
+              options.callback(row);
+            }
+          });
+        } else if (options.sql.includes("key =") && options.bind && options.bind[0] === "analysis.snapshot.v1") {
+          // Analysis snapshot query - no callback, snapshot doesn't exist
+          snapshotQueried = true;
+          // Don't call callback - snapshot doesn't exist
+        }
+      }
+    },
+    prepare: (sql) => {
+      let boundKey = null;
+      return {
+        bind: (params) => {
+          boundKey = params[0];
+        },
+        step: () => {
+          if (boundKey) {
+            deletedKeys.add(boundKey);
+          }
+        },
+        finalize: () => {},
+      };
+    },
+    changes: () => deletedKeys.size,
+  };
+
+  const cutoff = new Date(Date.now() - 25 * 60 * 60 * 1000).toISOString();
+  // Should not throw when snapshot doesn't exist
+  assert.doesNotThrow(() => {
+    const result = cleanupExpiredResumeEntries(mockDb, cutoff);
+    assert.ok(snapshotQueried, "Should query for analysis snapshot even if missing");
+    assert.strictEqual(result.deleted, 1, "Should still delete expired resume entries");
+    assert.ok(deletedKeys.has("resume::session1"), "Should delete expired resume entry");
+  });
+});
+
 test("enforceRetentionPolicy - returns summary", async () => {
   const mockDb = {
     prepare: (sql) => ({
