@@ -335,7 +335,7 @@ Persist DB under OPFS (origin-private) so users can reopen the site and continue
 ✅ Graph serialization helper to expose analyzed metrics (`serializeGraph`)  
 ✅ Metric export wiring into storage/viz layers (resume snapshots + inspector/controls consuming metrics)  
 ✅ Validation harness infrastructure (`tools/validate-network-analysis.mjs`, fixtures structure, documentation)  
-⏳ Validation harness with sample repos (infrastructure complete; awaiting representative datasets for actual validation runs)
+✅ Validation harness with sample repos (complete — PinkMountain provided sample parser payload fixtures; all fixtures validate successfully: small/medium/large payloads)
 
 - Compute: degree, betweenness, eigenvector, PageRank; community (Louvain); show histograms in a side panel. (Graphology has these out of the box.)
 
