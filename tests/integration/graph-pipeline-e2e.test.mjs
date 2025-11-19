@@ -3,7 +3,7 @@
 /**
  * End-to-end integration test for graph pipeline.
  * 
- * Verifies the complete flow: parser output → embeddings → graph worker → visualization format
+ * Verifies the flow: parser output → embeddings → graph worker → analysis → serialization
  * 
  * This test exercises:
  * 1. Schema-compliant parser payload ingestion
@@ -11,7 +11,8 @@
  * 3. Graph building and analysis
  * 4. Metric computation (centralities, communities, cliques)
  * 5. Graph serialization
- * 6. Visualization format conversion (optional)
+ * 
+ * Note: Visualization format conversion is tested separately in tests/viz/payload-compatibility.test.mjs
  * 
  * Uses PinkMountain's sample parser payload fixtures as test data.
  */
@@ -43,12 +44,29 @@ async function loadParserFixture(name) {
 }
 
 /**
+ * Seeded random number generator for deterministic test behavior
+ * @param {number} seed - Initial seed value
+ * @returns {Function} Random number generator function (returns 0-1)
+ */
+function seededRandom(seed) {
+  let value = seed;
+  return () => {
+    value = (value * 9301 + 49297) % 233280;
+    return value / 233280;
+  };
+}
+
+/**
  * Generate mock similarity edges for testing
  * Creates similarity edges between functions based on module proximity
+ * Uses deterministic seeded random for consistent test results
  */
 function generateMockSimilarityEdges(functions, callEdges = []) {
   const edges = [];
   const functionIds = functions.map(f => f.id);
+  
+  // Use seeded random for deterministic test behavior
+  const rng = seededRandom(42); // Fixed seed for determinism
   
   // Create similarity edges between functions in the same module
   const moduleGroups = new Map();
@@ -68,7 +86,7 @@ function generateMockSimilarityEdges(functions, callEdges = []) {
           id: `sim::${ids[i]}↔${ids[j]}`,
           source: ids[i],
           target: ids[j],
-          similarity: 0.75 + Math.random() * 0.2, // 0.75-0.95
+          similarity: 0.75 + rng() * 0.2, // 0.75-0.95 (deterministic)
           type: "similarity",
           method: "topk-avg",
           representativeSimilarity: 0.8,
@@ -95,7 +113,7 @@ function generateMockSimilarityEdges(functions, callEdges = []) {
         id: `sim::${source}↔${target}`,
         source,
         target,
-        similarity: 0.6 + Math.random() * 0.15, // 0.6-0.75
+        similarity: 0.6 + rng() * 0.15, // 0.6-0.75 (deterministic)
         type: "similarity",
         method: "topk-avg",
         representativeSimilarity: 0.65,

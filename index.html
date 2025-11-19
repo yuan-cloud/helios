@@ -2074,7 +2074,7 @@
                         similarityEdges,
                         metadata: embeddingMetadata,
                         stats: demoEmbedding.stats || similarityStats || null,
-                        functionEmbeddings
+                        functionEmbeddings: Array.isArray(functionEmbeddings) && functionEmbeddings.length > 0 ? functionEmbeddings : undefined
                     }
                 });
 
