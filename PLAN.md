@@ -244,7 +244,8 @@ All steps are cancellable and resumable; show clear privacy note ("Remains on yo
 ✅ COOP/COEP service worker + CDN fallback validated (OPFS + WASM modules load under static dev server)
 ✅ SQLite-WASM assets mirrored locally (`public/sqlite/*`) with loader pointed at same-origin copy (eliminates OPFS worker CORS failures)
 ✅ Dependency packaging audit complete — local mirrors for graphology, 3d-force-graph, graphology-communities-louvain, transformers (import map updated to use same-origin copies; reduces CORS risk and improves offline resilience)
-⏳ Multi-session retention policy doc (draft at `docs/retention-policy.md`, awaiting product/design sign-off on retention window)
+✅ Multi-session retention policy cleanup structure (`src/storage/retention.js`, integrated into storage worker; ready to activate via `config.retention.enabled = true` once product confirms defaults)
+⏳ Retention policy activation (implementation complete, awaiting product/design sign-off on retention window defaults to enable)
 
 **Tables:**
 
