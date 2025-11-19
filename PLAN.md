@@ -179,7 +179,7 @@ Tree-sitter's query DSL lets you capture these nodes robustly.
 
 ### 3.7 Visualization (3D)
 
-[LilacLake - UPDATED - 2025-11-20 00:30]
+[LilacLake - UPDATED - 2025-11-20 01:00]
 
 ✅ Core 3d-force-graph scaffold hooked to call graph output (directional particles, camera helpers, fit-to-view)  
 ✅ Controls + inspector polish (hover sidebar, neighbor quick jumps, inbound/outbound call lists, Prism-highlighted source)  
@@ -189,8 +189,8 @@ Tree-sitter's query DSL lets you capture these nodes robustly.
 ✅ Payload validation fixtures (contract sample + shared CLI validator for schema sign-off)  
 ✅ Enhanced payload validator (actionable error messages, statistics collection, JSON Schema export for tooling integration)  
 ✅ Local vendor import compatibility (Three.js and peer dependencies added to import map for local vendor file support)  
-✅ Visualization payload compatibility test (comprehensive test suite verifying payload → graph pipeline → visualization integration; 8 tests, all passing)  
-⏳ Live parser payload hookup (55% — viz side ready; still blocked pending shared payload schema ratification with parser/graph agents)  
+✅ Visualization payload compatibility test (comprehensive test suite verifying payload → graph pipeline → visualization integration; 8 tests, all passing; updated for BlueBear's schema-compliant similarity edge format)  
+⏳ Live parser payload hookup (75% — schema ratification complete; viz side ready; awaiting live worker plumbing integration with parser/graph agents)  
 ✅ Graphology metrics surfaced in UI (node sizing/color by centrality/community; hover badges for PR/BC/core/community)  
 ✅ Controls panel shows graph-level summaries (counts, top communities, central nodes, cores)  
 ✅ Resume flow integration & regression guard (call/sim edge toggles restored; viz consumes storage snapshots)  
@@ -343,15 +343,15 @@ Persist DB under OPFS (origin-private) so users can reopen the site and continue
 
 ## 11) Visualization Details
 
-[LilacLake - UPDATED - 2025-11-20 00:30]
+[LilacLake - UPDATED - 2025-11-20 01:00]
 
 ✅ Call-edge palette finalized (directional particles, arrowheads, module-aware colors, hover fades)  
 ✅ Interaction polish (hover sidebar metrics, inspector call lists, camera focus + quick-jump syncing)  
 ✅ Resolution state surfacing (hover + inspector badges with import context)  
 ✅ Similarity edge styling (dashed visuals, weight-aware opacity/width, threshold slider, inspector badges)  
 ✅ Local vendor dependency support (Three.js and peer deps added to import map; visualization works with ChartreuseHill's local vendor files)  
-✅ Visualization payload compatibility test (end-to-end test suite: payload validation → graph pipeline → visualization format conversion → visualization consumption; helps verify schema ratification)  
-⏳ Data ingestion wiring (55% — awaiting schema ratification + live worker plumbing with parser/graph agents; viz export UX now complete)  
+✅ Visualization payload compatibility test (end-to-end test suite: payload validation → graph pipeline → visualization format conversion → visualization consumption; updated for BlueBear's schema-compliant similarity edge format with type field, metadata, undirected flag; 8 tests, all passing)  
+⏳ Data ingestion wiring (75% — schema ratification complete; awaiting live worker plumbing integration with parser/graph agents; viz export UX complete)  
 ✅ Layout persistence & freeze UX (OPFS-backed save/restore, auto-freeze presets, resume snapshot hooks)  
 ✅ Demo showcase UX (hero CTA, modal spinner, working PNG/JSON export buttons, segmented performance selector)  
 ✅ Contract validation tooling shared with parser/graph (`docs/payload-sample.json`, `tools/validate-payload.mjs`, `tests/payload/contract.test.mjs`)  
