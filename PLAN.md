@@ -107,7 +107,7 @@ Tree-sitter's query DSL lets you capture these nodes robustly.
 
 ### 3.4 Function Chunking and Embeddings
 
-[BlueBear - UPDATED - 2025-11-13 10:55]
+[BlueBear - UPDATED - 2025-11-19 19:00]
 
 ✅ Chunking scaffolding (line-aware splits with source offsets)
 ✅ Embedding worker inference (Transformers.js MiniLM via WebGPU/WASM)
@@ -123,14 +123,14 @@ Tree-sitter's query DSL lets you capture these nodes robustly.
 
 ### 3.5 Embedding Aggregation and Similarity
 
-[BlueBear - UPDATED - 2025-11-13 10:55]
+[BlueBear - UPDATED - 2025-11-19 19:00]
 
 ✅ Representative vector computation (per-function mean + normalization)
 ✅ Top-k bundle similarity with cosine metrics (candidate limit + thresholding)
 ✅ Similarity edge export to visualization layer (undirected, capped neighbors)
 ✅ Cached reload path (reuse persisted embeddings/similarity when fingerprint matches; resilience fix validated)
 ✅ Approximate KNN candidate pruning (random-projection LSH seeds, auto-thresholded for large repos)
-✅ Large-scale ANN benchmarking (100% — harness + CLI + export tool + browser export button complete; full workflow: load repo → click export → run benchmark CLI)
+✅ Large-scale ANN benchmarking (100% — harness + CLI + export tool + browser export button complete; full workflow: load repo → click export → run benchmark CLI; all code reviewed and committed)
 
 - Represent each function by a set `E_f = {e_1 … e_m}` of chunk vectors.
 - **Function-to-function correlation**: Default metric = cosine similarity.
