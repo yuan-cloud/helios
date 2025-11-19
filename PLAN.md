@@ -163,8 +163,8 @@ Tree-sitter's query DSL lets you capture these nodes robustly.
 ✅ Payload validation tooling (`src/graph/payload-validator.js`, `tools/validate-payload.mjs`, docs + tests; CLI consolidated + export compatibility preserved for downstream tooling)  
 ✅ Louvain helper now projects mixed graphs to an undirected aggregate before clustering (`src/analysis/communities.js`, `tests/analysis/communities.test.mjs`)  
 ✅ Graph worker module resolution fixed (conditional dynamic imports for worker/main thread/Node.js contexts; worker pre-loads graphology via absolute URLs; defensive runtime checks added)  
-⏳ Live parser/embedding wiring & worker messaging (75% done — worker infrastructure complete; parser/embedding agents report schema compliance complete, ready to test integration)  
-⏳ Cross-worker message schema finalization (parser/embedding agents report schema-compliant outputs; ready to finalize schema contract and complete integration)
+✅ Live parser/embedding wiring & worker messaging (100% complete — all updateGraphData calls use schema-compliant format; integration ready for end-to-end testing)  
+✅ Cross-worker message schema finalization (schema ratified by parser/embedding agents; all payloads use schema-compliant format; contract finalized)
 
 - **Nodes**: One per function `{id, fqName, filePath, range, lang, size (#LOC), metrics…}`.
 - **Edges (two layers)**:
