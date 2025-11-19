@@ -153,7 +153,7 @@ Tree-sitter's query DSL lets you capture these nodes robustly.
 
 ### 3.6 Graph Assembly
 
-[OrangeSnow - UPDATED - 2025-11-20 00:50]
+[OrangeSnow - UPDATED - 2025-11-20 01:18]
 
 ✅ Graphology scaffolding and `buildFunctionGraph` implemented (`src/graph/graph-builder.js`)  
 ✅ Data ingestion + analysis pipeline (`src/graph/pipeline.js`, `collectGraphPayload`/`buildAnalyzedGraph`)  
@@ -164,7 +164,7 @@ Tree-sitter's query DSL lets you capture these nodes robustly.
 ✅ Payload validation tooling (`src/graph/payload-validator.js`, `tools/validate-payload.mjs`, docs + tests; CLI consolidated + export compatibility preserved for downstream tooling)  
 ✅ Louvain helper now projects mixed graphs to an undirected aggregate before clustering (`src/analysis/communities.js`, `tests/analysis/communities.test.mjs`)  
 ✅ Graph worker module resolution fixed (conditional dynamic imports for worker/main thread/Node.js contexts; worker pre-loads graphology via absolute URLs; defensive runtime checks added)  
-✅ Live parser/embedding wiring & worker messaging (100% complete — all updateGraphData calls use schema-compliant format; integration ready for end-to-end testing)  
+✅ Live parser/embedding wiring & worker messaging (100% complete — all updateGraphData calls use schema-compliant format; fixed functionEmbeddings input parameter bug; integration ready for end-to-end testing)  
 ✅ Cross-worker message schema finalization (schema ratified by parser/embedding agents; all payloads use schema-compliant format; contract finalized)
 
 - **Nodes**: One per function `{id, fqName, filePath, range, lang, size (#LOC), metrics…}`.
@@ -328,7 +328,7 @@ Persist DB under OPFS (origin-private) so users can reopen the site and continue
 
 ### 10.4 Network Analysis
 
-[OrangeSnow - UPDATED - 2025-11-20 00:50]
+[OrangeSnow - UPDATED - 2025-11-20 01:18]
 
 ✅ Centrality suite (degree, betweenness, PageRank) — `src/analysis/centralities.js`  
 ✅ Louvain community detection helper — `src/analysis/communities.js` (fixed worker module resolution with conditional dynamic imports; defensive runtime checks added)  
