@@ -437,7 +437,7 @@ function computeStats(nodes, edges) {
       staticEdges += 1;
     }
 
-    const status = edge.metadata?.resolution?.status;
+    const status = edge.resolution?.status;
     if (status === 'resolved') {
       resolvedEdges += 1;
     } else if (status === 'ambiguous') {
