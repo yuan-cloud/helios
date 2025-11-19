@@ -159,10 +159,10 @@ export function computeSimilarityGraph(functionEmbeddings, options = {}) {
         targetChunkCount: entryB.chunks?.length || 0
       };
       // Add model info if provided in options
-      if (options.modelId) {
-        metadata.model = options.modelId.includes('/') 
-          ? options.modelId.split('/').pop() 
-          : options.modelId;
+      if (options.modelId && typeof options.modelId === 'string') {
+        // Extract model name from "org/model-name" format, or use as-is
+        const parts = options.modelId.split('/');
+        metadata.model = parts.length > 1 ? parts[parts.length - 1] : options.modelId;
       }
       edgeMap.set(key, {
         key,
