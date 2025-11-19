@@ -26,6 +26,11 @@ if (typeof window !== 'undefined') {
 // Check for worker context (no window, no Node.js) and global graphology, fall back to imported module
 const Graph = (typeof window === 'undefined' && typeof process === 'undefined' && typeof self !== 'undefined' && self.__graphology) || GraphDefault;
 
+// Defensive runtime check to catch module loading issues early
+if (!Graph) {
+  throw new Error('Graphology module not available - check worker initialization or import map');
+}
+
 export const EDGE_LAYERS = {
   CALL: 'call',
   SIMILARITY: 'similarity'

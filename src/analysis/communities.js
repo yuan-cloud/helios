@@ -33,6 +33,14 @@ if (typeof window !== 'undefined') {
 // Check for worker context (no window, no Node.js) and global modules, fall back to imported modules
 const Graph = (typeof window === 'undefined' && typeof process === 'undefined' && typeof self !== 'undefined' && self.__graphology) || GraphDefault;
 const louvain = (typeof window === 'undefined' && typeof process === 'undefined' && typeof self !== 'undefined' && self.__graphologyLouvain) || louvainDefault;
+
+// Defensive runtime checks to catch module loading issues early
+if (!Graph) {
+  throw new Error('Graphology module not available - check worker initialization or import map');
+}
+if (!louvain) {
+  throw new Error('graphology-communities-louvain module not available - check worker initialization or import map');
+}
 import { assertGraph, mergeNodeMetrics } from './utils.js';
 
 const DEFAULT_ATTRIBUTE = 'community';
