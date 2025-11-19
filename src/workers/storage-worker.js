@@ -1,5 +1,6 @@
 import { initializeDatabase } from "../storage/sqlite.js";
 import { METADATA_KEYS, HELIOS_DB_NAME } from "../storage/schema.js";
+import { enforceRetentionPolicy } from "../storage/retention.js";
 
 let sqlite3Module = null;
 let dbHandle = null;
@@ -75,6 +76,20 @@ async function handleInit(id, payload) {
     });
   }
   const initResult = await initializationPromise;
+  
+  // Retention cleanup: enabled via config.retention.enabled flag
+  // Structure is ready, but disabled by default until product sign-off
+  // Once approved, set config.retention.enabled = true to activate
+  // Note: dbHandle is guaranteed to be set after initializationPromise resolves
+  if (config?.retention?.enabled === true && dbHandle) {
+    try {
+      await enforceRetentionPolicy(dbHandle, kvGet);
+    } catch (error) {
+      // Log but don't fail init if retention cleanup fails
+      console.warn("[Storage Worker] Retention cleanup failed during init:", error);
+    }
+  }
+  
   respondSuccess(id, initResult);
 }
 
@@ -346,6 +361,12 @@ async function processMessage(event) {
       }
       case "export": {
         const result = await exportDatabase();
+        respondSuccess(id, result);
+        break;
+      }
+      case "retention:enforce": {
+        // Manual trigger for retention cleanup (useful for testing or user-initiated cleanup)
+        const result = await enforceRetentionPolicy(dbHandle, kvGet);
         respondSuccess(id, result);
         break;
       }
