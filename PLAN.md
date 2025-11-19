@@ -93,6 +93,7 @@ Tree-sitter's query DSL lets you capture these nodes robustly.
 ✅ Resolution metadata surfaced to visualization controls/inspector  
 ✅ Parser↔viz integration revalidated (hover + inspector data flow confirmed 2025-11-09)  
 ✅ Parser payload format matches shared schema contract (`docs/payloads.md`)  
+✅ Schema ratification complete (2025-11-19) - call edges format matches payload schema, unblocks viz/graph agents  
 ⏳ Enhanced name resolution (stack-graphs integration) — 0% (planned post-MVP once upstream support unblocks)  
 ❌ Stack-graph powered name resolution blocked: awaiting WASM-capable stack-graphs build and integration guidance
 
@@ -123,14 +124,14 @@ Tree-sitter's query DSL lets you capture these nodes robustly.
 
 ### 3.5 Embedding Aggregation and Similarity
 
-[BlueBear - UPDATED - 2025-11-19 19:00]
+[BlueBear - UPDATED - 2025-11-13 10:55]
 
 ✅ Representative vector computation (per-function mean + normalization)
 ✅ Top-k bundle similarity with cosine metrics (candidate limit + thresholding)
 ✅ Similarity edge export to visualization layer (undirected, capped neighbors)
 ✅ Cached reload path (reuse persisted embeddings/similarity when fingerprint matches; resilience fix validated)
 ✅ Approximate KNN candidate pruning (random-projection LSH seeds, auto-thresholded for large repos)
-✅ Large-scale ANN benchmarking (100% — harness + CLI + export tool + browser export button complete; full workflow: load repo → click export → run benchmark CLI; all code reviewed and committed)
+✅ Large-scale ANN benchmarking (100% — harness + CLI + export tool + browser export button complete; full workflow: load repo → click export → run benchmark CLI)
 
 - Represent each function by a set `E_f = {e_1 … e_m}` of chunk vectors.
 - **Function-to-function correlation**: Default metric = cosine similarity.
