@@ -232,7 +232,7 @@ All steps are cancellable and resumable; show clear privacy note ("Remains on yo
 
 ## 6) Data Model (SQLite)
 
-[ChartreuseHill - UPDATED - 2025-11-19 13:59]
+[ChartreuseHill - UPDATED - 2025-11-20 00:45]
 
 ✅ SQLite-WASM bootstrap w/ OPFS fallback (`src/storage/sqlite.js`)
 ✅ Schema definition & metadata helpers (`src/storage/schema.js`, `src/storage/migrations.js`)
@@ -245,8 +245,8 @@ All steps are cancellable and resumable; show clear privacy note ("Remains on yo
 ✅ COOP/COEP service worker + CDN fallback validated (OPFS + WASM modules load under static dev server)
 ✅ SQLite-WASM assets mirrored locally (`public/sqlite/*`) with loader pointed at same-origin copy (eliminates OPFS worker CORS failures)
 ✅ Dependency packaging audit complete — local mirrors for graphology, 3d-force-graph, graphology-communities-louvain, transformers (import map updated to use same-origin copies; reduces CORS risk and improves offline resilience)
-✅ Multi-session retention policy cleanup structure (`src/storage/retention.js`, integrated into storage worker; ready to activate via `config.retention.enabled = true` once product confirms defaults)
-⏳ Retention policy activation (implementation complete, awaiting product/design sign-off on retention window defaults to enable)
+✅ Multi-session retention policy cleanup structure (`src/storage/retention.js`, `tests/storage/retention.test.mjs` — comprehensive cleanup logic with 17 passing tests; integrated into storage worker via optional `config.retention.enabled` flag and manual `retention:enforce` message handler)
+❌ Retention policy activation (implementation complete; blocked: awaiting product/design sign-off on retention window defaults — once approved, enable via `config.retention.enabled = true`)
 
 **Tables:**
 
