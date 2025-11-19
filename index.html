@@ -1415,7 +1415,7 @@
                 callGraph = buildCallGraph(allFunctions, allCalls, symbolTableManager);
                 
                 const stats = callGraph?.stats || { totalEdges: 0, staticEdges: 0, dynamicEdges: 0 };
-
+                
                 // Show results container and visualize button immediately after parsing/call graph
                 // Embeddings can continue in background
                 progressContainer.classList.add('hidden');
@@ -1681,7 +1681,7 @@
                 }
 
                 // Update graph data as embeddings complete
-                await updateGraphData({
+                const graphUpdateResult = await updateGraphData({
                     parser: {
                         functions: allFunctions,
                         callEdges: Array.isArray(callGraph?.edges) ? callGraph.edges : [],
@@ -1695,6 +1695,20 @@
                         functionEmbeddings: Array.isArray(functionEmbeddings) && functionEmbeddings.length > 0 ? functionEmbeddings : undefined
                     }
                 });
+
+                // If visualization is already open, refresh it with the new similarity edges
+                if (graphViz && typeof graphViz.loadData === 'function' && fullVizData) {
+                    console.log('[Embeddings] Visualization is open, refreshing with similarity edges...');
+                    try {
+                        // Get current filters to preserve user's view
+                        const currentFilters = controls ? controls.getFilters() : {};
+                        applyVisualizationFilters(currentFilters);
+                        console.log('[Embeddings] Visualization refreshed successfully');
+                    } catch (err) {
+                        console.warn('[Embeddings] Failed to refresh visualization:', err);
+                        // Non-fatal - visualization will update on next interaction
+                    }
+                }
 
                 updateEmbeddingSummary({
                     chunkCount: embeddingChunks.length,
