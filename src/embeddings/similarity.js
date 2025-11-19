@@ -152,14 +152,30 @@ export function computeSimilarityGraph(functionEmbeddings, options = {}) {
       }
 
       const key = `${entryA.id}::${entryB.id}`;
+      const id = `sim::${entryA.id}↔${entryB.id}`;
+      const metadata = {
+        bundleSize: bundleTopK,
+        sourceChunkCount: entryA.chunks?.length || 0,
+        targetChunkCount: entryB.chunks?.length || 0
+      };
+      // Add model info if provided in options
+      if (options.modelId) {
+        metadata.model = options.modelId.includes('/') 
+          ? options.modelId.split('/').pop() 
+          : options.modelId;
+      }
       edgeMap.set(key, {
         key,
+        id,
         source: entryA.id,
         target: entryB.id,
         similarity: bundle.score,
+        type: 'similarity',
         method: 'topk-avg',
         representativeSimilarity,
-        topPairs: bundle.topPairs
+        topPairs: bundle.topPairs,
+        undirected: true,
+        metadata
       });
     }
   }
@@ -188,12 +204,16 @@ export function computeSimilarityGraph(functionEmbeddings, options = {}) {
 
   return {
     edges: finalEdges.map(edge => ({
+      id: edge.id,
       source: edge.source,
       target: edge.target,
       similarity: edge.similarity,
+      type: edge.type,
       method: edge.method,
       representativeSimilarity: edge.representativeSimilarity,
-      topPairs: edge.topPairs
+      topPairs: edge.topPairs,
+      undirected: edge.undirected,
+      metadata: edge.metadata
     })),
     stats: {
       functionsWithEmbeddings: functionEmbeddings.length,

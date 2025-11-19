@@ -1652,7 +1652,11 @@
                         dimension: embeddingMetadata.dimension
                     });
                     if (!usedCachedEmbeddings) {
-                        const similarityResult = computeSimilarityGraph(functionEmbeddings, similarityConfig);
+                        const similarityOptions = {
+                            ...similarityConfig,
+                            modelId: embeddingMetadata.modelId || null
+                        };
+                        const similarityResult = computeSimilarityGraph(functionEmbeddings, similarityOptions);
                         similarityEdges = similarityResult.edges || [];
                         similarityStats = similarityResult.stats || null;
                         window.heliosSimilarity = similarityResult;
