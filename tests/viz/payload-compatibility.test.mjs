@@ -299,10 +299,19 @@ test("visualization extracts similarity edge fields correctly", async () => {
 
   const simLink = viz.data.links.find(l => l.type === 'similarity');
   assert.ok(simLink, "Should have similarity link");
+  assert.equal(simLink.type, 'similarity', "Should have type field set to 'similarity'");
   assert.equal(typeof simLink.similarity, 'number', "Should have similarity value");
   assert.ok(simLink.similarity >= 0 && simLink.similarity <= 1, "Similarity should be in [0,1] range");
   assert.ok(simLink.method, "Should have method field");
   assert.equal(simLink.undirected, true, "Similarity edges should be undirected");
+  
+  // Verify new schema-compliant fields are preserved
+  const originalEdge = collected.similarityEdges[0];
+  assert.ok(originalEdge.id, "Original edge should have id field");
+  assert.ok(originalEdge.metadata, "Original edge should have metadata field");
+  assert.ok(originalEdge.metadata.bundleSize, "Metadata should have bundleSize");
+  assert.ok(originalEdge.metadata.sourceChunkCount !== undefined, "Metadata should have sourceChunkCount");
+  assert.ok(originalEdge.metadata.targetChunkCount !== undefined, "Metadata should have targetChunkCount");
 });
 
 test("payload validator catches visualization-incompatible issues", async () => {
@@ -324,12 +333,16 @@ test("payload validator catches visualization-incompatible issues", async () => 
 test("payload with all recommended fields works correctly", async () => {
   const payload = await loadVizPayloadSample();
   
-  // Ensure similarity edge has all recommended fields
+  // Ensure similarity edge has all recommended fields (BlueBear's schema-compliant format)
   const edge = payload.embeddings.similarityEdges[0];
   assert.ok(edge.id, "Similarity edge should have id");
+  assert.equal(edge.type, 'similarity', "Similarity edge should have type field set to 'similarity'");
   assert.ok(edge.method, "Similarity edge should have method");
   assert.ok(edge.metadata, "Similarity edge should have metadata");
   assert.ok(edge.undirected !== undefined, "Similarity edge should have undirected field");
+  assert.ok(edge.metadata.bundleSize !== undefined, "Metadata should have bundleSize");
+  assert.ok(edge.metadata.sourceChunkCount !== undefined, "Metadata should have sourceChunkCount");
+  assert.ok(edge.metadata.targetChunkCount !== undefined, "Metadata should have targetChunkCount");
 
   // Process through pipeline
   const merged = mergeGraphPayload(payload);
@@ -344,7 +357,13 @@ test("payload with all recommended fields works correctly", async () => {
 
   const simLink = viz.data.links.find(l => l.type === 'similarity');
   assert.ok(simLink, "Should have similarity link");
+  assert.equal(simLink.type, 'similarity', "Should preserve type field");
   assert.ok(simLink.method, "Should preserve method field");
   assert.ok(simLink.metadata || simLink.topPairs, "Should preserve metadata or topPairs");
+  assert.equal(simLink.undirected, true, "Should preserve undirected field");
+  
+  // Verify visualization can filter by type field
+  const similarityLinks = viz.data.links.filter(l => l.type === 'similarity');
+  assert.ok(similarityLinks.length > 0, "Should be able to filter links by type='similarity'");
 });
 
