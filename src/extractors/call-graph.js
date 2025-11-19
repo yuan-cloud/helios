@@ -340,19 +340,30 @@ function buildResolutionMetadata(resolution, selectedMatch = null) {
   // Convert matches to candidates format per payload schema: { id, confidence }
   // For resolved edges: single candidate with the selected match (high confidence)
   // For ambiguous edges: multiple matches as candidates
+  // Confidence must be numeric (0-1) per payload schema
+  const convertConfidence = (conf) => {
+    if (typeof conf === 'number') return conf;
+    if (typeof conf === 'string') {
+      // Convert string confidence to numeric: 'high' -> 0.9, 'medium' -> 0.6, 'low' -> 0.3
+      const map = { 'high': 0.9, 'medium': 0.6, 'low': 0.3 };
+      return map[conf] || 0.5;
+    }
+    return 0.5; // Default
+  };
+  
   let candidates = [];
   
   if (selectedMatch) {
     // For resolved edges: single candidate with the selected match
     candidates = [{
       id: selectedMatch.func.id,
-      confidence: selectedMatch.confidence || 0.99
+      confidence: convertConfidence(selectedMatch.confidence) || 0.99
     }];
   } else if (resolution.matches && resolution.matches.length > 0) {
     // For ambiguous/unresolved: all matches as candidates
     candidates = resolution.matches.map(match => ({
       id: match.func.id,
-      confidence: match.confidence || 0.5
+      confidence: convertConfidence(match.confidence) || 0.5
     })).slice(0, 12);
   }
 
