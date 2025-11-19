@@ -152,7 +152,7 @@ Tree-sitter's query DSL lets you capture these nodes robustly.
 
 ### 3.6 Graph Assembly
 
-[OrangeSnow - UPDATED - 2025-11-20 00:05]
+[OrangeSnow - UPDATED - 2025-11-20 00:50]
 
 ✅ Graphology scaffolding and `buildFunctionGraph` implemented (`src/graph/graph-builder.js`)  
 ✅ Data ingestion + analysis pipeline (`src/graph/pipeline.js`, `collectGraphPayload`/`buildAnalyzedGraph`)  
@@ -162,9 +162,9 @@ Tree-sitter's query DSL lets you capture these nodes robustly.
 ✅ Storage/viz integration for computed metrics (controls + inspector consume centrality/core/community data)  
 ✅ Payload validation tooling (`src/graph/payload-validator.js`, `tools/validate-payload.mjs`, docs + tests; CLI consolidated + export compatibility preserved for downstream tooling)  
 ✅ Louvain helper now projects mixed graphs to an undirected aggregate before clustering (`src/analysis/communities.js`, `tests/analysis/communities.test.mjs`)  
-✅ Graph worker module resolution fixed (conditional dynamic imports for worker/main thread/Node.js contexts; worker pre-loads graphology via absolute URLs)  
-⏳ Live parser/embedding wiring & worker messaging (75% done — worker infrastructure complete with proper module resolution; awaiting parser/embedding payload handshake)  
-❌ Cross-worker message schema finalization (blocked until parser/embedding agents confirm transport format; draft documented in `docs/payloads.md`, pending ratification)
+✅ Graph worker module resolution fixed (conditional dynamic imports for worker/main thread/Node.js contexts; worker pre-loads graphology via absolute URLs; defensive runtime checks added)  
+⏳ Live parser/embedding wiring & worker messaging (75% done — worker infrastructure complete; parser/embedding agents report schema compliance complete, ready to test integration)  
+⏳ Cross-worker message schema finalization (parser/embedding agents report schema-compliant outputs; ready to finalize schema contract and complete integration)
 
 - **Nodes**: One per function `{id, fqName, filePath, range, lang, size (#LOC), metrics…}`.
 - **Edges (two layers)**:
@@ -327,10 +327,10 @@ Persist DB under OPFS (origin-private) so users can reopen the site and continue
 
 ### 10.4 Network Analysis
 
-[OrangeSnow - UPDATED - 2025-11-20 00:05]
+[OrangeSnow - UPDATED - 2025-11-20 00:50]
 
 ✅ Centrality suite (degree, betweenness, PageRank) — `src/analysis/centralities.js`  
-✅ Louvain community detection helper — `src/analysis/communities.js` (fixed worker module resolution with conditional dynamic imports)  
+✅ Louvain community detection helper — `src/analysis/communities.js` (fixed worker module resolution with conditional dynamic imports; defensive runtime checks added)  
 ✅ Clique + k-core analysis utilities — `src/analysis/cliques.js`  
 ✅ Graph serialization helper to expose analyzed metrics (`serializeGraph`)  
 ✅ Metric export wiring into storage/viz layers (resume snapshots + inspector/controls consuming metrics)  
