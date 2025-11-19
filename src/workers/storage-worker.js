@@ -230,33 +230,51 @@ async function resetDatabase(options = {}) {
 async function exportDatabase() {
   const db = ensureDbReady();
   
-  // SQLite-WASM oo1 API: use serialize() to get database as Uint8Array
+  // SQLite-WASM oo1 API: use export() to get database as Uint8Array
   if (typeof db.export === "function") {
-    const bytes = db.export();
-    // Convert Uint8Array to Array for JSON serialization
-    return {
-      bytes: Array.from(bytes),
-      size: bytes.length,
-      dbName: currentDbName,
-    };
+    try {
+      const bytes = db.export();
+      if (!(bytes instanceof Uint8Array) || bytes.length === 0) {
+        throw new Error("Export returned invalid or empty data");
+      }
+      // Convert Uint8Array to Array for JSON serialization across worker boundary
+      return {
+        bytes: Array.from(bytes),
+        size: bytes.length,
+        dbName: currentDbName,
+      };
+    } catch (error) {
+      console.error("Database export via db.export() failed:", error);
+      // Fall through to C API fallback
+    }
   }
   
   // Fallback: try sqlite3_serialize via capi if available
   if (sqlite3Module?.capi?.sqlite3_serialize) {
-    const dbPtr = db.pointer || db.handle;
-    if (dbPtr) {
-      const bytes = sqlite3Module.capi.sqlite3_serialize(dbPtr, "main", null, 0);
-      if (bytes && bytes.length > 0) {
-        return {
-          bytes: Array.from(bytes),
-          size: bytes.length,
-          dbName: currentDbName,
-        };
+    try {
+      // oo1.DB objects may expose the underlying pointer via different properties
+      // Try common property names used by SQLite-WASM
+      const dbPtr = db.pointer || db.handle || (db.constructor?.name === "DB" && db);
+      
+      if (dbPtr) {
+        // sqlite3_serialize(db, schema, pSize, flags)
+        // Returns Uint8Array or null on error
+        const bytes = sqlite3Module.capi.sqlite3_serialize(dbPtr, "main", null, 0);
+        if (bytes && bytes instanceof Uint8Array && bytes.length > 0) {
+          return {
+            bytes: Array.from(bytes),
+            size: bytes.length,
+            dbName: currentDbName,
+          };
+        }
       }
+    } catch (error) {
+      console.error("Database export via sqlite3_serialize() failed:", error);
+      // Fall through to final error
     }
   }
   
-  throw new Error("Database export not supported - serialize API not available");
+  throw new Error("Database export not supported - neither db.export() nor sqlite3_serialize() available");
 }
 
 async function processMessage(event) {

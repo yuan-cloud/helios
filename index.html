@@ -1361,11 +1361,12 @@
             setStorageStatus('Exporting database…', 'info');
             try {
                 const result = await storageClient.exportDatabase();
-                if (!result || !result.bytes) {
+                if (!result || !result.bytes || result.bytes.length === 0) {
                     throw new Error('Export returned no data');
                 }
 
                 // Create download link
+                // result.bytes is a Uint8Array from client.js
                 const blob = new Blob([result.bytes], { type: 'application/x-sqlite3' });
                 const url = URL.createObjectURL(blob);
                 const a = document.createElement('a');
@@ -3380,9 +3381,9 @@
                     storagePersistent = initResult?.persistent === true;
                     if (clearStorageBtn) {
                         clearStorageBtn.disabled = false;
+                    }
                     if (exportDbBtn) {
                         exportDbBtn.disabled = false;
-                    }
                     }
                     if (storagePersistent) {
                         setStorageStatus('Storage ready (OPFS persistent).', 'success');
