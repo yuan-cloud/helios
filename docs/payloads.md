@@ -8,6 +8,7 @@ Scope: Defines the shared JSON structures exchanged between the parser, graph/an
 - End-to-end payload example: `docs/payload-sample.json`
 - Validation script: `node tools/validate-payload.mjs docs/payload-sample.json`
 - Contract regression test: `node --test tests/payload/contract.test.mjs`
+- JSON Schema export: `node tools/validate-payload.mjs --schema --output payload-schema.json`
 
 ## 1. Overview
 
