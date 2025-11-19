@@ -51,7 +51,7 @@ function generateCallEdges(functions, targetCallCount) {
   
   // Create a structured call graph with clusters
   const clusters = [];
-  const clusterSize = Math.floor(functions.length / 5);
+  const clusterSize = Math.max(1, Math.floor(functions.length / 5)); // Ensure at least 1 to avoid infinite loop
   for (let i = 0; i < functions.length; i += clusterSize) {
     clusters.push(functions.slice(i, i + clusterSize));
   }
@@ -81,14 +81,39 @@ function generateCallEdges(functions, targetCallCount) {
             column: 10,
             context: `${target.name}();`
           }],
-          resolution: {
-            status: Math.random() < 0.15 ? 'unresolved' : Math.random() < 0.2 ? 'ambiguous' : 'resolved',
-            reason: Math.random() < 0.15 ? 'Cannot resolve statically' : null,
-            candidates: Math.random() < 0.2 ? [
-              { id: target.id, confidence: 0.85 },
-              { id: functions[Math.floor(Math.random() * functions.length)].id, confidence: 0.6 }
-            ] : [{ id: target.id, confidence: 0.9 }]
-          }
+          resolution: (() => {
+            const statusRand = Math.random();
+            if (statusRand < 0.15) {
+              // Unresolved: no candidates or reason explaining why
+              return {
+                status: 'unresolved',
+                reason: 'Cannot resolve statically',
+                candidates: []
+              };
+            } else if (statusRand < 0.2) {
+              // Ambiguous: multiple candidates
+              // Find a different function from target for the second candidate
+              const otherCandidates = functions.filter(f => f.id !== target.id);
+              const otherFunc = otherCandidates.length > 0 
+                ? otherCandidates[Math.floor(Math.random() * otherCandidates.length)]
+                : functions[0]; // Fallback if only one function
+              return {
+                status: 'ambiguous',
+                reason: 'Multiple matches found',
+                candidates: [
+                  { id: target.id, confidence: 0.85 },
+                  { id: otherFunc.id, confidence: 0.6 }
+                ]
+              };
+            } else {
+              // Resolved: single candidate, no reason
+              return {
+                status: 'resolved',
+                reason: null,
+                candidates: [{ id: target.id, confidence: 0.9 }]
+              };
+            }
+          })()
         });
         edgeCount++;
       }

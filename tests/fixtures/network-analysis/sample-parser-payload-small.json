@@ -188,7 +188,7 @@
         }
       ],
       "resolution": {
-        "status": "ambiguous",
+        "status": "resolved",
         "reason": null,
         "candidates": [
           {
@@ -202,7 +202,7 @@
       "id": "call::src/components/func3.py::func3→src/lib/func4.js::func4",
       "source": "src/components/func3.py::func3",
       "target": "src/lib/func4.js::func4",
-      "weight": 2,
+      "weight": 3,
       "isDynamic": false,
       "language": "python",
       "callSites": [
@@ -215,7 +215,7 @@
       ],
       "resolution": {
         "status": "resolved",
-        "reason": "Cannot resolve statically",
+        "reason": null,
         "candidates": [
           {
             "id": "src/lib/func4.js::func4",
@@ -228,7 +228,7 @@
       "id": "call::src/services/func5.ts::func5→src/models/func6.py::func6",
       "source": "src/services/func5.ts::func5",
       "target": "src/models/func6.py::func6",
-      "weight": 3,
+      "weight": 2,
       "isDynamic": false,
       "language": "typescript",
       "callSites": [
@@ -240,7 +240,7 @@
         }
       ],
       "resolution": {
-        "status": "ambiguous",
+        "status": "resolved",
         "reason": null,
         "candidates": [
           {
@@ -254,7 +254,7 @@
       "id": "call::src/helpers/func7.js::func7→src/utils/func8.ts::func8",
       "source": "src/helpers/func7.js::func7",
       "target": "src/utils/func8.ts::func8",
-      "weight": 1,
+      "weight": 3,
       "isDynamic": false,
       "language": "javascript",
       "callSites": [
@@ -266,18 +266,9 @@
         }
       ],
       "resolution": {
-        "status": "resolved",
-        "reason": null,
-        "candidates": [
-          {
-            "id": "src/utils/func8.ts::func8",
-            "confidence": 0.85
-          },
-          {
-            "id": "src/services/func5.ts::func5",
-            "confidence": 0.6
-          }
-        ]
+        "status": "unresolved",
+        "reason": "Cannot resolve statically",
+        "candidates": []
       }
     },
     {
@@ -304,6 +295,36 @@
             "confidence": 0.9
           }
         ]
+      }
+    },
+    {
+      "id": "call::src/utils/func1.js::func1→src/components/func3.py::func3",
+      "source": "src/utils/func1.js::func1",
+      "target": "src/components/func3.py::func3",
+      "weight": 1,
+      "isDynamic": false,
+      "language": "javascript",
+      "callSites": [
+        {
+          "filePath": "src/utils/func1.js",
+          "line": 9,
+          "column": 12,
+          "context": "await func3();"
+        }
+      ],
+      "resolution": {
+        "status": "resolved",
+        "reason": null,
+        "candidates": [
+          {
+            "id": "src/components/func3.py::func3",
+            "confidence": 0.9
+          }
+        ],
+        "importInfo": {
+          "module": "../components",
+          "resolvedModule": "components"
+        }
       }
     }
   ],

@@ -5106,8 +5106,8 @@
       "id": "call::src/utils/func1.js::func1→src/api/func2.ts::func2",
       "source": "src/utils/func1.js::func1",
       "target": "src/api/func2.ts::func2",
-      "weight": 1,
-      "isDynamic": false,
+      "weight": 3,
+      "isDynamic": true,
       "language": "javascript",
       "callSites": [
         {
@@ -5119,7 +5119,7 @@
       ],
       "resolution": {
         "status": "resolved",
-        "reason": "Cannot resolve statically",
+        "reason": null,
         "candidates": [
           {
             "id": "src/api/func2.ts::func2",
@@ -5132,8 +5132,8 @@
       "id": "call::src/api/func2.ts::func2→src/components/func3.py::func3",
       "source": "src/api/func2.ts::func2",
       "target": "src/components/func3.py::func3",
-      "weight": 1,
-      "isDynamic": false,
+      "weight": 3,
+      "isDynamic": true,
       "language": "typescript",
       "callSites": [
         {
@@ -5171,7 +5171,7 @@
       ],
       "resolution": {
         "status": "resolved",
-        "reason": "Cannot resolve statically",
+        "reason": null,
         "candidates": [
           {
             "id": "src/lib/func4.js::func4",
@@ -5184,7 +5184,7 @@
       "id": "call::src/lib/func4.js::func4→src/services/func5.ts::func5",
       "source": "src/lib/func4.js::func4",
       "target": "src/services/func5.ts::func5",
-      "weight": 1,
+      "weight": 3,
       "isDynamic": false,
       "language": "javascript",
       "callSites": [
@@ -5196,12 +5196,16 @@
         }
       ],
       "resolution": {
-        "status": "resolved",
-        "reason": null,
+        "status": "ambiguous",
+        "reason": "Multiple matches found",
         "candidates": [
           {
             "id": "src/services/func5.ts::func5",
-            "confidence": 0.9
+            "confidence": 0.85
+          },
+          {
+            "id": "src/api/func289.js::func289",
+            "confidence": 0.6
           }
         ]
       }
@@ -5210,7 +5214,7 @@
       "id": "call::src/services/func5.ts::func5→src/models/func6.py::func6",
       "source": "src/services/func5.ts::func5",
       "target": "src/models/func6.py::func6",
-      "weight": 1,
+      "weight": 2,
       "isDynamic": false,
       "language": "typescript",
       "callSites": [
@@ -5223,7 +5227,7 @@
       ],
       "resolution": {
         "status": "resolved",
-        "reason": "Cannot resolve statically",
+        "reason": null,
         "candidates": [
           {
             "id": "src/models/func6.py::func6",
@@ -5236,7 +5240,7 @@
       "id": "call::src/models/func6.py::func6→src/helpers/func7.js::func7",
       "source": "src/models/func6.py::func6",
       "target": "src/helpers/func7.js::func7",
-      "weight": 1,
+      "weight": 3,
       "isDynamic": false,
       "language": "python",
       "callSites": [
@@ -5248,7 +5252,7 @@
         }
       ],
       "resolution": {
-        "status": "ambiguous",
+        "status": "resolved",
         "reason": null,
         "candidates": [
           {
@@ -5262,8 +5266,8 @@
       "id": "call::src/helpers/func7.js::func7→src/utils/func8.ts::func8",
       "source": "src/helpers/func7.js::func7",
       "target": "src/utils/func8.ts::func8",
-      "weight": 1,
-      "isDynamic": false,
+      "weight": 2,
+      "isDynamic": true,
       "language": "javascript",
       "callSites": [
         {
@@ -5305,11 +5309,7 @@
         "candidates": [
           {
             "id": "src/api/func9.py::func9",
-            "confidence": 0.85
-          },
-          {
-            "id": "src/helpers/func7.js::func7",
-            "confidence": 0.6
+            "confidence": 0.9
           }
         ]
       }
@@ -5318,7 +5318,7 @@
       "id": "call::src/api/func9.py::func9→src/components/func10.js::func10",
       "source": "src/api/func9.py::func9",
       "target": "src/components/func10.js::func10",
-      "weight": 2,
+      "weight": 3,
       "isDynamic": false,
       "language": "python",
       "callSites": [
@@ -5344,8 +5344,8 @@
       "id": "call::src/components/func10.js::func10→src/lib/func11.ts::func11",
       "source": "src/components/func10.js::func10",
       "target": "src/lib/func11.ts::func11",
-      "weight": 3,
-      "isDynamic": false,
+      "weight": 1,
+      "isDynamic": true,
       "language": "javascript",
       "callSites": [
         {
@@ -5396,7 +5396,7 @@
       "id": "call::src/services/func12.py::func12→src/models/func13.js::func13",
       "source": "src/services/func12.py::func12",
       "target": "src/models/func13.js::func13",
-      "weight": 3,
+      "weight": 2,
       "isDynamic": false,
       "language": "python",
       "callSites": [
@@ -5409,13 +5409,8 @@
       ],
       "resolution": {
         "status": "unresolved",
-        "reason": null,
-        "candidates": [
-          {
-            "id": "src/models/func13.js::func13",
-            "confidence": 0.9
-          }
-        ]
+        "reason": "Cannot resolve statically",
+        "candidates": []
       }
     },
     {
@@ -5434,7 +5429,7 @@
         }
       ],
       "resolution": {
-        "status": "unresolved",
+        "status": "resolved",
         "reason": null,
         "candidates": [
           {
@@ -5448,7 +5443,7 @@
       "id": "call::src/helpers/func14.ts::func14→src/utils/func15.py::func15",
       "source": "src/helpers/func14.ts::func14",
       "target": "src/utils/func15.py::func15",
-      "weight": 2,
+      "weight": 3,
       "isDynamic": false,
       "language": "typescript",
       "callSites": [
@@ -5474,7 +5469,7 @@
       "id": "call::src/utils/func15.py::func15→src/api/func16.js::func16",
       "source": "src/utils/func15.py::func15",
       "target": "src/api/func16.js::func16",
-      "weight": 3,
+      "weight": 2,
       "isDynamic": false,
       "language": "python",
       "callSites": [
@@ -5500,7 +5495,7 @@
       "id": "call::src/api/func16.js::func16→src/components/func17.ts::func17",
       "source": "src/api/func16.js::func16",
       "target": "src/components/func17.ts::func17",
-      "weight": 1,
+      "weight": 3,
       "isDynamic": false,
       "language": "javascript",
       "callSites": [
@@ -5512,7 +5507,7 @@
         }
       ],
       "resolution": {
-        "status": "ambiguous",
+        "status": "resolved",
         "reason": null,
         "candidates": [
           {
@@ -5526,7 +5521,7 @@
       "id": "call::src/components/func17.ts::func17→src/lib/func18.py::func18",
       "source": "src/components/func17.ts::func17",
       "target": "src/lib/func18.py::func18",
-      "weight": 3,
+      "weight": 1,
       "isDynamic": false,
       "language": "typescript",
       "callSites": [
@@ -5578,7 +5573,7 @@
       "id": "call::src/services/func19.js::func19→src/models/func20.ts::func20",
       "source": "src/services/func19.js::func19",
       "target": "src/models/func20.ts::func20",
-      "weight": 3,
+      "weight": 1,
       "isDynamic": false,
       "language": "javascript",
       "callSites": [
@@ -5590,25 +5585,16 @@
         }
       ],
       "resolution": {
-        "status": "resolved",
-        "reason": null,
-        "candidates": [
-          {
-            "id": "src/models/func20.ts::func20",
-            "confidence": 0.85
-          },
-          {
-            "id": "src/lib/func214.js::func214",
-            "confidence": 0.6
-          }
-        ]
+        "status": "unresolved",
+        "reason": "Cannot resolve statically",
+        "candidates": []
       }
     },
     {
       "id": "call::src/models/func20.ts::func20→src/helpers/func21.py::func21",
       "source": "src/models/func20.ts::func20",
       "target": "src/helpers/func21.py::func21",
-      "weight": 2,
+      "weight": 3,
       "isDynamic": false,
       "language": "typescript",
       "callSites": [
@@ -5620,7 +5606,7 @@
         }
       ],
       "resolution": {
-        "status": "unresolved",
+        "status": "resolved",
         "reason": null,
         "candidates": [
           {
@@ -5635,7 +5621,7 @@
       "source": "src/helpers/func21.py::func21",
       "target": "src/utils/func22.js::func22",
       "weight": 3,
-      "isDynamic": false,
+      "isDynamic": true,
       "language": "python",
       "callSites": [
         {
@@ -5698,14 +5684,9 @@
         }
       ],
       "resolution": {
-        "status": "resolved",
-        "reason": null,
-        "candidates": [
-          {
-            "id": "src/components/func24.py::func24",
-            "confidence": 0.9
-          }
-        ]
+        "status": "unresolved",
+        "reason": "Cannot resolve statically",
+        "candidates": []
       }
     },
     {
@@ -5724,8 +5705,8 @@
         }
       ],
       "resolution": {
-        "status": "ambiguous",
-        "reason": "Cannot resolve statically",
+        "status": "resolved",
+        "reason": null,
         "candidates": [
           {
             "id": "src/lib/func25.js::func25",
@@ -5738,7 +5719,7 @@
       "id": "call::src/lib/func25.js::func25→src/services/func26.ts::func26",
       "source": "src/lib/func25.js::func25",
       "target": "src/services/func26.ts::func26",
-      "weight": 1,
+      "weight": 3,
       "isDynamic": false,
       "language": "javascript",
       "callSites": [
@@ -5750,22 +5731,17 @@
         }
       ],
       "resolution": {
-        "status": "resolved",
-        "reason": null,
-        "candidates": [
-          {
-            "id": "src/services/func26.ts::func26",
-            "confidence": 0.9
-          }
-        ]
+        "status": "unresolved",
+        "reason": "Cannot resolve statically",
+        "candidates": []
       }
     },
     {
       "id": "call::src/services/func26.ts::func26→src/models/func27.py::func27",
       "source": "src/services/func26.ts::func26",
       "target": "src/models/func27.py::func27",
-      "weight": 2,
-      "isDynamic": false,
+      "weight": 3,
+      "isDynamic": true,
       "language": "typescript",
       "callSites": [
         {
@@ -5781,11 +5757,7 @@
         "candidates": [
           {
             "id": "src/models/func27.py::func27",
-            "confidence": 0.85
-          },
-          {
-            "id": "src/models/func223.js::func223",
-            "confidence": 0.6
+            "confidence": 0.9
           }
         ]
       }
@@ -5795,7 +5767,7 @@
       "source": "src/models/func27.py::func27",
       "target": "src/helpers/func28.js::func28",
       "weight": 1,
-      "isDynamic": true,
+      "isDynamic": false,
       "language": "python",
       "callSites": [
         {
@@ -5806,7 +5778,7 @@
         }
       ],
       "resolution": {
-        "status": "ambiguous",
+        "status": "resolved",
         "reason": null,
         "candidates": [
           {
@@ -5820,7 +5792,7 @@
       "id": "call::src/helpers/func28.js::func28→src/utils/func29.ts::func29",
       "source": "src/helpers/func28.js::func28",
       "target": "src/utils/func29.ts::func29",
-      "weight": 3,
+      "weight": 2,
       "isDynamic": false,
       "language": "javascript",
       "callSites": [
@@ -5832,8 +5804,8 @@
         }
       ],
       "resolution": {
-        "status": "unresolved",
-        "reason": "Cannot resolve statically",
+        "status": "resolved",
+        "reason": null,
         "candidates": [
           {
             "id": "src/utils/func29.ts::func29",
@@ -5846,7 +5818,7 @@
       "id": "call::src/utils/func29.ts::func29→src/api/func30.py::func30",
       "source": "src/utils/func29.ts::func29",
       "target": "src/api/func30.py::func30",
-      "weight": 2,
+      "weight": 1,
       "isDynamic": false,
       "language": "typescript",
       "callSites": [
@@ -5872,7 +5844,7 @@
       "id": "call::src/api/func30.py::func30→src/components/func31.js::func31",
       "source": "src/api/func30.py::func30",
       "target": "src/components/func31.js::func31",
-      "weight": 3,
+      "weight": 1,
       "isDynamic": false,
       "language": "python",
       "callSites": [
@@ -5884,18 +5856,9 @@
         }
       ],
       "resolution": {
-        "status": "resolved",
-        "reason": null,
-        "candidates": [
-          {
-            "id": "src/components/func31.js::func31",
-            "confidence": 0.85
-          },
-          {
-            "id": "src/models/func167.ts::func167",
-            "confidence": 0.6
-          }
-        ]
+        "status": "unresolved",
+        "reason": "Cannot resolve statically",
+        "candidates": []
       }
     },
     {
@@ -5954,7 +5917,7 @@
       "id": "call::src/services/func33.py::func33→src/models/func34.js::func34",
       "source": "src/services/func33.py::func33",
       "target": "src/models/func34.js::func34",
-      "weight": 3,
+      "weight": 2,
       "isDynamic": false,
       "language": "python",
       "callSites": [
@@ -5980,7 +5943,7 @@
       "id": "call::src/models/func34.js::func34→src/helpers/func35.ts::func35",
       "source": "src/models/func34.js::func34",
       "target": "src/helpers/func35.ts::func35",
-      "weight": 1,
+      "weight": 2,
       "isDynamic": false,
       "language": "javascript",
       "callSites": [
@@ -6006,7 +5969,7 @@
       "id": "call::src/helpers/func35.ts::func35→src/utils/func36.py::func36",
       "source": "src/helpers/func35.ts::func35",
       "target": "src/utils/func36.py::func36",
-      "weight": 1,
+      "weight": 3,
       "isDynamic": false,
       "language": "typescript",
       "callSites": [
@@ -6032,7 +5995,7 @@
       "id": "call::src/utils/func36.py::func36→src/api/func37.js::func37",
       "source": "src/utils/func36.py::func36",
       "target": "src/api/func37.js::func37",
-      "weight": 1,
+      "weight": 2,
       "isDynamic": false,
       "language": "python",
       "callSites": [
@@ -6044,7 +6007,7 @@
         }
       ],
       "resolution": {
-        "status": "unresolved",
+        "status": "resolved",
         "reason": null,
         "candidates": [
           {
@@ -6071,24 +6034,15 @@
       ],
       "resolution": {
         "status": "unresolved",
-        "reason": null,
-        "candidates": [
-          {
-            "id": "src/components/func38.ts::func38",
-            "confidence": 0.85
-          },
-          {
-            "id": "src/helpers/func273.py::func273",
-            "confidence": 0.6
-          }
-        ]
+        "reason": "Cannot resolve statically",
+        "candidates": []
       }
     },
     {
       "id": "call::src/components/func38.ts::func38→src/lib/func39.py::func39",
       "source": "src/components/func38.ts::func38",
       "target": "src/lib/func39.py::func39",
-      "weight": 2,
+      "weight": 1,
       "isDynamic": false,
       "language": "typescript",
       "callSites": [
@@ -6115,7 +6069,7 @@
       "source": "src/lib/func39.py::func39",
       "target": "src/services/func40.js::func40",
       "weight": 1,
-      "isDynamic": false,
+      "isDynamic": true,
       "language": "python",
       "callSites": [
         {
@@ -6166,8 +6120,8 @@
       "id": "call::src/models/func41.ts::func41→src/helpers/func42.py::func42",
       "source": "src/models/func41.ts::func41",
       "target": "src/helpers/func42.py::func42",
-      "weight": 2,
-      "isDynamic": false,
+      "weight": 1,
+      "isDynamic": true,
       "language": "typescript",
       "callSites": [
         {
@@ -6178,7 +6132,7 @@
         }
       ],
       "resolution": {
-        "status": "unresolved",
+        "status": "resolved",
         "reason": null,
         "candidates": [
           {
@@ -6204,7 +6158,7 @@
         }
       ],
       "resolution": {
-        "status": "unresolved",
+        "status": "resolved",
         "reason": null,
         "candidates": [
           {
@@ -6230,7 +6184,7 @@
         }
       ],
       "resolution": {
-        "status": "ambiguous",
+        "status": "resolved",
         "reason": null,
         "candidates": [
           {
@@ -6244,7 +6198,7 @@
       "id": "call::src/api/func44.ts::func44→src/components/func45.py::func45",
       "source": "src/api/func44.ts::func44",
       "target": "src/components/func45.py::func45",
-      "weight": 3,
+      "weight": 2,
       "isDynamic": false,
       "language": "typescript",
       "callSites": [
@@ -6257,15 +6211,11 @@
       ],
       "resolution": {
         "status": "resolved",
-        "reason": "Cannot resolve statically",
+        "reason": null,
         "candidates": [
           {
             "id": "src/components/func45.py::func45",
-            "confidence": 0.85
-          },
-          {
-            "id": "src/services/func180.py::func180",
-            "confidence": 0.6
+            "confidence": 0.9
           }
         ]
       }
@@ -6286,12 +6236,16 @@
         }
       ],
       "resolution": {
-        "status": "resolved",
-        "reason": null,
+        "status": "ambiguous",
+        "reason": "Multiple matches found",
         "candidates": [
           {
             "id": "src/lib/func46.js::func46",
-            "confidence": 0.9
+            "confidence": 0.85
+          },
+          {
+            "id": "src/api/func184.js::func184",
+            "confidence": 0.6
           }
         ]
       }
@@ -6300,7 +6254,7 @@
       "id": "call::src/lib/func46.js::func46→src/services/func47.ts::func47",
       "source": "src/lib/func46.js::func46",
       "target": "src/services/func47.ts::func47",
-      "weight": 2,
+      "weight": 1,
       "isDynamic": false,
       "language": "javascript",
       "callSites": [
@@ -6312,15 +6266,15 @@
         }
       ],
       "resolution": {
-        "status": "resolved",
-        "reason": null,
+        "status": "ambiguous",
+        "reason": "Multiple matches found",
         "candidates": [
           {
             "id": "src/services/func47.ts::func47",
             "confidence": 0.85
           },
           {
-            "id": "src/lib/func228.py::func228",
+            "id": "src/components/func255.py::func255",
             "confidence": 0.6
           }
         ]
@@ -6331,7 +6285,7 @@
       "source": "src/services/func47.ts::func47",
       "target": "src/models/func48.py::func48",
       "weight": 2,
-      "isDynamic": true,
+      "isDynamic": false,
       "language": "typescript",
       "callSites": [
         {
@@ -6342,14 +6296,9 @@
         }
       ],
       "resolution": {
-        "status": "resolved",
-        "reason": null,
-        "candidates": [
-          {
-            "id": "src/models/func48.py::func48",
-            "confidence": 0.9
-          }
-        ]
+        "status": "unresolved",
+        "reason": "Cannot resolve statically",
+        "candidates": []
       }
     },
     {
@@ -6368,16 +6317,12 @@
         }
       ],
       "resolution": {
-        "status": "ambiguous",
+        "status": "resolved",
         "reason": null,
         "candidates": [
           {
             "id": "src/helpers/func49.js::func49",
-            "confidence": 0.85
-          },
-          {
-            "id": "src/services/func222.py::func222",
-            "confidence": 0.6
+            "confidence": 0.9
           }
         ]
       }
@@ -6398,7 +6343,7 @@
         }
       ],
       "resolution": {
-        "status": "ambiguous",
+        "status": "resolved",
         "reason": null,
         "candidates": [
           {
@@ -6412,8 +6357,8 @@
       "id": "call::src/utils/func50.ts::func50→src/api/func51.py::func51",
       "source": "src/utils/func50.ts::func50",
       "target": "src/api/func51.py::func51",
-      "weight": 3,
-      "isDynamic": true,
+      "weight": 2,
+      "isDynamic": false,
       "language": "typescript",
       "callSites": [
         {
@@ -6424,16 +6369,12 @@
         }
       ],
       "resolution": {
-        "status": "ambiguous",
+        "status": "resolved",
         "reason": null,
         "candidates": [
           {
             "id": "src/api/func51.py::func51",
-            "confidence": 0.85
-          },
-          {
-            "id": "src/api/func261.py::func261",
-            "confidence": 0.6
+            "confidence": 0.9
           }
         ]
       }
@@ -6442,7 +6383,7 @@
       "id": "call::src/api/func51.py::func51→src/components/func52.js::func52",
       "source": "src/api/func51.py::func51",
       "target": "src/components/func52.js::func52",
-      "weight": 2,
+      "weight": 3,
       "isDynamic": false,
       "language": "python",
       "callSites": [
@@ -6454,14 +6395,9 @@
         }
       ],
       "resolution": {
-        "status": "resolved",
-        "reason": null,
-        "candidates": [
-          {
-            "id": "src/components/func52.js::func52",
-            "confidence": 0.9
-          }
-        ]
+        "status": "unresolved",
+        "reason": "Cannot resolve statically",
+        "candidates": []
       }
     },
     {
@@ -6480,21 +6416,16 @@
         }
       ],
       "resolution": {
-        "status": "resolved",
-        "reason": null,
-        "candidates": [
-          {
-            "id": "src/lib/func53.ts::func53",
-            "confidence": 0.9
-          }
-        ]
+        "status": "unresolved",
+        "reason": "Cannot resolve statically",
+        "candidates": []
       }
     },
     {
       "id": "call::src/lib/func53.ts::func53→src/services/func54.py::func54",
       "source": "src/lib/func53.ts::func53",
       "target": "src/services/func54.py::func54",
-      "weight": 2,
+      "weight": 1,
       "isDynamic": false,
       "language": "typescript",
       "callSites": [
@@ -6506,18 +6437,9 @@
         }
       ],
       "resolution": {
-        "status": "resolved",
-        "reason": null,
-        "candidates": [
-          {
-            "id": "src/services/func54.py::func54",
-            "confidence": 0.85
-          },
-          {
-            "id": "src/api/func240.py::func240",
-            "confidence": 0.6
-          }
-        ]
+        "status": "unresolved",
+        "reason": "Cannot resolve statically",
+        "candidates": []
       }
     },
     {
@@ -6525,7 +6447,7 @@
       "source": "src/services/func54.py::func54",
       "target": "src/models/func55.js::func55",
       "weight": 2,
-      "isDynamic": true,
+      "isDynamic": false,
       "language": "python",
       "callSites": [
         {
@@ -6550,8 +6472,8 @@
       "id": "call::src/models/func55.js::func55→src/helpers/func56.ts::func56",
       "source": "src/models/func55.js::func55",
       "target": "src/helpers/func56.ts::func56",
-      "weight": 2,
-      "isDynamic": true,
+      "weight": 1,
+      "isDynamic": false,
       "language": "javascript",
       "callSites": [
         {
@@ -6563,15 +6485,11 @@
       ],
       "resolution": {
         "status": "resolved",
-        "reason": "Cannot resolve statically",
+        "reason": null,
         "candidates": [
           {
             "id": "src/helpers/func56.ts::func56",
-            "confidence": 0.85
-          },
-          {
-            "id": "src/models/func167.ts::func167",
-            "confidence": 0.6
+            "confidence": 0.9
           }
         ]
       }
@@ -6597,11 +6515,7 @@
         "candidates": [
           {
             "id": "src/utils/func57.py::func57",
-            "confidence": 0.85
-          },
-          {
-            "id": "src/utils/func204.py::func204",
-            "confidence": 0.6
+            "confidence": 0.9
           }
         ]
       }
@@ -6610,7 +6524,7 @@
       "id": "call::src/utils/func57.py::func57→src/api/func58.js::func58",
       "source": "src/utils/func57.py::func57",
       "target": "src/api/func58.js::func58",
-      "weight": 1,
+      "weight": 3,
       "isDynamic": false,
       "language": "python",
       "callSites": [
@@ -6622,16 +6536,12 @@
         }
       ],
       "resolution": {
-        "status": "unresolved",
+        "status": "resolved",
         "reason": null,
         "candidates": [
           {
             "id": "src/api/func58.js::func58",
-            "confidence": 0.85
-          },
-          {
-            "id": "src/services/func117.py::func117",
-            "confidence": 0.6
+            "confidence": 0.9
           }
         ]
       }
@@ -6640,7 +6550,7 @@
       "id": "call::src/api/func58.js::func58→src/components/func59.ts::func59",
       "source": "src/api/func58.js::func58",
       "target": "src/components/func59.ts::func59",
-      "weight": 2,
+      "weight": 1,
       "isDynamic": false,
       "language": "javascript",
       "callSites": [
@@ -6657,11 +6567,7 @@
         "candidates": [
           {
             "id": "src/components/func59.ts::func59",
-            "confidence": 0.85
-          },
-          {
-            "id": "src/models/func132.py::func132",
-            "confidence": 0.6
+            "confidence": 0.9
           }
         ]
       }
@@ -6670,7 +6576,7 @@
       "id": "call::src/components/func59.ts::func59→src/lib/func60.py::func60",
       "source": "src/components/func59.ts::func59",
       "target": "src/lib/func60.py::func60",
-      "weight": 2,
+      "weight": 3,
       "isDynamic": false,
       "language": "typescript",
       "callSites": [
@@ -6682,21 +6588,16 @@
         }
       ],
       "resolution": {
-        "status": "resolved",
-        "reason": null,
-        "candidates": [
-          {
-            "id": "src/lib/func60.py::func60",
-            "confidence": 0.9
-          }
-        ]
+        "status": "unresolved",
+        "reason": "Cannot resolve statically",
+        "candidates": []
       }
     },
     {
       "id": "call::src/services/func61.js::func61→src/models/func62.ts::func62",
       "source": "src/services/func61.js::func61",
       "target": "src/models/func62.ts::func62",
-      "weight": 2,
+      "weight": 3,
       "isDynamic": false,
       "language": "javascript",
       "callSites": [
@@ -6722,8 +6623,8 @@
       "id": "call::src/models/func62.ts::func62→src/helpers/func63.py::func63",
       "source": "src/models/func62.ts::func62",
       "target": "src/helpers/func63.py::func63",
-      "weight": 3,
-      "isDynamic": false,
+      "weight": 1,
+      "isDynamic": true,
       "language": "typescript",
       "callSites": [
         {
@@ -6748,8 +6649,8 @@
       "id": "call::src/helpers/func63.py::func63→src/utils/func64.js::func64",
       "source": "src/helpers/func63.py::func63",
       "target": "src/utils/func64.js::func64",
-      "weight": 1,
-      "isDynamic": true,
+      "weight": 2,
+      "isDynamic": false,
       "language": "python",
       "callSites": [
         {
@@ -6786,16 +6687,12 @@
         }
       ],
       "resolution": {
-        "status": "unresolved",
-        "reason": "Cannot resolve statically",
+        "status": "resolved",
+        "reason": null,
         "candidates": [
           {
             "id": "src/api/func65.ts::func65",
-            "confidence": 0.85
-          },
-          {
-            "id": "src/services/func40.js::func40",
-            "confidence": 0.6
+            "confidence": 0.9
           }
         ]
       }
@@ -6804,7 +6701,7 @@
       "id": "call::src/api/func65.ts::func65→src/components/func66.py::func66",
       "source": "src/api/func65.ts::func65",
       "target": "src/components/func66.py::func66",
-      "weight": 3,
+      "weight": 2,
       "isDynamic": false,
       "language": "typescript",
       "callSites": [
@@ -6842,12 +6739,16 @@
         }
       ],
       "resolution": {
-        "status": "resolved",
-        "reason": null,
+        "status": "ambiguous",
+        "reason": "Multiple matches found",
         "candidates": [
           {
             "id": "src/lib/func67.js::func67",
-            "confidence": 0.9
+            "confidence": 0.85
+          },
+          {
+            "id": "src/api/func37.js::func37",
+            "confidence": 0.6
           }
         ]
       }
@@ -6856,7 +6757,7 @@
       "id": "call::src/lib/func67.js::func67→src/services/func68.ts::func68",
       "source": "src/lib/func67.js::func67",
       "target": "src/services/func68.ts::func68",
-      "weight": 3,
+      "weight": 1,
       "isDynamic": false,
       "language": "javascript",
       "callSites": [
@@ -6908,7 +6809,7 @@
       "id": "call::src/models/func69.py::func69→src/helpers/func70.js::func70",
       "source": "src/models/func69.py::func69",
       "target": "src/helpers/func70.js::func70",
-      "weight": 3,
+      "weight": 2,
       "isDynamic": false,
       "language": "python",
       "callSites": [
@@ -6934,7 +6835,7 @@
       "id": "call::src/helpers/func70.js::func70→src/utils/func71.ts::func71",
       "source": "src/helpers/func70.js::func70",
       "target": "src/utils/func71.ts::func71",
-      "weight": 3,
+      "weight": 2,
       "isDynamic": false,
       "language": "javascript",
       "callSites": [
@@ -6946,8 +6847,8 @@
         }
       ],
       "resolution": {
-        "status": "unresolved",
-        "reason": "Cannot resolve statically",
+        "status": "resolved",
+        "reason": null,
         "candidates": [
           {
             "id": "src/utils/func71.ts::func71",
@@ -6960,7 +6861,7 @@
       "id": "call::src/utils/func71.ts::func71→src/api/func72.py::func72",
       "source": "src/utils/func71.ts::func71",
       "target": "src/api/func72.py::func72",
-      "weight": 2,
+      "weight": 1,
       "isDynamic": false,
       "language": "typescript",
       "callSites": [
@@ -6972,7 +6873,7 @@
         }
       ],
       "resolution": {
-        "status": "unresolved",
+        "status": "resolved",
         "reason": null,
         "candidates": [
           {
@@ -6986,7 +6887,7 @@
       "id": "call::src/api/func72.py::func72→src/components/func73.js::func73",
       "source": "src/api/func72.py::func72",
       "target": "src/components/func73.js::func73",
-      "weight": 3,
+      "weight": 1,
       "isDynamic": false,
       "language": "python",
       "callSites": [
@@ -6998,7 +6899,7 @@
         }
       ],
       "resolution": {
-        "status": "unresolved",
+        "status": "resolved",
         "reason": null,
         "candidates": [
           {
@@ -7012,7 +6913,7 @@
       "id": "call::src/components/func73.js::func73→src/lib/func74.ts::func74",
       "source": "src/components/func73.js::func73",
       "target": "src/lib/func74.ts::func74",
-      "weight": 1,
+      "weight": 3,
       "isDynamic": false,
       "language": "javascript",
       "callSites": [
@@ -7038,7 +6939,7 @@
       "id": "call::src/lib/func74.ts::func74→src/services/func75.py::func75",
       "source": "src/lib/func74.ts::func74",
       "target": "src/services/func75.py::func75",
-      "weight": 2,
+      "weight": 3,
       "isDynamic": false,
       "language": "typescript",
       "callSites": [
@@ -7065,7 +6966,7 @@
       "source": "src/services/func75.py::func75",
       "target": "src/models/func76.js::func76",
       "weight": 3,
-      "isDynamic": true,
+      "isDynamic": false,
       "language": "python",
       "callSites": [
         {
@@ -7076,21 +6977,16 @@
         }
       ],
       "resolution": {
-        "status": "resolved",
-        "reason": null,
-        "candidates": [
-          {
-            "id": "src/models/func76.js::func76",
-            "confidence": 0.9
-          }
-        ]
+        "status": "unresolved",
+        "reason": "Cannot resolve statically",
+        "candidates": []
       }
     },
     {
       "id": "call::src/models/func76.js::func76→src/helpers/func77.ts::func77",
       "source": "src/models/func76.js::func76",
       "target": "src/helpers/func77.ts::func77",
-      "weight": 3,
+      "weight": 2,
       "isDynamic": false,
       "language": "javascript",
       "callSites": [
@@ -7116,7 +7012,7 @@
       "id": "call::src/helpers/func77.ts::func77→src/utils/func78.py::func78",
       "source": "src/helpers/func77.ts::func77",
       "target": "src/utils/func78.py::func78",
-      "weight": 1,
+      "weight": 2,
       "isDynamic": false,
       "language": "typescript",
       "callSites": [
@@ -7128,7 +7024,7 @@
         }
       ],
       "resolution": {
-        "status": "unresolved",
+        "status": "resolved",
         "reason": null,
         "candidates": [
           {
@@ -7142,7 +7038,7 @@
       "id": "call::src/utils/func78.py::func78→src/api/func79.js::func79",
       "source": "src/utils/func78.py::func78",
       "target": "src/api/func79.js::func79",
-      "weight": 2,
+      "weight": 3,
       "isDynamic": false,
       "language": "python",
       "callSites": [
@@ -7155,7 +7051,7 @@
       ],
       "resolution": {
         "status": "resolved",
-        "reason": "Cannot resolve statically",
+        "reason": null,
         "candidates": [
           {
             "id": "src/api/func79.js::func79",
@@ -7185,11 +7081,7 @@
         "candidates": [
           {
             "id": "src/components/func80.ts::func80",
-            "confidence": 0.85
-          },
-          {
-            "id": "src/models/func286.js::func286",
-            "confidence": 0.6
+            "confidence": 0.9
           }
         ]
       }
@@ -7198,8 +7090,8 @@
       "id": "call::src/components/func80.ts::func80→src/lib/func81.py::func81",
       "source": "src/components/func80.ts::func80",
       "target": "src/lib/func81.py::func81",
-      "weight": 3,
-      "isDynamic": true,
+      "weight": 2,
+      "isDynamic": false,
       "language": "typescript",
       "callSites": [
         {
@@ -7210,7 +7102,7 @@
         }
       ],
       "resolution": {
-        "status": "ambiguous",
+        "status": "resolved",
         "reason": null,
         "candidates": [
           {
@@ -7224,7 +7116,7 @@
       "id": "call::src/lib/func81.py::func81→src/services/func82.js::func82",
       "source": "src/lib/func81.py::func81",
       "target": "src/services/func82.js::func82",
-      "weight": 3,
+      "weight": 1,
       "isDynamic": false,
       "language": "python",
       "callSites": [
@@ -7236,16 +7128,12 @@
         }
       ],
       "resolution": {
-        "status": "unresolved",
+        "status": "resolved",
         "reason": null,
         "candidates": [
           {
             "id": "src/services/func82.js::func82",
-            "confidence": 0.85
-          },
-          {
-            "id": "src/lib/func186.py::func186",
-            "confidence": 0.6
+            "confidence": 0.9
           }
         ]
       }
@@ -7254,7 +7142,7 @@
       "id": "call::src/services/func82.js::func82→src/models/func83.ts::func83",
       "source": "src/services/func82.js::func82",
       "target": "src/models/func83.ts::func83",
-      "weight": 1,
+      "weight": 2,
       "isDynamic": false,
       "language": "javascript",
       "callSites": [
@@ -7280,7 +7168,7 @@
       "id": "call::src/models/func83.ts::func83→src/helpers/func84.py::func84",
       "source": "src/models/func83.ts::func83",
       "target": "src/helpers/func84.py::func84",
-      "weight": 3,
+      "weight": 2,
       "isDynamic": false,
       "language": "typescript",
       "callSites": [
@@ -7306,7 +7194,7 @@
       "id": "call::src/helpers/func84.py::func84→src/utils/func85.js::func85",
       "source": "src/helpers/func84.py::func84",
       "target": "src/utils/func85.js::func85",
-      "weight": 1,
+      "weight": 3,
       "isDynamic": false,
       "language": "python",
       "callSites": [
@@ -7344,12 +7232,16 @@
         }
       ],
       "resolution": {
-        "status": "unresolved",
-        "reason": null,
+        "status": "ambiguous",
+        "reason": "Multiple matches found",
         "candidates": [
           {
             "id": "src/api/func86.ts::func86",
-            "confidence": 0.9
+            "confidence": 0.85
+          },
+          {
+            "id": "src/utils/func288.py::func288",
+            "confidence": 0.6
           }
         ]
       }
@@ -7370,7 +7262,7 @@
         }
       ],
       "resolution": {
-        "status": "ambiguous",
+        "status": "resolved",
         "reason": null,
         "candidates": [
           {
@@ -7384,8 +7276,8 @@
       "id": "call::src/components/func87.py::func87→src/lib/func88.js::func88",
       "source": "src/components/func87.py::func87",
       "target": "src/lib/func88.js::func88",
-      "weight": 2,
-      "isDynamic": false,
+      "weight": 3,
+      "isDynamic": true,
       "language": "python",
       "callSites": [
         {
@@ -7410,7 +7302,7 @@
       "id": "call::src/lib/func88.js::func88→src/services/func89.ts::func89",
       "source": "src/lib/func88.js::func88",
       "target": "src/services/func89.ts::func89",
-      "weight": 3,
+      "weight": 2,
       "isDynamic": false,
       "language": "javascript",
       "callSites": [
@@ -7436,8 +7328,8 @@
       "id": "call::src/services/func89.ts::func89→src/models/func90.py::func90",
       "source": "src/services/func89.ts::func89",
       "target": "src/models/func90.py::func90",
-      "weight": 3,
-      "isDynamic": true,
+      "weight": 2,
+      "isDynamic": false,
       "language": "typescript",
       "callSites": [
         {
@@ -7475,7 +7367,7 @@
       ],
       "resolution": {
         "status": "resolved",
-        "reason": "Cannot resolve statically",
+        "reason": null,
         "candidates": [
           {
             "id": "src/helpers/func91.js::func91",
@@ -7488,7 +7380,7 @@
       "id": "call::src/helpers/func91.js::func91→src/utils/func92.ts::func92",
       "source": "src/helpers/func91.js::func91",
       "target": "src/utils/func92.ts::func92",
-      "weight": 3,
+      "weight": 1,
       "isDynamic": false,
       "language": "javascript",
       "callSites": [
@@ -7514,7 +7406,7 @@
       "id": "call::src/utils/func92.ts::func92→src/api/func93.py::func93",
       "source": "src/utils/func92.ts::func92",
       "target": "src/api/func93.py::func93",
-      "weight": 1,
+      "weight": 2,
       "isDynamic": false,
       "language": "typescript",
       "callSites": [
@@ -7540,8 +7432,8 @@
       "id": "call::src/api/func93.py::func93→src/components/func94.js::func94",
       "source": "src/api/func93.py::func93",
       "target": "src/components/func94.js::func94",
-      "weight": 3,
-      "isDynamic": false,
+      "weight": 1,
+      "isDynamic": true,
       "language": "python",
       "callSites": [
         {
@@ -7552,21 +7444,16 @@
         }
       ],
       "resolution": {
-        "status": "resolved",
-        "reason": null,
-        "candidates": [
-          {
-            "id": "src/components/func94.js::func94",
-            "confidence": 0.9
-          }
-        ]
+        "status": "unresolved",
+        "reason": "Cannot resolve statically",
+        "candidates": []
       }
     },
     {
       "id": "call::src/components/func94.js::func94→src/lib/func95.ts::func95",
       "source": "src/components/func94.js::func94",
       "target": "src/lib/func95.ts::func95",
-      "weight": 2,
+      "weight": 3,
       "isDynamic": false,
       "language": "javascript",
       "callSites": [
@@ -7578,7 +7465,7 @@
         }
       ],
       "resolution": {
-        "status": "ambiguous",
+        "status": "resolved",
         "reason": null,
         "candidates": [
           {
@@ -7605,20 +7492,15 @@
       ],
       "resolution": {
         "status": "unresolved",
-        "reason": null,
-        "candidates": [
-          {
-            "id": "src/services/func96.py::func96",
-            "confidence": 0.9
-          }
-        ]
+        "reason": "Cannot resolve statically",
+        "candidates": []
       }
     },
     {
       "id": "call::src/services/func96.py::func96→src/models/func97.js::func97",
       "source": "src/services/func96.py::func96",
       "target": "src/models/func97.js::func97",
-      "weight": 1,
+      "weight": 3,
       "isDynamic": false,
       "language": "python",
       "callSites": [
@@ -7631,7 +7513,7 @@
       ],
       "resolution": {
         "status": "resolved",
-        "reason": "Cannot resolve statically",
+        "reason": null,
         "candidates": [
           {
             "id": "src/models/func97.js::func97",
@@ -7670,7 +7552,7 @@
       "id": "call::src/helpers/func98.ts::func98→src/utils/func99.py::func99",
       "source": "src/helpers/func98.ts::func98",
       "target": "src/utils/func99.py::func99",
-      "weight": 1,
+      "weight": 3,
       "isDynamic": false,
       "language": "typescript",
       "callSites": [
@@ -7696,8 +7578,8 @@
       "id": "call::src/utils/func99.py::func99→src/api/func100.js::func100",
       "source": "src/utils/func99.py::func99",
       "target": "src/api/func100.js::func100",
-      "weight": 3,
-      "isDynamic": false,
+      "weight": 2,
+      "isDynamic": true,
       "language": "python",
       "callSites": [
         {
@@ -7722,7 +7604,7 @@
       "id": "call::src/api/func100.js::func100→src/components/func101.ts::func101",
       "source": "src/api/func100.js::func100",
       "target": "src/components/func101.ts::func101",
-      "weight": 3,
+      "weight": 1,
       "isDynamic": false,
       "language": "javascript",
       "callSites": [
@@ -7748,8 +7630,8 @@
       "id": "call::src/components/func101.ts::func101→src/lib/func102.py::func102",
       "source": "src/components/func101.ts::func101",
       "target": "src/lib/func102.py::func102",
-      "weight": 2,
-      "isDynamic": false,
+      "weight": 3,
+      "isDynamic": true,
       "language": "typescript",
       "callSites": [
         {
@@ -7760,21 +7642,16 @@
         }
       ],
       "resolution": {
-        "status": "resolved",
-        "reason": null,
-        "candidates": [
-          {
-            "id": "src/lib/func102.py::func102",
-            "confidence": 0.9
-          }
-        ]
+        "status": "unresolved",
+        "reason": "Cannot resolve statically",
+        "candidates": []
       }
     },
     {
       "id": "call::src/lib/func102.py::func102→src/services/func103.js::func103",
       "source": "src/lib/func102.py::func102",
       "target": "src/services/func103.js::func103",
-      "weight": 1,
+      "weight": 3,
       "isDynamic": false,
       "language": "python",
       "callSites": [
@@ -7786,7 +7663,7 @@
         }
       ],
       "resolution": {
-        "status": "unresolved",
+        "status": "resolved",
         "reason": null,
         "candidates": [
           {
@@ -7800,7 +7677,7 @@
       "id": "call::src/services/func103.js::func103→src/models/func104.ts::func104",
       "source": "src/services/func103.js::func103",
       "target": "src/models/func104.ts::func104",
-      "weight": 1,
+      "weight": 2,
       "isDynamic": false,
       "language": "javascript",
       "callSites": [
@@ -7817,11 +7694,7 @@
         "candidates": [
           {
             "id": "src/models/func104.ts::func104",
-            "confidence": 0.85
-          },
-          {
-            "id": "src/utils/func218.ts::func218",
-            "confidence": 0.6
+            "confidence": 0.9
           }
         ]
       }
@@ -7830,7 +7703,7 @@
       "id": "call::src/models/func104.ts::func104→src/helpers/func105.py::func105",
       "source": "src/models/func104.ts::func104",
       "target": "src/helpers/func105.py::func105",
-      "weight": 2,
+      "weight": 3,
       "isDynamic": false,
       "language": "typescript",
       "callSites": [
@@ -7842,14 +7715,9 @@
         }
       ],
       "resolution": {
-        "status": "resolved",
+        "status": "unresolved",
         "reason": "Cannot resolve statically",
-        "candidates": [
-          {
-            "id": "src/helpers/func105.py::func105",
-            "confidence": 0.9
-          }
-        ]
+        "candidates": []
       }
     },
     {
@@ -7882,7 +7750,7 @@
       "id": "call::src/utils/func106.js::func106→src/api/func107.ts::func107",
       "source": "src/utils/func106.js::func106",
       "target": "src/api/func107.ts::func107",
-      "weight": 2,
+      "weight": 3,
       "isDynamic": false,
       "language": "javascript",
       "callSites": [
@@ -7895,15 +7763,11 @@
       ],
       "resolution": {
         "status": "resolved",
-        "reason": "Cannot resolve statically",
+        "reason": null,
         "candidates": [
           {
             "id": "src/api/func107.ts::func107",
-            "confidence": 0.85
-          },
-          {
-            "id": "src/models/func55.js::func55",
-            "confidence": 0.6
+            "confidence": 0.9
           }
         ]
       }
@@ -7912,7 +7776,7 @@
       "id": "call::src/api/func107.ts::func107→src/components/func108.py::func108",
       "source": "src/api/func107.ts::func107",
       "target": "src/components/func108.py::func108",
-      "weight": 3,
+      "weight": 2,
       "isDynamic": false,
       "language": "typescript",
       "callSites": [
@@ -7925,7 +7789,7 @@
       ],
       "resolution": {
         "status": "resolved",
-        "reason": "Cannot resolve statically",
+        "reason": null,
         "candidates": [
           {
             "id": "src/components/func108.py::func108",
@@ -7938,7 +7802,7 @@
       "id": "call::src/components/func108.py::func108→src/lib/func109.js::func109",
       "source": "src/components/func108.py::func108",
       "target": "src/lib/func109.js::func109",
-      "weight": 2,
+      "weight": 3,
       "isDynamic": false,
       "language": "python",
       "callSites": [
@@ -7950,7 +7814,7 @@
         }
       ],
       "resolution": {
-        "status": "ambiguous",
+        "status": "resolved",
         "reason": null,
         "candidates": [
           {
@@ -7990,8 +7854,8 @@
       "id": "call::src/services/func110.ts::func110→src/models/func111.py::func111",
       "source": "src/services/func110.ts::func110",
       "target": "src/models/func111.py::func111",
-      "weight": 2,
-      "isDynamic": false,
+      "weight": 1,
+      "isDynamic": true,
       "language": "typescript",
       "callSites": [
         {
@@ -8002,7 +7866,7 @@
         }
       ],
       "resolution": {
-        "status": "ambiguous",
+        "status": "resolved",
         "reason": null,
         "candidates": [
           {
@@ -8068,7 +7932,7 @@
       "id": "call::src/utils/func113.ts::func113→src/api/func114.py::func114",
       "source": "src/utils/func113.ts::func113",
       "target": "src/api/func114.py::func114",
-      "weight": 2,
+      "weight": 3,
       "isDynamic": false,
       "language": "typescript",
       "callSites": [
@@ -8094,7 +7958,7 @@
       "id": "call::src/api/func114.py::func114→src/components/func115.js::func115",
       "source": "src/api/func114.py::func114",
       "target": "src/components/func115.js::func115",
-      "weight": 2,
+      "weight": 1,
       "isDynamic": false,
       "language": "python",
       "callSites": [
@@ -8120,7 +7984,7 @@
       "id": "call::src/components/func115.js::func115→src/lib/func116.ts::func116",
       "source": "src/components/func115.js::func115",
       "target": "src/lib/func116.ts::func116",
-      "weight": 1,
+      "weight": 2,
       "isDynamic": false,
       "language": "javascript",
       "callSites": [
@@ -8146,7 +8010,7 @@
       "id": "call::src/lib/func116.ts::func116→src/services/func117.py::func117",
       "source": "src/lib/func116.ts::func116",
       "target": "src/services/func117.py::func117",
-      "weight": 1,
+      "weight": 3,
       "isDynamic": false,
       "language": "typescript",
       "callSites": [
@@ -8158,21 +8022,16 @@
         }
       ],
       "resolution": {
-        "status": "resolved",
-        "reason": null,
-        "candidates": [
-          {
-            "id": "src/services/func117.py::func117",
-            "confidence": 0.9
-          }
-        ]
+        "status": "unresolved",
+        "reason": "Cannot resolve statically",
+        "candidates": []
       }
     },
     {
       "id": "call::src/services/func117.py::func117→src/models/func118.js::func118",
       "source": "src/services/func117.py::func117",
       "target": "src/models/func118.js::func118",
-      "weight": 2,
+      "weight": 3,
       "isDynamic": false,
       "language": "python",
       "callSites": [
@@ -8184,16 +8043,12 @@
         }
       ],
       "resolution": {
-        "status": "ambiguous",
+        "status": "resolved",
         "reason": null,
         "candidates": [
           {
             "id": "src/models/func118.js::func118",
-            "confidence": 0.85
-          },
-          {
-            "id": "src/models/func251.ts::func251",
-            "confidence": 0.6
+            "confidence": 0.9
           }
         ]
       }
@@ -8214,15 +8069,15 @@
         }
       ],
       "resolution": {
-        "status": "unresolved",
-        "reason": null,
+        "status": "ambiguous",
+        "reason": "Multiple matches found",
         "candidates": [
           {
             "id": "src/helpers/func119.ts::func119",
             "confidence": 0.85
           },
           {
-            "id": "src/models/func6.py::func6",
+            "id": "src/lib/func144.py::func144",
             "confidence": 0.6
           }
         ]
@@ -8232,8 +8087,8 @@
       "id": "call::src/helpers/func119.ts::func119→src/utils/func120.py::func120",
       "source": "src/helpers/func119.ts::func119",
       "target": "src/utils/func120.py::func120",
-      "weight": 1,
-      "isDynamic": true,
+      "weight": 2,
+      "isDynamic": false,
       "language": "typescript",
       "callSites": [
         {
@@ -8249,11 +8104,7 @@
         "candidates": [
           {
             "id": "src/utils/func120.py::func120",
-            "confidence": 0.85
-          },
-          {
-            "id": "src/api/func51.py::func51",
-            "confidence": 0.6
+            "confidence": 0.9
           }
         ]
       }
@@ -8262,7 +8113,7 @@
       "id": "call::src/api/func121.js::func121→src/components/func122.ts::func122",
       "source": "src/api/func121.js::func121",
       "target": "src/components/func122.ts::func122",
-      "weight": 1,
+      "weight": 3,
       "isDynamic": false,
       "language": "javascript",
       "callSites": [
@@ -8289,7 +8140,7 @@
       "source": "src/components/func122.ts::func122",
       "target": "src/lib/func123.py::func123",
       "weight": 1,
-      "isDynamic": true,
+      "isDynamic": false,
       "language": "typescript",
       "callSites": [
         {
@@ -8314,7 +8165,7 @@
       "id": "call::src/lib/func123.py::func123→src/services/func124.js::func124",
       "source": "src/lib/func123.py::func123",
       "target": "src/services/func124.js::func124",
-      "weight": 1,
+      "weight": 3,
       "isDynamic": false,
       "language": "python",
       "callSites": [
@@ -8326,15 +8177,15 @@
         }
       ],
       "resolution": {
-        "status": "resolved",
-        "reason": null,
+        "status": "ambiguous",
+        "reason": "Multiple matches found",
         "candidates": [
           {
             "id": "src/services/func124.js::func124",
             "confidence": 0.85
           },
           {
-            "id": "src/services/func82.js::func82",
+            "id": "src/models/func244.js::func244",
             "confidence": 0.6
           }
         ]
@@ -8345,7 +8196,7 @@
       "source": "src/services/func124.js::func124",
       "target": "src/models/func125.ts::func125",
       "weight": 1,
-      "isDynamic": false,
+      "isDynamic": true,
       "language": "javascript",
       "callSites": [
         {
@@ -8356,7 +8207,7 @@
         }
       ],
       "resolution": {
-        "status": "unresolved",
+        "status": "resolved",
         "reason": null,
         "candidates": [
           {
@@ -8387,11 +8238,7 @@
         "candidates": [
           {
             "id": "src/helpers/func126.py::func126",
-            "confidence": 0.85
-          },
-          {
-            "id": "src/helpers/func105.py::func105",
-            "confidence": 0.6
+            "confidence": 0.9
           }
         ]
       }
@@ -8400,8 +8247,8 @@
       "id": "call::src/helpers/func126.py::func126→src/utils/func127.js::func127",
       "source": "src/helpers/func126.py::func126",
       "target": "src/utils/func127.js::func127",
-      "weight": 3,
-      "isDynamic": true,
+      "weight": 2,
+      "isDynamic": false,
       "language": "python",
       "callSites": [
         {
@@ -8412,14 +8259,9 @@
         }
       ],
       "resolution": {
-        "status": "resolved",
+        "status": "unresolved",
         "reason": "Cannot resolve statically",
-        "candidates": [
-          {
-            "id": "src/utils/func127.js::func127",
-            "confidence": 0.9
-          }
-        ]
+        "candidates": []
       }
     },
     {
@@ -8438,7 +8280,7 @@
         }
       ],
       "resolution": {
-        "status": "unresolved",
+        "status": "resolved",
         "reason": null,
         "candidates": [
           {
@@ -8464,12 +8306,16 @@
         }
       ],
       "resolution": {
-        "status": "unresolved",
-        "reason": "Cannot resolve statically",
+        "status": "ambiguous",
+        "reason": "Multiple matches found",
         "candidates": [
           {
             "id": "src/components/func129.py::func129",
-            "confidence": 0.9
+            "confidence": 0.85
+          },
+          {
+            "id": "src/lib/func151.js::func151",
+            "confidence": 0.6
           }
         ]
       }
@@ -8478,7 +8324,7 @@
       "id": "call::src/components/func129.py::func129→src/lib/func130.js::func130",
       "source": "src/components/func129.py::func129",
       "target": "src/lib/func130.js::func130",
-      "weight": 2,
+      "weight": 3,
       "isDynamic": false,
       "language": "python",
       "callSites": [
@@ -8490,7 +8336,7 @@
         }
       ],
       "resolution": {
-        "status": "ambiguous",
+        "status": "resolved",
         "reason": null,
         "candidates": [
           {
@@ -8504,7 +8350,7 @@
       "id": "call::src/lib/func130.js::func130→src/services/func131.ts::func131",
       "source": "src/lib/func130.js::func130",
       "target": "src/services/func131.ts::func131",
-      "weight": 3,
+      "weight": 2,
       "isDynamic": false,
       "language": "javascript",
       "callSites": [
@@ -8516,7 +8362,7 @@
         }
       ],
       "resolution": {
-        "status": "unresolved",
+        "status": "resolved",
         "reason": null,
         "candidates": [
           {
@@ -8530,7 +8376,7 @@
       "id": "call::src/services/func131.ts::func131→src/models/func132.py::func132",
       "source": "src/services/func131.ts::func131",
       "target": "src/models/func132.py::func132",
-      "weight": 1,
+      "weight": 2,
       "isDynamic": false,
       "language": "typescript",
       "callSites": [
@@ -8542,7 +8388,7 @@
         }
       ],
       "resolution": {
-        "status": "ambiguous",
+        "status": "resolved",
         "reason": null,
         "candidates": [
           {
@@ -8556,8 +8402,8 @@
       "id": "call::src/models/func132.py::func132→src/helpers/func133.js::func133",
       "source": "src/models/func132.py::func132",
       "target": "src/helpers/func133.js::func133",
-      "weight": 3,
-      "isDynamic": false,
+      "weight": 2,
+      "isDynamic": true,
       "language": "python",
       "callSites": [
         {
@@ -8568,12 +8414,16 @@
         }
       ],
       "resolution": {
-        "status": "resolved",
-        "reason": null,
+        "status": "ambiguous",
+        "reason": "Multiple matches found",
         "candidates": [
           {
             "id": "src/helpers/func133.js::func133",
-            "confidence": 0.9
+            "confidence": 0.85
+          },
+          {
+            "id": "src/models/func90.py::func90",
+            "confidence": 0.6
           }
         ]
       }
@@ -8583,7 +8433,7 @@
       "source": "src/helpers/func133.js::func133",
       "target": "src/utils/func134.ts::func134",
       "weight": 1,
-      "isDynamic": true,
+      "isDynamic": false,
       "language": "javascript",
       "callSites": [
         {
@@ -8594,7 +8444,7 @@
         }
       ],
       "resolution": {
-        "status": "unresolved",
+        "status": "resolved",
         "reason": null,
         "candidates": [
           {
@@ -8608,7 +8458,7 @@
       "id": "call::src/utils/func134.ts::func134→src/api/func135.py::func135",
       "source": "src/utils/func134.ts::func134",
       "target": "src/api/func135.py::func135",
-      "weight": 3,
+      "weight": 2,
       "isDynamic": false,
       "language": "typescript",
       "callSites": [
@@ -8621,7 +8471,7 @@
       ],
       "resolution": {
         "status": "resolved",
-        "reason": "Cannot resolve statically",
+        "reason": null,
         "candidates": [
           {
             "id": "src/api/func135.py::func135",
@@ -8634,8 +8484,8 @@
       "id": "call::src/api/func135.py::func135→src/components/func136.js::func136",
       "source": "src/api/func135.py::func135",
       "target": "src/components/func136.js::func136",
-      "weight": 1,
-      "isDynamic": true,
+      "weight": 2,
+      "isDynamic": false,
       "language": "python",
       "callSites": [
         {
@@ -8646,7 +8496,7 @@
         }
       ],
       "resolution": {
-        "status": "unresolved",
+        "status": "resolved",
         "reason": null,
         "candidates": [
           {
@@ -8660,7 +8510,7 @@
       "id": "call::src/components/func136.js::func136→src/lib/func137.ts::func137",
       "source": "src/components/func136.js::func136",
       "target": "src/lib/func137.ts::func137",
-      "weight": 1,
+      "weight": 2,
       "isDynamic": false,
       "language": "javascript",
       "callSites": [
@@ -8673,7 +8523,7 @@
       ],
       "resolution": {
         "status": "resolved",
-        "reason": "Cannot resolve statically",
+        "reason": null,
         "candidates": [
           {
             "id": "src/lib/func137.ts::func137",
@@ -8686,8 +8536,8 @@
       "id": "call::src/lib/func137.ts::func137→src/services/func138.py::func138",
       "source": "src/lib/func137.ts::func137",
       "target": "src/services/func138.py::func138",
-      "weight": 3,
-      "isDynamic": false,
+      "weight": 2,
+      "isDynamic": true,
       "language": "typescript",
       "callSites": [
         {
@@ -8698,16 +8548,12 @@
         }
       ],
       "resolution": {
-        "status": "ambiguous",
+        "status": "resolved",
         "reason": null,
         "candidates": [
           {
             "id": "src/services/func138.py::func138",
-            "confidence": 0.85
-          },
-          {
-            "id": "src/helpers/func161.ts::func161",
-            "confidence": 0.6
+            "confidence": 0.9
           }
         ]
       }
@@ -8728,14 +8574,9 @@
         }
       ],
       "resolution": {
-        "status": "resolved",
+        "status": "unresolved",
         "reason": "Cannot resolve statically",
-        "candidates": [
-          {
-            "id": "src/models/func139.js::func139",
-            "confidence": 0.9
-          }
-        ]
+        "candidates": []
       }
     },
     {
@@ -8754,18 +8595,9 @@
         }
       ],
       "resolution": {
-        "status": "resolved",
-        "reason": null,
-        "candidates": [
-          {
-            "id": "src/helpers/func140.ts::func140",
-            "confidence": 0.85
-          },
-          {
-            "id": "src/api/func37.js::func37",
-            "confidence": 0.6
-          }
-        ]
+        "status": "unresolved",
+        "reason": "Cannot resolve statically",
+        "candidates": []
       }
     },
     {
@@ -8798,8 +8630,8 @@
       "id": "call::src/utils/func141.py::func141→src/api/func142.js::func142",
       "source": "src/utils/func141.py::func141",
       "target": "src/api/func142.js::func142",
-      "weight": 1,
-      "isDynamic": false,
+      "weight": 3,
+      "isDynamic": true,
       "language": "python",
       "callSites": [
         {
@@ -8811,7 +8643,7 @@
       ],
       "resolution": {
         "status": "resolved",
-        "reason": "Cannot resolve statically",
+        "reason": null,
         "candidates": [
           {
             "id": "src/api/func142.js::func142",
@@ -8836,7 +8668,7 @@
         }
       ],
       "resolution": {
-        "status": "ambiguous",
+        "status": "resolved",
         "reason": null,
         "candidates": [
           {
@@ -8850,8 +8682,8 @@
       "id": "call::src/components/func143.ts::func143→src/lib/func144.py::func144",
       "source": "src/components/func143.ts::func143",
       "target": "src/lib/func144.py::func144",
-      "weight": 1,
-      "isDynamic": true,
+      "weight": 2,
+      "isDynamic": false,
       "language": "typescript",
       "callSites": [
         {
@@ -8876,8 +8708,8 @@
       "id": "call::src/lib/func144.py::func144→src/services/func145.js::func145",
       "source": "src/lib/func144.py::func144",
       "target": "src/services/func145.js::func145",
-      "weight": 1,
-      "isDynamic": false,
+      "weight": 2,
+      "isDynamic": true,
       "language": "python",
       "callSites": [
         {
@@ -8888,21 +8720,16 @@
         }
       ],
       "resolution": {
-        "status": "resolved",
-        "reason": null,
-        "candidates": [
-          {
-            "id": "src/services/func145.js::func145",
-            "confidence": 0.9
-          }
-        ]
+        "status": "unresolved",
+        "reason": "Cannot resolve statically",
+        "candidates": []
       }
     },
     {
       "id": "call::src/services/func145.js::func145→src/models/func146.ts::func146",
       "source": "src/services/func145.js::func145",
       "target": "src/models/func146.ts::func146",
-      "weight": 1,
+      "weight": 3,
       "isDynamic": false,
       "language": "javascript",
       "callSites": [
@@ -8928,7 +8755,7 @@
       "id": "call::src/models/func146.ts::func146→src/helpers/func147.py::func147",
       "source": "src/models/func146.ts::func146",
       "target": "src/helpers/func147.py::func147",
-      "weight": 2,
+      "weight": 1,
       "isDynamic": false,
       "language": "typescript",
       "callSites": [
@@ -8945,11 +8772,7 @@
         "candidates": [
           {
             "id": "src/helpers/func147.py::func147",
-            "confidence": 0.85
-          },
-          {
-            "id": "src/lib/func11.ts::func11",
-            "confidence": 0.6
+            "confidence": 0.9
           }
         ]
       }
@@ -8959,7 +8782,7 @@
       "source": "src/helpers/func147.py::func147",
       "target": "src/utils/func148.js::func148",
       "weight": 3,
-      "isDynamic": true,
+      "isDynamic": false,
       "language": "python",
       "callSites": [
         {
@@ -8970,7 +8793,7 @@
         }
       ],
       "resolution": {
-        "status": "ambiguous",
+        "status": "resolved",
         "reason": null,
         "candidates": [
           {
@@ -8984,7 +8807,7 @@
       "id": "call::src/utils/func148.js::func148→src/api/func149.ts::func149",
       "source": "src/utils/func148.js::func148",
       "target": "src/api/func149.ts::func149",
-      "weight": 1,
+      "weight": 3,
       "isDynamic": false,
       "language": "javascript",
       "callSites": [
@@ -9036,8 +8859,8 @@
       "id": "call::src/components/func150.py::func150→src/lib/func151.js::func151",
       "source": "src/components/func150.py::func150",
       "target": "src/lib/func151.js::func151",
-      "weight": 3,
-      "isDynamic": false,
+      "weight": 2,
+      "isDynamic": true,
       "language": "python",
       "callSites": [
         {
@@ -9048,7 +8871,7 @@
         }
       ],
       "resolution": {
-        "status": "ambiguous",
+        "status": "resolved",
         "reason": null,
         "candidates": [
           {
@@ -9062,8 +8885,8 @@
       "id": "call::src/lib/func151.js::func151→src/services/func152.ts::func152",
       "source": "src/lib/func151.js::func151",
       "target": "src/services/func152.ts::func152",
-      "weight": 3,
-      "isDynamic": false,
+      "weight": 2,
+      "isDynamic": true,
       "language": "javascript",
       "callSites": [
         {
@@ -9079,11 +8902,7 @@
         "candidates": [
           {
             "id": "src/services/func152.ts::func152",
-            "confidence": 0.85
-          },
-          {
-            "id": "src/components/func17.ts::func17",
-            "confidence": 0.6
+            "confidence": 0.9
           }
         ]
       }
@@ -9092,8 +8911,8 @@
       "id": "call::src/services/func152.ts::func152→src/models/func153.py::func153",
       "source": "src/services/func152.ts::func152",
       "target": "src/models/func153.py::func153",
-      "weight": 1,
-      "isDynamic": true,
+      "weight": 3,
+      "isDynamic": false,
       "language": "typescript",
       "callSites": [
         {
@@ -9118,7 +8937,7 @@
       "id": "call::src/models/func153.py::func153→src/helpers/func154.js::func154",
       "source": "src/models/func153.py::func153",
       "target": "src/helpers/func154.js::func154",
-      "weight": 3,
+      "weight": 2,
       "isDynamic": false,
       "language": "python",
       "callSites": [
@@ -9130,16 +8949,12 @@
         }
       ],
       "resolution": {
-        "status": "ambiguous",
+        "status": "resolved",
         "reason": null,
         "candidates": [
           {
             "id": "src/helpers/func154.js::func154",
-            "confidence": 0.85
-          },
-          {
-            "id": "src/api/func135.py::func135",
-            "confidence": 0.6
+            "confidence": 0.9
           }
         ]
       }
@@ -9148,8 +8963,8 @@
       "id": "call::src/helpers/func154.js::func154→src/utils/func155.ts::func155",
       "source": "src/helpers/func154.js::func154",
       "target": "src/utils/func155.ts::func155",
-      "weight": 3,
-      "isDynamic": false,
+      "weight": 2,
+      "isDynamic": true,
       "language": "javascript",
       "callSites": [
         {
@@ -9161,13 +8976,8 @@
       ],
       "resolution": {
         "status": "unresolved",
-        "reason": null,
-        "candidates": [
-          {
-            "id": "src/utils/func155.ts::func155",
-            "confidence": 0.9
-          }
-        ]
+        "reason": "Cannot resolve statically",
+        "candidates": []
       }
     },
     {
@@ -9186,7 +8996,7 @@
         }
       ],
       "resolution": {
-        "status": "ambiguous",
+        "status": "resolved",
         "reason": null,
         "candidates": [
           {
@@ -9200,7 +9010,7 @@
       "id": "call::src/api/func156.py::func156→src/components/func157.js::func157",
       "source": "src/api/func156.py::func156",
       "target": "src/components/func157.js::func157",
-      "weight": 3,
+      "weight": 2,
       "isDynamic": false,
       "language": "python",
       "callSites": [
@@ -9212,16 +9022,12 @@
         }
       ],
       "resolution": {
-        "status": "ambiguous",
+        "status": "resolved",
         "reason": null,
         "candidates": [
           {
             "id": "src/components/func157.js::func157",
-            "confidence": 0.85
-          },
-          {
-            "id": "src/api/func121.js::func121",
-            "confidence": 0.6
+            "confidence": 0.9
           }
         ]
       }
@@ -9230,7 +9036,7 @@
       "id": "call::src/components/func157.js::func157→src/lib/func158.ts::func158",
       "source": "src/components/func157.js::func157",
       "target": "src/lib/func158.ts::func158",
-      "weight": 1,
+      "weight": 2,
       "isDynamic": false,
       "language": "javascript",
       "callSites": [
@@ -9242,7 +9048,7 @@
         }
       ],
       "resolution": {
-        "status": "unresolved",
+        "status": "resolved",
         "reason": null,
         "candidates": [
           {
@@ -9269,7 +9075,7 @@
       ],
       "resolution": {
         "status": "resolved",
-        "reason": "Cannot resolve statically",
+        "reason": null,
         "candidates": [
           {
             "id": "src/services/func159.py::func159",
@@ -9282,7 +9088,7 @@
       "id": "call::src/services/func159.py::func159→src/models/func160.js::func160",
       "source": "src/services/func159.py::func159",
       "target": "src/models/func160.js::func160",
-      "weight": 1,
+      "weight": 3,
       "isDynamic": false,
       "language": "python",
       "callSites": [
@@ -9295,7 +9101,7 @@
       ],
       "resolution": {
         "status": "resolved",
-        "reason": "Cannot resolve statically",
+        "reason": null,
         "candidates": [
           {
             "id": "src/models/func160.js::func160",
@@ -9320,7 +9126,7 @@
         }
       ],
       "resolution": {
-        "status": "unresolved",
+        "status": "resolved",
         "reason": null,
         "candidates": [
           {
@@ -9334,7 +9140,7 @@
       "id": "call::src/helpers/func161.ts::func161→src/utils/func162.py::func162",
       "source": "src/helpers/func161.ts::func161",
       "target": "src/utils/func162.py::func162",
-      "weight": 2,
+      "weight": 1,
       "isDynamic": false,
       "language": "typescript",
       "callSites": [
@@ -9360,7 +9166,7 @@
       "id": "call::src/utils/func162.py::func162→src/api/func163.js::func163",
       "source": "src/utils/func162.py::func162",
       "target": "src/api/func163.js::func163",
-      "weight": 2,
+      "weight": 1,
       "isDynamic": false,
       "language": "python",
       "callSites": [
@@ -9398,7 +9204,7 @@
         }
       ],
       "resolution": {
-        "status": "ambiguous",
+        "status": "resolved",
         "reason": null,
         "candidates": [
           {
@@ -9412,7 +9218,7 @@
       "id": "call::src/components/func164.ts::func164→src/lib/func165.py::func165",
       "source": "src/components/func164.ts::func164",
       "target": "src/lib/func165.py::func165",
-      "weight": 2,
+      "weight": 3,
       "isDynamic": false,
       "language": "typescript",
       "callSites": [
@@ -9438,7 +9244,7 @@
       "id": "call::src/lib/func165.py::func165→src/services/func166.js::func166",
       "source": "src/lib/func165.py::func165",
       "target": "src/services/func166.js::func166",
-      "weight": 2,
+      "weight": 1,
       "isDynamic": false,
       "language": "python",
       "callSites": [
@@ -9464,8 +9270,8 @@
       "id": "call::src/services/func166.js::func166→src/models/func167.ts::func167",
       "source": "src/services/func166.js::func166",
       "target": "src/models/func167.ts::func167",
-      "weight": 2,
-      "isDynamic": true,
+      "weight": 3,
+      "isDynamic": false,
       "language": "javascript",
       "callSites": [
         {
@@ -9476,25 +9282,16 @@
         }
       ],
       "resolution": {
-        "status": "resolved",
-        "reason": null,
-        "candidates": [
-          {
-            "id": "src/models/func167.ts::func167",
-            "confidence": 0.85
-          },
-          {
-            "id": "src/helpers/func245.ts::func245",
-            "confidence": 0.6
-          }
-        ]
+        "status": "unresolved",
+        "reason": "Cannot resolve statically",
+        "candidates": []
       }
     },
     {
       "id": "call::src/models/func167.ts::func167→src/helpers/func168.py::func168",
       "source": "src/models/func167.ts::func167",
       "target": "src/helpers/func168.py::func168",
-      "weight": 1,
+      "weight": 2,
       "isDynamic": false,
       "language": "typescript",
       "callSites": [
@@ -9532,8 +9329,8 @@
         }
       ],
       "resolution": {
-        "status": "ambiguous",
-        "reason": "Cannot resolve statically",
+        "status": "resolved",
+        "reason": null,
         "candidates": [
           {
             "id": "src/utils/func169.js::func169",
@@ -9546,7 +9343,7 @@
       "id": "call::src/utils/func169.js::func169→src/api/func170.ts::func170",
       "source": "src/utils/func169.js::func169",
       "target": "src/api/func170.ts::func170",
-      "weight": 1,
+      "weight": 2,
       "isDynamic": false,
       "language": "javascript",
       "callSites": [
@@ -9572,7 +9369,7 @@
       "id": "call::src/api/func170.ts::func170→src/components/func171.py::func171",
       "source": "src/api/func170.ts::func170",
       "target": "src/components/func171.py::func171",
-      "weight": 3,
+      "weight": 2,
       "isDynamic": false,
       "language": "typescript",
       "callSites": [
@@ -9598,7 +9395,7 @@
       "id": "call::src/components/func171.py::func171→src/lib/func172.js::func172",
       "source": "src/components/func171.py::func171",
       "target": "src/lib/func172.js::func172",
-      "weight": 2,
+      "weight": 1,
       "isDynamic": false,
       "language": "python",
       "callSites": [
@@ -9610,12 +9407,16 @@
         }
       ],
       "resolution": {
-        "status": "resolved",
-        "reason": null,
+        "status": "ambiguous",
+        "reason": "Multiple matches found",
         "candidates": [
           {
             "id": "src/lib/func172.js::func172",
-            "confidence": 0.9
+            "confidence": 0.85
+          },
+          {
+            "id": "src/services/func194.ts::func194",
+            "confidence": 0.6
           }
         ]
       }
@@ -9636,21 +9437,16 @@
         }
       ],
       "resolution": {
-        "status": "resolved",
-        "reason": null,
-        "candidates": [
-          {
-            "id": "src/services/func173.ts::func173",
-            "confidence": 0.9
-          }
-        ]
+        "status": "unresolved",
+        "reason": "Cannot resolve statically",
+        "candidates": []
       }
     },
     {
       "id": "call::src/services/func173.ts::func173→src/models/func174.py::func174",
       "source": "src/services/func173.ts::func173",
       "target": "src/models/func174.py::func174",
-      "weight": 1,
+      "weight": 2,
       "isDynamic": false,
       "language": "typescript",
       "callSites": [
@@ -9663,7 +9459,7 @@
       ],
       "resolution": {
         "status": "resolved",
-        "reason": "Cannot resolve statically",
+        "reason": null,
         "candidates": [
           {
             "id": "src/models/func174.py::func174",
@@ -9676,7 +9472,7 @@
       "id": "call::src/models/func174.py::func174→src/helpers/func175.js::func175",
       "source": "src/models/func174.py::func174",
       "target": "src/helpers/func175.js::func175",
-      "weight": 1,
+      "weight": 3,
       "isDynamic": false,
       "language": "python",
       "callSites": [
@@ -9702,7 +9498,7 @@
       "id": "call::src/helpers/func175.js::func175→src/utils/func176.ts::func176",
       "source": "src/helpers/func175.js::func175",
       "target": "src/utils/func176.ts::func176",
-      "weight": 1,
+      "weight": 2,
       "isDynamic": false,
       "language": "javascript",
       "callSites": [
@@ -9714,7 +9510,7 @@
         }
       ],
       "resolution": {
-        "status": "ambiguous",
+        "status": "resolved",
         "reason": null,
         "candidates": [
           {
@@ -9754,7 +9550,7 @@
       "id": "call::src/api/func177.py::func177→src/components/func178.js::func178",
       "source": "src/api/func177.py::func177",
       "target": "src/components/func178.js::func178",
-      "weight": 2,
+      "weight": 1,
       "isDynamic": false,
       "language": "python",
       "callSites": [
@@ -9780,7 +9576,7 @@
       "id": "call::src/components/func178.js::func178→src/lib/func179.ts::func179",
       "source": "src/components/func178.js::func178",
       "target": "src/lib/func179.ts::func179",
-      "weight": 1,
+      "weight": 2,
       "isDynamic": false,
       "language": "javascript",
       "callSites": [
@@ -9806,7 +9602,7 @@
       "id": "call::src/lib/func179.ts::func179→src/services/func180.py::func180",
       "source": "src/lib/func179.ts::func179",
       "target": "src/services/func180.py::func180",
-      "weight": 3,
+      "weight": 1,
       "isDynamic": false,
       "language": "typescript",
       "callSites": [
@@ -9818,16 +9614,12 @@
         }
       ],
       "resolution": {
-        "status": "ambiguous",
+        "status": "resolved",
         "reason": null,
         "candidates": [
           {
             "id": "src/services/func180.py::func180",
-            "confidence": 0.85
-          },
-          {
-            "id": "src/lib/func109.js::func109",
-            "confidence": 0.6
+            "confidence": 0.9
           }
         ]
       }
@@ -9853,11 +9645,7 @@
         "candidates": [
           {
             "id": "src/helpers/func182.ts::func182",
-            "confidence": 0.85
-          },
-          {
-            "id": "src/helpers/func98.ts::func98",
-            "confidence": 0.6
+            "confidence": 0.9
           }
         ]
       }
@@ -9866,7 +9654,7 @@
       "id": "call::src/helpers/func182.ts::func182→src/utils/func183.py::func183",
       "source": "src/helpers/func182.ts::func182",
       "target": "src/utils/func183.py::func183",
-      "weight": 3,
+      "weight": 2,
       "isDynamic": false,
       "language": "typescript",
       "callSites": [
@@ -9878,7 +9666,7 @@
         }
       ],
       "resolution": {
-        "status": "ambiguous",
+        "status": "resolved",
         "reason": null,
         "candidates": [
           {
@@ -9892,8 +9680,8 @@
       "id": "call::src/utils/func183.py::func183→src/api/func184.js::func184",
       "source": "src/utils/func183.py::func183",
       "target": "src/api/func184.js::func184",
-      "weight": 3,
-      "isDynamic": true,
+      "weight": 1,
+      "isDynamic": false,
       "language": "python",
       "callSites": [
         {
@@ -9909,11 +9697,7 @@
         "candidates": [
           {
             "id": "src/api/func184.js::func184",
-            "confidence": 0.85
-          },
-          {
-            "id": "src/models/func55.js::func55",
-            "confidence": 0.6
+            "confidence": 0.9
           }
         ]
       }
@@ -9948,8 +9732,8 @@
       "id": "call::src/components/func185.ts::func185→src/lib/func186.py::func186",
       "source": "src/components/func185.ts::func185",
       "target": "src/lib/func186.py::func186",
-      "weight": 2,
-      "isDynamic": false,
+      "weight": 1,
+      "isDynamic": true,
       "language": "typescript",
       "callSites": [
         {
@@ -9960,7 +9744,7 @@
         }
       ],
       "resolution": {
-        "status": "ambiguous",
+        "status": "resolved",
         "reason": null,
         "candidates": [
           {
@@ -9974,8 +9758,8 @@
       "id": "call::src/lib/func186.py::func186→src/services/func187.js::func187",
       "source": "src/lib/func186.py::func186",
       "target": "src/services/func187.js::func187",
-      "weight": 2,
-      "isDynamic": true,
+      "weight": 3,
+      "isDynamic": false,
       "language": "python",
       "callSites": [
         {
@@ -10000,7 +9784,7 @@
       "id": "call::src/services/func187.js::func187→src/models/func188.ts::func188",
       "source": "src/services/func187.js::func187",
       "target": "src/models/func188.ts::func188",
-      "weight": 2,
+      "weight": 3,
       "isDynamic": false,
       "language": "javascript",
       "callSites": [
@@ -10026,7 +9810,7 @@
       "id": "call::src/models/func188.ts::func188→src/helpers/func189.py::func189",
       "source": "src/models/func188.ts::func188",
       "target": "src/helpers/func189.py::func189",
-      "weight": 3,
+      "weight": 1,
       "isDynamic": false,
       "language": "typescript",
       "callSites": [
@@ -10038,7 +9822,7 @@
         }
       ],
       "resolution": {
-        "status": "unresolved",
+        "status": "resolved",
         "reason": null,
         "candidates": [
           {
@@ -10052,7 +9836,7 @@
       "id": "call::src/helpers/func189.py::func189→src/utils/func190.js::func190",
       "source": "src/helpers/func189.py::func189",
       "target": "src/utils/func190.js::func190",
-      "weight": 1,
+      "weight": 2,
       "isDynamic": false,
       "language": "python",
       "callSites": [
@@ -10078,7 +9862,7 @@
       "id": "call::src/utils/func190.js::func190→src/api/func191.ts::func191",
       "source": "src/utils/func190.js::func190",
       "target": "src/api/func191.ts::func191",
-      "weight": 2,
+      "weight": 3,
       "isDynamic": false,
       "language": "javascript",
       "callSites": [
@@ -10116,7 +9900,7 @@
         }
       ],
       "resolution": {
-        "status": "ambiguous",
+        "status": "resolved",
         "reason": null,
         "candidates": [
           {
@@ -10156,8 +9940,8 @@
       "id": "call::src/lib/func193.js::func193→src/services/func194.ts::func194",
       "source": "src/lib/func193.js::func193",
       "target": "src/services/func194.ts::func194",
-      "weight": 3,
-      "isDynamic": false,
+      "weight": 1,
+      "isDynamic": true,
       "language": "javascript",
       "callSites": [
         {
@@ -10182,7 +9966,7 @@
       "id": "call::src/services/func194.ts::func194→src/models/func195.py::func195",
       "source": "src/services/func194.ts::func194",
       "target": "src/models/func195.py::func195",
-      "weight": 2,
+      "weight": 3,
       "isDynamic": false,
       "language": "typescript",
       "callSites": [
@@ -10195,7 +9979,7 @@
       ],
       "resolution": {
         "status": "resolved",
-        "reason": "Cannot resolve statically",
+        "reason": null,
         "candidates": [
           {
             "id": "src/models/func195.py::func195",
@@ -10208,8 +9992,8 @@
       "id": "call::src/models/func195.py::func195→src/helpers/func196.js::func196",
       "source": "src/models/func195.py::func195",
       "target": "src/helpers/func196.js::func196",
-      "weight": 3,
-      "isDynamic": true,
+      "weight": 1,
+      "isDynamic": false,
       "language": "python",
       "callSites": [
         {
@@ -10234,7 +10018,7 @@
       "id": "call::src/helpers/func196.js::func196→src/utils/func197.ts::func197",
       "source": "src/helpers/func196.js::func196",
       "target": "src/utils/func197.ts::func197",
-      "weight": 2,
+      "weight": 1,
       "isDynamic": false,
       "language": "javascript",
       "callSites": [
@@ -10246,21 +10030,16 @@
         }
       ],
       "resolution": {
-        "status": "resolved",
-        "reason": null,
-        "candidates": [
-          {
-            "id": "src/utils/func197.ts::func197",
-            "confidence": 0.9
-          }
-        ]
+        "status": "unresolved",
+        "reason": "Cannot resolve statically",
+        "candidates": []
       }
     },
     {
       "id": "call::src/utils/func197.ts::func197→src/api/func198.py::func198",
       "source": "src/utils/func197.ts::func197",
       "target": "src/api/func198.py::func198",
-      "weight": 3,
+      "weight": 1,
       "isDynamic": false,
       "language": "typescript",
       "callSites": [
@@ -10298,7 +10077,7 @@
         }
       ],
       "resolution": {
-        "status": "ambiguous",
+        "status": "resolved",
         "reason": null,
         "candidates": [
           {
@@ -10313,7 +10092,7 @@
       "source": "src/components/func199.js::func199",
       "target": "src/lib/func200.ts::func200",
       "weight": 1,
-      "isDynamic": false,
+      "isDynamic": true,
       "language": "javascript",
       "callSites": [
         {
@@ -10338,7 +10117,7 @@
       "id": "call::src/lib/func200.ts::func200→src/services/func201.py::func201",
       "source": "src/lib/func200.ts::func200",
       "target": "src/services/func201.py::func201",
-      "weight": 3,
+      "weight": 2,
       "isDynamic": false,
       "language": "typescript",
       "callSites": [
@@ -10351,15 +10130,11 @@
       ],
       "resolution": {
         "status": "resolved",
-        "reason": "Cannot resolve statically",
+        "reason": null,
         "candidates": [
           {
             "id": "src/services/func201.py::func201",
-            "confidence": 0.85
-          },
-          {
-            "id": "src/utils/func113.ts::func113",
-            "confidence": 0.6
+            "confidence": 0.9
           }
         ]
       }
@@ -10368,7 +10143,7 @@
       "id": "call::src/services/func201.py::func201→src/models/func202.js::func202",
       "source": "src/services/func201.py::func201",
       "target": "src/models/func202.js::func202",
-      "weight": 2,
+      "weight": 1,
       "isDynamic": false,
       "language": "python",
       "callSites": [
@@ -10406,7 +10181,7 @@
         }
       ],
       "resolution": {
-        "status": "ambiguous",
+        "status": "resolved",
         "reason": null,
         "candidates": [
           {
@@ -10458,12 +10233,16 @@
         }
       ],
       "resolution": {
-        "status": "resolved",
-        "reason": null,
+        "status": "ambiguous",
+        "reason": "Multiple matches found",
         "candidates": [
           {
             "id": "src/api/func205.js::func205",
-            "confidence": 0.9
+            "confidence": 0.85
+          },
+          {
+            "id": "src/components/func52.js::func52",
+            "confidence": 0.6
           }
         ]
       }
@@ -10484,7 +10263,7 @@
         }
       ],
       "resolution": {
-        "status": "unresolved",
+        "status": "resolved",
         "reason": null,
         "candidates": [
           {
@@ -10498,7 +10277,7 @@
       "id": "call::src/components/func206.ts::func206→src/lib/func207.py::func207",
       "source": "src/components/func206.ts::func206",
       "target": "src/lib/func207.py::func207",
-      "weight": 3,
+      "weight": 2,
       "isDynamic": false,
       "language": "typescript",
       "callSites": [
@@ -10524,7 +10303,7 @@
       "id": "call::src/lib/func207.py::func207→src/services/func208.js::func208",
       "source": "src/lib/func207.py::func207",
       "target": "src/services/func208.js::func208",
-      "weight": 2,
+      "weight": 3,
       "isDynamic": false,
       "language": "python",
       "callSites": [
@@ -10550,7 +10329,7 @@
       "id": "call::src/services/func208.js::func208→src/models/func209.ts::func209",
       "source": "src/services/func208.js::func208",
       "target": "src/models/func209.ts::func209",
-      "weight": 1,
+      "weight": 3,
       "isDynamic": false,
       "language": "javascript",
       "callSites": [
@@ -10562,16 +10341,12 @@
         }
       ],
       "resolution": {
-        "status": "ambiguous",
+        "status": "resolved",
         "reason": null,
         "candidates": [
           {
             "id": "src/models/func209.ts::func209",
-            "confidence": 0.85
-          },
-          {
-            "id": "src/models/func237.py::func237",
-            "confidence": 0.6
+            "confidence": 0.9
           }
         ]
       }
@@ -10580,7 +10355,7 @@
       "id": "call::src/models/func209.ts::func209→src/helpers/func210.py::func210",
       "source": "src/models/func209.ts::func209",
       "target": "src/helpers/func210.py::func210",
-      "weight": 3,
+      "weight": 2,
       "isDynamic": false,
       "language": "typescript",
       "callSites": [
@@ -10592,16 +10367,12 @@
         }
       ],
       "resolution": {
-        "status": "unresolved",
+        "status": "resolved",
         "reason": null,
         "candidates": [
           {
             "id": "src/helpers/func210.py::func210",
-            "confidence": 0.85
-          },
-          {
-            "id": "src/helpers/func91.js::func91",
-            "confidence": 0.6
+            "confidence": 0.9
           }
         ]
       }
@@ -10610,7 +10381,7 @@
       "id": "call::src/helpers/func210.py::func210→src/utils/func211.js::func211",
       "source": "src/helpers/func210.py::func210",
       "target": "src/utils/func211.js::func211",
-      "weight": 2,
+      "weight": 1,
       "isDynamic": false,
       "language": "python",
       "callSites": [
@@ -10636,8 +10407,8 @@
       "id": "call::src/utils/func211.js::func211→src/api/func212.ts::func212",
       "source": "src/utils/func211.js::func211",
       "target": "src/api/func212.ts::func212",
-      "weight": 2,
-      "isDynamic": true,
+      "weight": 1,
+      "isDynamic": false,
       "language": "javascript",
       "callSites": [
         {
@@ -10648,7 +10419,7 @@
         }
       ],
       "resolution": {
-        "status": "ambiguous",
+        "status": "resolved",
         "reason": null,
         "candidates": [
           {
@@ -10662,7 +10433,7 @@
       "id": "call::src/api/func212.ts::func212→src/components/func213.py::func213",
       "source": "src/api/func212.ts::func212",
       "target": "src/components/func213.py::func213",
-      "weight": 3,
+      "weight": 2,
       "isDynamic": false,
       "language": "typescript",
       "callSites": [
@@ -10674,25 +10445,16 @@
         }
       ],
       "resolution": {
-        "status": "ambiguous",
-        "reason": null,
-        "candidates": [
-          {
-            "id": "src/components/func213.py::func213",
-            "confidence": 0.85
-          },
-          {
-            "id": "src/components/func248.ts::func248",
-            "confidence": 0.6
-          }
-        ]
+        "status": "unresolved",
+        "reason": "Cannot resolve statically",
+        "candidates": []
       }
     },
     {
       "id": "call::src/components/func213.py::func213→src/lib/func214.js::func214",
       "source": "src/components/func213.py::func213",
       "target": "src/lib/func214.js::func214",
-      "weight": 3,
+      "weight": 2,
       "isDynamic": false,
       "language": "python",
       "callSites": [
@@ -10718,7 +10480,7 @@
       "id": "call::src/lib/func214.js::func214→src/services/func215.ts::func215",
       "source": "src/lib/func214.js::func214",
       "target": "src/services/func215.ts::func215",
-      "weight": 2,
+      "weight": 1,
       "isDynamic": false,
       "language": "javascript",
       "callSites": [
@@ -10761,11 +10523,7 @@
         "candidates": [
           {
             "id": "src/models/func216.py::func216",
-            "confidence": 0.85
-          },
-          {
-            "id": "src/utils/func57.py::func57",
-            "confidence": 0.6
+            "confidence": 0.9
           }
         ]
       }
@@ -10774,7 +10532,7 @@
       "id": "call::src/models/func216.py::func216→src/helpers/func217.js::func217",
       "source": "src/models/func216.py::func216",
       "target": "src/helpers/func217.js::func217",
-      "weight": 3,
+      "weight": 1,
       "isDynamic": false,
       "language": "python",
       "callSites": [
@@ -10801,7 +10559,7 @@
       "source": "src/helpers/func217.js::func217",
       "target": "src/utils/func218.ts::func218",
       "weight": 2,
-      "isDynamic": true,
+      "isDynamic": false,
       "language": "javascript",
       "callSites": [
         {
@@ -10812,7 +10570,7 @@
         }
       ],
       "resolution": {
-        "status": "ambiguous",
+        "status": "resolved",
         "reason": null,
         "candidates": [
           {
@@ -10826,8 +10584,8 @@
       "id": "call::src/utils/func218.ts::func218→src/api/func219.py::func219",
       "source": "src/utils/func218.ts::func218",
       "target": "src/api/func219.py::func219",
-      "weight": 3,
-      "isDynamic": true,
+      "weight": 1,
+      "isDynamic": false,
       "language": "typescript",
       "callSites": [
         {
@@ -10852,8 +10610,8 @@
       "id": "call::src/api/func219.py::func219→src/components/func220.js::func220",
       "source": "src/api/func219.py::func219",
       "target": "src/components/func220.js::func220",
-      "weight": 2,
-      "isDynamic": true,
+      "weight": 3,
+      "isDynamic": false,
       "language": "python",
       "callSites": [
         {
@@ -10865,7 +10623,7 @@
       ],
       "resolution": {
         "status": "resolved",
-        "reason": "Cannot resolve statically",
+        "reason": null,
         "candidates": [
           {
             "id": "src/components/func220.js::func220",
@@ -10878,8 +10636,8 @@
       "id": "call::src/components/func220.js::func220→src/lib/func221.ts::func221",
       "source": "src/components/func220.js::func220",
       "target": "src/lib/func221.ts::func221",
-      "weight": 1,
-      "isDynamic": false,
+      "weight": 3,
+      "isDynamic": true,
       "language": "javascript",
       "callSites": [
         {
@@ -10891,7 +10649,7 @@
       ],
       "resolution": {
         "status": "resolved",
-        "reason": "Cannot resolve statically",
+        "reason": null,
         "candidates": [
           {
             "id": "src/lib/func221.ts::func221",
@@ -10930,7 +10688,7 @@
       "id": "call::src/services/func222.py::func222→src/models/func223.js::func223",
       "source": "src/services/func222.py::func222",
       "target": "src/models/func223.js::func223",
-      "weight": 2,
+      "weight": 1,
       "isDynamic": false,
       "language": "python",
       "callSites": [
@@ -10947,11 +10705,7 @@
         "candidates": [
           {
             "id": "src/models/func223.js::func223",
-            "confidence": 0.85
-          },
-          {
-            "id": "src/api/func156.py::func156",
-            "confidence": 0.6
+            "confidence": 0.9
           }
         ]
       }
@@ -10960,7 +10714,7 @@
       "id": "call::src/models/func223.js::func223→src/helpers/func224.ts::func224",
       "source": "src/models/func223.js::func223",
       "target": "src/helpers/func224.ts::func224",
-      "weight": 2,
+      "weight": 3,
       "isDynamic": false,
       "language": "javascript",
       "callSites": [
@@ -10973,11 +10727,15 @@
       ],
       "resolution": {
         "status": "ambiguous",
-        "reason": null,
+        "reason": "Multiple matches found",
         "candidates": [
           {
             "id": "src/helpers/func224.ts::func224",
-            "confidence": 0.9
+            "confidence": 0.85
+          },
+          {
+            "id": "src/api/func289.js::func289",
+            "confidence": 0.6
           }
         ]
       }
@@ -10986,7 +10744,7 @@
       "id": "call::src/helpers/func224.ts::func224→src/utils/func225.py::func225",
       "source": "src/helpers/func224.ts::func224",
       "target": "src/utils/func225.py::func225",
-      "weight": 3,
+      "weight": 2,
       "isDynamic": false,
       "language": "typescript",
       "callSites": [
@@ -10999,7 +10757,7 @@
       ],
       "resolution": {
         "status": "resolved",
-        "reason": "Cannot resolve statically",
+        "reason": null,
         "candidates": [
           {
             "id": "src/utils/func225.py::func225",
@@ -11038,8 +10796,8 @@
       "id": "call::src/api/func226.js::func226→src/components/func227.ts::func227",
       "source": "src/api/func226.js::func226",
       "target": "src/components/func227.ts::func227",
-      "weight": 3,
-      "isDynamic": true,
+      "weight": 1,
+      "isDynamic": false,
       "language": "javascript",
       "callSites": [
         {
@@ -11050,7 +10808,7 @@
         }
       ],
       "resolution": {
-        "status": "unresolved",
+        "status": "resolved",
         "reason": null,
         "candidates": [
           {
@@ -11064,7 +10822,7 @@
       "id": "call::src/components/func227.ts::func227→src/lib/func228.py::func228",
       "source": "src/components/func227.ts::func227",
       "target": "src/lib/func228.py::func228",
-      "weight": 3,
+      "weight": 2,
       "isDynamic": false,
       "language": "typescript",
       "callSites": [
@@ -11090,8 +10848,8 @@
       "id": "call::src/lib/func228.py::func228→src/services/func229.js::func229",
       "source": "src/lib/func228.py::func228",
       "target": "src/services/func229.js::func229",
-      "weight": 2,
-      "isDynamic": false,
+      "weight": 1,
+      "isDynamic": true,
       "language": "python",
       "callSites": [
         {
@@ -11102,7 +10860,7 @@
         }
       ],
       "resolution": {
-        "status": "unresolved",
+        "status": "resolved",
         "reason": null,
         "candidates": [
           {
@@ -11142,7 +10900,7 @@
       "id": "call::src/models/func230.ts::func230→src/helpers/func231.py::func231",
       "source": "src/models/func230.ts::func230",
       "target": "src/helpers/func231.py::func231",
-      "weight": 1,
+      "weight": 2,
       "isDynamic": false,
       "language": "typescript",
       "callSites": [
@@ -11154,16 +10912,12 @@
         }
       ],
       "resolution": {
-        "status": "ambiguous",
+        "status": "resolved",
         "reason": null,
         "candidates": [
           {
             "id": "src/helpers/func231.py::func231",
-            "confidence": 0.85
-          },
-          {
-            "id": "src/helpers/func49.js::func49",
-            "confidence": 0.6
+            "confidence": 0.9
           }
         ]
       }
@@ -11185,7 +10939,7 @@
       ],
       "resolution": {
         "status": "resolved",
-        "reason": "Cannot resolve statically",
+        "reason": null,
         "candidates": [
           {
             "id": "src/utils/func232.js::func232",
@@ -11241,11 +10995,7 @@
         "candidates": [
           {
             "id": "src/components/func234.py::func234",
-            "confidence": 0.85
-          },
-          {
-            "id": "src/api/func261.py::func261",
-            "confidence": 0.6
+            "confidence": 0.9
           }
         ]
       }
@@ -11266,7 +11016,7 @@
         }
       ],
       "resolution": {
-        "status": "ambiguous",
+        "status": "resolved",
         "reason": null,
         "candidates": [
           {
@@ -11280,7 +11030,7 @@
       "id": "call::src/lib/func235.js::func235→src/services/func236.ts::func236",
       "source": "src/lib/func235.js::func235",
       "target": "src/services/func236.ts::func236",
-      "weight": 1,
+      "weight": 2,
       "isDynamic": false,
       "language": "javascript",
       "callSites": [
@@ -11292,7 +11042,7 @@
         }
       ],
       "resolution": {
-        "status": "ambiguous",
+        "status": "resolved",
         "reason": null,
         "candidates": [
           {
@@ -11306,7 +11056,7 @@
       "id": "call::src/services/func236.ts::func236→src/models/func237.py::func237",
       "source": "src/services/func236.ts::func236",
       "target": "src/models/func237.py::func237",
-      "weight": 3,
+      "weight": 2,
       "isDynamic": false,
       "language": "typescript",
       "callSites": [
@@ -11318,14 +11068,9 @@
         }
       ],
       "resolution": {
-        "status": "resolved",
+        "status": "unresolved",
         "reason": "Cannot resolve statically",
-        "candidates": [
-          {
-            "id": "src/models/func237.py::func237",
-            "confidence": 0.9
-          }
-        ]
+        "candidates": []
       }
     },
     {
@@ -11345,13 +11090,8 @@
       ],
       "resolution": {
         "status": "unresolved",
-        "reason": null,
-        "candidates": [
-          {
-            "id": "src/helpers/func238.js::func238",
-            "confidence": 0.9
-          }
-        ]
+        "reason": "Cannot resolve statically",
+        "candidates": []
       }
     },
     {
@@ -11384,7 +11124,7 @@
       "id": "call::src/utils/func239.ts::func239→src/api/func240.py::func240",
       "source": "src/utils/func239.ts::func239",
       "target": "src/api/func240.py::func240",
-      "weight": 1,
+      "weight": 3,
       "isDynamic": false,
       "language": "typescript",
       "callSites": [
@@ -11396,8 +11136,8 @@
         }
       ],
       "resolution": {
-        "status": "unresolved",
-        "reason": "Cannot resolve statically",
+        "status": "resolved",
+        "reason": null,
         "candidates": [
           {
             "id": "src/api/func240.py::func240",
@@ -11410,8 +11150,8 @@
       "id": "call::src/components/func241.js::func241→src/lib/func242.ts::func242",
       "source": "src/components/func241.js::func241",
       "target": "src/lib/func242.ts::func242",
-      "weight": 1,
-      "isDynamic": true,
+      "weight": 3,
+      "isDynamic": false,
       "language": "javascript",
       "callSites": [
         {
@@ -11437,7 +11177,7 @@
       "source": "src/lib/func242.ts::func242",
       "target": "src/services/func243.py::func243",
       "weight": 3,
-      "isDynamic": false,
+      "isDynamic": true,
       "language": "typescript",
       "callSites": [
         {
@@ -11448,7 +11188,7 @@
         }
       ],
       "resolution": {
-        "status": "ambiguous",
+        "status": "resolved",
         "reason": null,
         "candidates": [
           {
@@ -11474,7 +11214,7 @@
         }
       ],
       "resolution": {
-        "status": "ambiguous",
+        "status": "resolved",
         "reason": null,
         "candidates": [
           {
@@ -11488,7 +11228,7 @@
       "id": "call::src/models/func244.js::func244→src/helpers/func245.ts::func245",
       "source": "src/models/func244.js::func244",
       "target": "src/helpers/func245.ts::func245",
-      "weight": 1,
+      "weight": 3,
       "isDynamic": false,
       "language": "javascript",
       "callSites": [
@@ -11500,7 +11240,7 @@
         }
       ],
       "resolution": {
-        "status": "ambiguous",
+        "status": "resolved",
         "reason": null,
         "candidates": [
           {
@@ -11514,7 +11254,7 @@
       "id": "call::src/helpers/func245.ts::func245→src/utils/func246.py::func246",
       "source": "src/helpers/func245.ts::func245",
       "target": "src/utils/func246.py::func246",
-      "weight": 2,
+      "weight": 1,
       "isDynamic": false,
       "language": "typescript",
       "callSites": [
@@ -11526,8 +11266,8 @@
         }
       ],
       "resolution": {
-        "status": "unresolved",
-        "reason": "Cannot resolve statically",
+        "status": "resolved",
+        "reason": null,
         "candidates": [
           {
             "id": "src/utils/func246.py::func246",
@@ -11540,8 +11280,8 @@
       "id": "call::src/utils/func246.py::func246→src/api/func247.js::func247",
       "source": "src/utils/func246.py::func246",
       "target": "src/api/func247.js::func247",
-      "weight": 2,
-      "isDynamic": false,
+      "weight": 1,
+      "isDynamic": true,
       "language": "python",
       "callSites": [
         {
@@ -11552,8 +11292,8 @@
         }
       ],
       "resolution": {
-        "status": "unresolved",
-        "reason": "Cannot resolve statically",
+        "status": "resolved",
+        "reason": null,
         "candidates": [
           {
             "id": "src/api/func247.js::func247",
@@ -11604,18 +11344,9 @@
         }
       ],
       "resolution": {
-        "status": "resolved",
-        "reason": null,
-        "candidates": [
-          {
-            "id": "src/lib/func249.py::func249",
-            "confidence": 0.85
-          },
-          {
-            "id": "src/models/func286.js::func286",
-            "confidence": 0.6
-          }
-        ]
+        "status": "unresolved",
+        "reason": "Cannot resolve statically",
+        "candidates": []
       }
     },
     {
@@ -11634,7 +11365,7 @@
         }
       ],
       "resolution": {
-        "status": "ambiguous",
+        "status": "resolved",
         "reason": null,
         "candidates": [
           {
@@ -11661,7 +11392,7 @@
       ],
       "resolution": {
         "status": "resolved",
-        "reason": "Cannot resolve statically",
+        "reason": null,
         "candidates": [
           {
             "id": "src/models/func251.ts::func251",
@@ -11674,7 +11405,7 @@
       "id": "call::src/models/func251.ts::func251→src/helpers/func252.py::func252",
       "source": "src/models/func251.ts::func251",
       "target": "src/helpers/func252.py::func252",
-      "weight": 2,
+      "weight": 1,
       "isDynamic": false,
       "language": "typescript",
       "callSites": [
@@ -11686,22 +11417,17 @@
         }
       ],
       "resolution": {
-        "status": "ambiguous",
-        "reason": null,
-        "candidates": [
-          {
-            "id": "src/helpers/func252.py::func252",
-            "confidence": 0.9
-          }
-        ]
+        "status": "unresolved",
+        "reason": "Cannot resolve statically",
+        "candidates": []
       }
     },
     {
       "id": "call::src/helpers/func252.py::func252→src/utils/func253.js::func253",
       "source": "src/helpers/func252.py::func252",
       "target": "src/utils/func253.js::func253",
-      "weight": 1,
-      "isDynamic": false,
+      "weight": 2,
+      "isDynamic": true,
       "language": "python",
       "callSites": [
         {
@@ -11712,12 +11438,16 @@
         }
       ],
       "resolution": {
-        "status": "unresolved",
-        "reason": null,
+        "status": "ambiguous",
+        "reason": "Multiple matches found",
         "candidates": [
           {
             "id": "src/utils/func253.js::func253",
-            "confidence": 0.9
+            "confidence": 0.85
+          },
+          {
+            "id": "src/helpers/func217.js::func217",
+            "confidence": 0.6
           }
         ]
       }
@@ -11726,7 +11456,7 @@
       "id": "call::src/utils/func253.js::func253→src/api/func254.ts::func254",
       "source": "src/utils/func253.js::func253",
       "target": "src/api/func254.ts::func254",
-      "weight": 3,
+      "weight": 2,
       "isDynamic": false,
       "language": "javascript",
       "callSites": [
@@ -11738,7 +11468,7 @@
         }
       ],
       "resolution": {
-        "status": "unresolved",
+        "status": "resolved",
         "reason": null,
         "candidates": [
           {
@@ -11752,7 +11482,7 @@
       "id": "call::src/api/func254.ts::func254→src/components/func255.py::func255",
       "source": "src/api/func254.ts::func254",
       "target": "src/components/func255.py::func255",
-      "weight": 3,
+      "weight": 1,
       "isDynamic": false,
       "language": "typescript",
       "callSites": [
@@ -11764,16 +11494,12 @@
         }
       ],
       "resolution": {
-        "status": "ambiguous",
+        "status": "resolved",
         "reason": null,
         "candidates": [
           {
             "id": "src/components/func255.py::func255",
-            "confidence": 0.85
-          },
-          {
-            "id": "src/components/func171.py::func171",
-            "confidence": 0.6
+            "confidence": 0.9
           }
         ]
       }
@@ -11782,8 +11508,8 @@
       "id": "call::src/components/func255.py::func255→src/lib/func256.js::func256",
       "source": "src/components/func255.py::func255",
       "target": "src/lib/func256.js::func256",
-      "weight": 1,
-      "isDynamic": false,
+      "weight": 3,
+      "isDynamic": true,
       "language": "python",
       "callSites": [
         {
@@ -11799,11 +11525,7 @@
         "candidates": [
           {
             "id": "src/lib/func256.js::func256",
-            "confidence": 0.85
-          },
-          {
-            "id": "src/utils/func64.js::func64",
-            "confidence": 0.6
+            "confidence": 0.9
           }
         ]
       }
@@ -11812,7 +11534,7 @@
       "id": "call::src/lib/func256.js::func256→src/services/func257.ts::func257",
       "source": "src/lib/func256.js::func256",
       "target": "src/services/func257.ts::func257",
-      "weight": 3,
+      "weight": 2,
       "isDynamic": false,
       "language": "javascript",
       "callSites": [
@@ -11824,7 +11546,7 @@
         }
       ],
       "resolution": {
-        "status": "ambiguous",
+        "status": "resolved",
         "reason": null,
         "candidates": [
           {
@@ -11851,13 +11573,8 @@
       ],
       "resolution": {
         "status": "unresolved",
-        "reason": null,
-        "candidates": [
-          {
-            "id": "src/models/func258.py::func258",
-            "confidence": 0.9
-          }
-        ]
+        "reason": "Cannot resolve statically",
+        "candidates": []
       }
     },
     {
@@ -11865,7 +11582,7 @@
       "source": "src/models/func258.py::func258",
       "target": "src/helpers/func259.js::func259",
       "weight": 2,
-      "isDynamic": true,
+      "isDynamic": false,
       "language": "python",
       "callSites": [
         {
@@ -11881,11 +11598,7 @@
         "candidates": [
           {
             "id": "src/helpers/func259.js::func259",
-            "confidence": 0.85
-          },
-          {
-            "id": "src/services/func145.js::func145",
-            "confidence": 0.6
+            "confidence": 0.9
           }
         ]
       }
@@ -11906,18 +11619,9 @@
         }
       ],
       "resolution": {
-        "status": "resolved",
-        "reason": null,
-        "candidates": [
-          {
-            "id": "src/utils/func260.ts::func260",
-            "confidence": 0.85
-          },
-          {
-            "id": "src/api/func247.js::func247",
-            "confidence": 0.6
-          }
-        ]
+        "status": "unresolved",
+        "reason": "Cannot resolve statically",
+        "candidates": []
       }
     },
     {
@@ -11936,7 +11640,7 @@
         }
       ],
       "resolution": {
-        "status": "unresolved",
+        "status": "resolved",
         "reason": null,
         "candidates": [
           {
@@ -11962,21 +11666,16 @@
         }
       ],
       "resolution": {
-        "status": "resolved",
-        "reason": null,
-        "candidates": [
-          {
-            "id": "src/components/func262.js::func262",
-            "confidence": 0.9
-          }
-        ]
+        "status": "unresolved",
+        "reason": "Cannot resolve statically",
+        "candidates": []
       }
     },
     {
       "id": "call::src/components/func262.js::func262→src/lib/func263.ts::func263",
       "source": "src/components/func262.js::func262",
       "target": "src/lib/func263.ts::func263",
-      "weight": 1,
+      "weight": 2,
       "isDynamic": false,
       "language": "javascript",
       "callSites": [
@@ -11988,8 +11687,8 @@
         }
       ],
       "resolution": {
-        "status": "unresolved",
-        "reason": "Cannot resolve statically",
+        "status": "resolved",
+        "reason": null,
         "candidates": [
           {
             "id": "src/lib/func263.ts::func263",
@@ -12015,11 +11714,15 @@
       ],
       "resolution": {
         "status": "ambiguous",
-        "reason": null,
+        "reason": "Multiple matches found",
         "candidates": [
           {
             "id": "src/services/func264.py::func264",
-            "confidence": 0.9
+            "confidence": 0.85
+          },
+          {
+            "id": "src/utils/func155.ts::func155",
+            "confidence": 0.6
           }
         ]
       }
@@ -12028,7 +11731,7 @@
       "id": "call::src/services/func264.py::func264→src/models/func265.js::func265",
       "source": "src/services/func264.py::func264",
       "target": "src/models/func265.js::func265",
-      "weight": 3,
+      "weight": 1,
       "isDynamic": false,
       "language": "python",
       "callSites": [
@@ -12054,7 +11757,7 @@
       "id": "call::src/models/func265.js::func265→src/helpers/func266.ts::func266",
       "source": "src/models/func265.js::func265",
       "target": "src/helpers/func266.ts::func266",
-      "weight": 1,
+      "weight": 3,
       "isDynamic": false,
       "language": "javascript",
       "callSites": [
@@ -12106,7 +11809,7 @@
       "id": "call::src/utils/func267.py::func267→src/api/func268.js::func268",
       "source": "src/utils/func267.py::func267",
       "target": "src/api/func268.js::func268",
-      "weight": 2,
+      "weight": 1,
       "isDynamic": false,
       "language": "python",
       "callSites": [
@@ -12118,7 +11821,7 @@
         }
       ],
       "resolution": {
-        "status": "unresolved",
+        "status": "resolved",
         "reason": null,
         "candidates": [
           {
@@ -12158,7 +11861,7 @@
       "id": "call::src/components/func269.ts::func269→src/lib/func270.py::func270",
       "source": "src/components/func269.ts::func269",
       "target": "src/lib/func270.py::func270",
-      "weight": 2,
+      "weight": 3,
       "isDynamic": false,
       "language": "typescript",
       "callSites": [
@@ -12170,14 +11873,9 @@
         }
       ],
       "resolution": {
-        "status": "ambiguous",
-        "reason": null,
-        "candidates": [
-          {
-            "id": "src/lib/func270.py::func270",
-            "confidence": 0.9
-          }
-        ]
+        "status": "unresolved",
+        "reason": "Cannot resolve statically",
+        "candidates": []
       }
     },
     {
@@ -12185,7 +11883,7 @@
       "source": "src/lib/func270.py::func270",
       "target": "src/services/func271.js::func271",
       "weight": 3,
-      "isDynamic": true,
+      "isDynamic": false,
       "language": "python",
       "callSites": [
         {
@@ -12210,7 +11908,7 @@
       "id": "call::src/services/func271.js::func271→src/models/func272.ts::func272",
       "source": "src/services/func271.js::func271",
       "target": "src/models/func272.ts::func272",
-      "weight": 3,
+      "weight": 1,
       "isDynamic": false,
       "language": "javascript",
       "callSites": [
@@ -12262,7 +11960,7 @@
       "id": "call::src/helpers/func273.py::func273→src/utils/func274.js::func274",
       "source": "src/helpers/func273.py::func273",
       "target": "src/utils/func274.js::func274",
-      "weight": 1,
+      "weight": 2,
       "isDynamic": false,
       "language": "python",
       "callSites": [
@@ -12274,7 +11972,7 @@
         }
       ],
       "resolution": {
-        "status": "unresolved",
+        "status": "resolved",
         "reason": null,
         "candidates": [
           {
@@ -12288,7 +11986,7 @@
       "id": "call::src/utils/func274.js::func274→src/api/func275.ts::func275",
       "source": "src/utils/func274.js::func274",
       "target": "src/api/func275.ts::func275",
-      "weight": 2,
+      "weight": 3,
       "isDynamic": false,
       "language": "javascript",
       "callSites": [
@@ -12314,7 +12012,7 @@
       "id": "call::src/api/func275.ts::func275→src/components/func276.py::func276",
       "source": "src/api/func275.ts::func275",
       "target": "src/components/func276.py::func276",
-      "weight": 1,
+      "weight": 3,
       "isDynamic": false,
       "language": "typescript",
       "callSites": [
@@ -12357,11 +12055,7 @@
         "candidates": [
           {
             "id": "src/lib/func277.js::func277",
-            "confidence": 0.85
-          },
-          {
-            "id": "src/helpers/func259.js::func259",
-            "confidence": 0.6
+            "confidence": 0.9
           }
         ]
       }
@@ -12370,7 +12064,7 @@
       "id": "call::src/lib/func277.js::func277→src/services/func278.ts::func278",
       "source": "src/lib/func277.js::func277",
       "target": "src/services/func278.ts::func278",
-      "weight": 2,
+      "weight": 1,
       "isDynamic": false,
       "language": "javascript",
       "callSites": [
@@ -12396,7 +12090,7 @@
       "id": "call::src/services/func278.ts::func278→src/models/func279.py::func279",
       "source": "src/services/func278.ts::func278",
       "target": "src/models/func279.py::func279",
-      "weight": 1,
+      "weight": 2,
       "isDynamic": false,
       "language": "typescript",
       "callSites": [
@@ -12413,11 +12107,7 @@
         "candidates": [
           {
             "id": "src/models/func279.py::func279",
-            "confidence": 0.85
-          },
-          {
-            "id": "src/models/func181.js::func181",
-            "confidence": 0.6
+            "confidence": 0.9
           }
         ]
       }
@@ -12452,7 +12142,7 @@
       "id": "call::src/helpers/func280.js::func280→src/utils/func281.ts::func281",
       "source": "src/helpers/func280.js::func280",
       "target": "src/utils/func281.ts::func281",
-      "weight": 3,
+      "weight": 2,
       "isDynamic": false,
       "language": "javascript",
       "callSites": [
@@ -12478,7 +12168,7 @@
       "id": "call::src/utils/func281.ts::func281→src/api/func282.py::func282",
       "source": "src/utils/func281.ts::func281",
       "target": "src/api/func282.py::func282",
-      "weight": 1,
+      "weight": 3,
       "isDynamic": false,
       "language": "typescript",
       "callSites": [
@@ -12504,7 +12194,7 @@
       "id": "call::src/api/func282.py::func282→src/components/func283.js::func283",
       "source": "src/api/func282.py::func282",
       "target": "src/components/func283.js::func283",
-      "weight": 2,
+      "weight": 1,
       "isDynamic": false,
       "language": "python",
       "callSites": [
@@ -12516,21 +12206,16 @@
         }
       ],
       "resolution": {
-        "status": "resolved",
-        "reason": null,
-        "candidates": [
-          {
-            "id": "src/components/func283.js::func283",
-            "confidence": 0.9
-          }
-        ]
+        "status": "unresolved",
+        "reason": "Cannot resolve statically",
+        "candidates": []
       }
     },
     {
       "id": "call::src/components/func283.js::func283→src/lib/func284.ts::func284",
       "source": "src/components/func283.js::func283",
       "target": "src/lib/func284.ts::func284",
-      "weight": 2,
+      "weight": 1,
       "isDynamic": false,
       "language": "javascript",
       "callSites": [
@@ -12542,16 +12227,12 @@
         }
       ],
       "resolution": {
-        "status": "ambiguous",
+        "status": "resolved",
         "reason": null,
         "candidates": [
           {
             "id": "src/lib/func284.ts::func284",
-            "confidence": 0.85
-          },
-          {
-            "id": "src/services/func96.py::func96",
-            "confidence": 0.6
+            "confidence": 0.9
           }
         ]
       }
@@ -12560,7 +12241,7 @@
       "id": "call::src/lib/func284.ts::func284→src/services/func285.py::func285",
       "source": "src/lib/func284.ts::func284",
       "target": "src/services/func285.py::func285",
-      "weight": 2,
+      "weight": 3,
       "isDynamic": false,
       "language": "typescript",
       "callSites": [
@@ -12586,7 +12267,7 @@
       "id": "call::src/services/func285.py::func285→src/models/func286.js::func286",
       "source": "src/services/func285.py::func285",
       "target": "src/models/func286.js::func286",
-      "weight": 3,
+      "weight": 2,
       "isDynamic": false,
       "language": "python",
       "callSites": [
@@ -12612,7 +12293,7 @@
       "id": "call::src/models/func286.js::func286→src/helpers/func287.ts::func287",
       "source": "src/models/func286.js::func286",
       "target": "src/helpers/func287.ts::func287",
-      "weight": 2,
+      "weight": 3,
       "isDynamic": false,
       "language": "javascript",
       "callSites": [
@@ -12624,7 +12305,7 @@
         }
       ],
       "resolution": {
-        "status": "unresolved",
+        "status": "resolved",
         "reason": null,
         "candidates": [
           {
@@ -12638,8 +12319,8 @@
       "id": "call::src/helpers/func287.ts::func287→src/utils/func288.py::func288",
       "source": "src/helpers/func287.ts::func287",
       "target": "src/utils/func288.py::func288",
-      "weight": 3,
-      "isDynamic": true,
+      "weight": 1,
+      "isDynamic": false,
       "language": "typescript",
       "callSites": [
         {
@@ -12664,7 +12345,7 @@
       "id": "call::src/utils/func288.py::func288→src/api/func289.js::func289",
       "source": "src/utils/func288.py::func288",
       "target": "src/api/func289.js::func289",
-      "weight": 1,
+      "weight": 3,
       "isDynamic": false,
       "language": "python",
       "callSites": [
@@ -12677,7 +12358,7 @@
       ],
       "resolution": {
         "status": "resolved",
-        "reason": "Cannot resolve statically",
+        "reason": null,
         "candidates": [
           {
             "id": "src/api/func289.js::func289",
@@ -12690,7 +12371,7 @@
       "id": "call::src/api/func289.js::func289→src/components/func290.ts::func290",
       "source": "src/api/func289.js::func289",
       "target": "src/components/func290.ts::func290",
-      "weight": 3,
+      "weight": 2,
       "isDynamic": true,
       "language": "javascript",
       "callSites": [
@@ -12716,7 +12397,7 @@
       "id": "call::src/components/func290.ts::func290→src/lib/func291.py::func291",
       "source": "src/components/func290.ts::func290",
       "target": "src/lib/func291.py::func291",
-      "weight": 2,
+      "weight": 1,
       "isDynamic": false,
       "language": "typescript",
       "callSites": [
@@ -12728,26 +12409,17 @@
         }
       ],
       "resolution": {
-        "status": "ambiguous",
+        "status": "unresolved",
         "reason": "Cannot resolve statically",
-        "candidates": [
-          {
-            "id": "src/lib/func291.py::func291",
-            "confidence": 0.85
-          },
-          {
-            "id": "src/api/func79.js::func79",
-            "confidence": 0.6
-          }
-        ]
+        "candidates": []
       }
     },
     {
       "id": "call::src/lib/func291.py::func291→src/services/func292.js::func292",
       "source": "src/lib/func291.py::func291",
       "target": "src/services/func292.js::func292",
-      "weight": 3,
-      "isDynamic": true,
+      "weight": 1,
+      "isDynamic": false,
       "language": "python",
       "callSites": [
         {
@@ -12763,11 +12435,7 @@
         "candidates": [
           {
             "id": "src/services/func292.js::func292",
-            "confidence": 0.85
-          },
-          {
-            "id": "src/api/func198.py::func198",
-            "confidence": 0.6
+            "confidence": 0.9
           }
         ]
       }
@@ -12776,7 +12444,7 @@
       "id": "call::src/services/func292.js::func292→src/models/func293.ts::func293",
       "source": "src/services/func292.js::func292",
       "target": "src/models/func293.ts::func293",
-      "weight": 3,
+      "weight": 2,
       "isDynamic": false,
       "language": "javascript",
       "callSites": [
@@ -12802,7 +12470,7 @@
       "id": "call::src/models/func293.ts::func293→src/helpers/func294.py::func294",
       "source": "src/models/func293.ts::func293",
       "target": "src/helpers/func294.py::func294",
-      "weight": 3,
+      "weight": 2,
       "isDynamic": false,
       "language": "typescript",
       "callSites": [
@@ -12828,7 +12496,7 @@
       "id": "call::src/helpers/func294.py::func294→src/utils/func295.js::func295",
       "source": "src/helpers/func294.py::func294",
       "target": "src/utils/func295.js::func295",
-      "weight": 1,
+      "weight": 3,
       "isDynamic": false,
       "language": "python",
       "callSites": [
@@ -12840,7 +12508,7 @@
         }
       ],
       "resolution": {
-        "status": "ambiguous",
+        "status": "resolved",
         "reason": null,
         "candidates": [
           {
@@ -12854,8 +12522,8 @@
       "id": "call::src/utils/func295.js::func295→src/api/func296.ts::func296",
       "source": "src/utils/func295.js::func295",
       "target": "src/api/func296.ts::func296",
-      "weight": 3,
-      "isDynamic": false,
+      "weight": 1,
+      "isDynamic": true,
       "language": "javascript",
       "callSites": [
         {
@@ -12866,7 +12534,7 @@
         }
       ],
       "resolution": {
-        "status": "ambiguous",
+        "status": "resolved",
         "reason": null,
         "candidates": [
           {
@@ -12892,21 +12560,16 @@
         }
       ],
       "resolution": {
-        "status": "ambiguous",
+        "status": "unresolved",
         "reason": "Cannot resolve statically",
-        "candidates": [
-          {
-            "id": "src/components/func297.py::func297",
-            "confidence": 0.9
-          }
-        ]
+        "candidates": []
       }
     },
     {
       "id": "call::src/components/func297.py::func297→src/lib/func298.js::func298",
       "source": "src/components/func297.py::func297",
       "target": "src/lib/func298.js::func298",
-      "weight": 2,
+      "weight": 3,
       "isDynamic": false,
       "language": "python",
       "callSites": [
@@ -12932,7 +12595,7 @@
       "id": "call::src/lib/func298.js::func298→src/services/func299.ts::func299",
       "source": "src/lib/func298.js::func298",
       "target": "src/services/func299.ts::func299",
-      "weight": 1,
+      "weight": 3,
       "isDynamic": false,
       "language": "javascript",
       "callSites": [
@@ -12944,26 +12607,17 @@
         }
       ],
       "resolution": {
-        "status": "resolved",
-        "reason": null,
-        "candidates": [
-          {
-            "id": "src/services/func299.ts::func299",
-            "confidence": 0.85
-          },
-          {
-            "id": "src/components/func73.js::func73",
-            "confidence": 0.6
-          }
-        ]
+        "status": "unresolved",
+        "reason": "Cannot resolve statically",
+        "candidates": []
       }
     },
     {
       "id": "call::src/services/func299.ts::func299→src/models/func300.py::func300",
       "source": "src/services/func299.ts::func299",
       "target": "src/models/func300.py::func300",
-      "weight": 3,
-      "isDynamic": false,
+      "weight": 2,
+      "isDynamic": true,
       "language": "typescript",
       "callSites": [
         {
@@ -12982,66 +12636,6 @@
             "confidence": 0.9
           }
         ]
-      }
-    },
-    {
-      "id": "call::src/services/func117.py::func117→src/components/func129.py::func129",
-      "source": "src/services/func117.py::func117",
-      "target": "src/components/func129.py::func129",
-      "weight": 1,
-      "isDynamic": false,
-      "language": "python",
-      "callSites": [
-        {
-          "filePath": "src/services/func117.py",
-          "line": 169,
-          "column": 12,
-          "context": "await func129();"
-        }
-      ],
-      "resolution": {
-        "status": "resolved",
-        "reason": null,
-        "candidates": [
-          {
-            "id": "src/components/func129.py::func129",
-            "confidence": 0.9
-          }
-        ],
-        "importInfo": {
-          "module": "../components",
-          "resolvedModule": "components"
-        }
-      }
-    },
-    {
-      "id": "call::src/api/func226.js::func226→src/models/func286.js::func286",
-      "source": "src/api/func226.js::func226",
-      "target": "src/models/func286.js::func286",
-      "weight": 1,
-      "isDynamic": false,
-      "language": "javascript",
-      "callSites": [
-        {
-          "filePath": "src/api/func226.js",
-          "line": 259,
-          "column": 12,
-          "context": "await func286();"
-        }
-      ],
-      "resolution": {
-        "status": "resolved",
-        "reason": null,
-        "candidates": [
-          {
-            "id": "src/models/func286.js::func286",
-            "confidence": 0.9
-          }
-        ],
-        "importInfo": {
-          "module": "../models",
-          "resolvedModule": "models"
-        }
       }
     }
   ],
