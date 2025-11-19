@@ -6,9 +6,10 @@
 
 // Workers don't inherit import maps, so check for globally-provided graphology first
 // The worker will set self.__graphology before importing this module
-// In main thread, this will be undefined and we'll use the normal import (via import map)
+// In main thread (window exists), we'll use the normal import (via import map)
 import GraphDefault from 'graphology';
-const Graph = (typeof self !== 'undefined' && self.__graphology) || GraphDefault;
+// Check for worker context (no window) and global graphology
+const Graph = (typeof window === 'undefined' && typeof self !== 'undefined' && self.__graphology) || GraphDefault;
 
 export const EDGE_LAYERS = {
   CALL: 'call',

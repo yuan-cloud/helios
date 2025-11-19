@@ -4,14 +4,22 @@ const graphologyUrl = '/public/vendor/graphology/graphology.esm.js';
 const louvainUrl = '/public/vendor/graphology-communities-louvain/index.js';
 
 // Pre-load graphology modules and store them globally so dependent modules can use them
-const [graphologyModule, louvainModule] = await Promise.all([
-  import(graphologyUrl),
-  import(louvainUrl)
-]);
+// If this fails, the worker will fail to initialize and the client will fall back to inline computation
+try {
+  const [graphologyModule, louvainModule] = await Promise.all([
+    import(graphologyUrl),
+    import(louvainUrl)
+  ]);
 
-// Store in global scope so graph-builder.js and communities.js can access them
-self.__graphology = graphologyModule.default || graphologyModule;
-self.__graphologyLouvain = louvainModule.default || louvainModule;
+  // Store in global scope so graph-builder.js and communities.js can access them
+  // Use double underscore prefix to indicate internal/private global
+  self.__graphology = graphologyModule.default || graphologyModule;
+  self.__graphologyLouvain = louvainModule.default || louvainModule;
+} catch (error) {
+  // If graphology fails to load, throw to prevent worker initialization
+  // The worker client will catch this and fall back to inline computation
+  throw new Error(`Failed to load graphology modules in worker: ${error.message}`);
+}
 
 // Now import modules that depend on graphology
 import { mergeGraphPayload } from '../graph/merge.js';
