@@ -128,7 +128,7 @@ Tree-sitter's query DSL lets you capture these nodes robustly.
 ✅ Similarity edge export to visualization layer (undirected, capped neighbors)
 ✅ Cached reload path (reuse persisted embeddings/similarity when fingerprint matches; resilience fix validated)
 ✅ Approximate KNN candidate pruning (random-projection LSH seeds, auto-thresholded for large repos)
-⏳ Large-scale ANN benchmarking (50% — harness + CLI ready; awaiting real-repo embedding baselines to feed metrics; blocked until full repo scan captured once parser/graph/persistence pipeline runs end-to-end)
+⏳ Large-scale ANN benchmarking (75% — harness + CLI + export tool ready; export tool created to extract embeddings from SQLite; workflow: load repo → export DB → run benchmark; pending browser-based DB export for easier access to OPFS files)
 
 - Represent each function by a set `E_f = {e_1 … e_m}` of chunk vectors.
 - **Function-to-function correlation**: Default metric = cosine similarity.
