@@ -1697,7 +1697,8 @@
                 });
 
                 // If visualization is already open, refresh it with the new similarity edges
-                if (graphViz && typeof graphViz.loadData === 'function' && fullVizData) {
+                // Defensive check: ensure we have actual data to display before refreshing
+                if (graphViz && typeof graphViz.loadData === 'function' && fullVizData && fullVizData.links?.length > 0) {
                     console.log('[Embeddings] Visualization is open, refreshing with similarity edges...');
                     try {
                         // Get current filters to preserve user's view
