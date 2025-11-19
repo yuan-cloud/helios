@@ -80,18 +80,33 @@ export function buildCallGraph(functions, allCalls, symbolTableManager) {
     });
   }
 
-  const edges = Array.from(edgeMap.values()).map(edge => ({
-    source: edge.source,
-    target: edge.target,
-    weight: edge.weight,
-    isDynamic: edge.isDynamic,
-    metadata: {
-      callSites: edge.callSites.length,
-      firstCallSite: edge.callSites[0] || null,
-      callSiteSamples: edge.callSites.slice(0, 10),
-      resolution: edge.resolution || null
+  // Format edges according to payload schema:
+  // - callSites and resolution are top-level (not nested in metadata)
+  // - id is recommended (format: "call::source→target")
+  // - language is recommended (copy from parser)
+  // - metadata is for parser extras only
+  const edges = Array.from(edgeMap.values()).map(edge => {
+    const edgeId = `call::${edge.source}→${edge.target}`;
+    const formattedEdge = {
+      id: edgeId,
+      source: edge.source,
+      target: edge.target,
+      weight: edge.weight,
+      isDynamic: edge.isDynamic || false,
+      language: edge.language || undefined,
+      callSites: edge.callSites.slice(0, 100), // Limit to reasonable size
+      resolution: edge.resolution || undefined
+    };
+
+    // Only include metadata if we have parser extras to store
+    // (currently none, but leaving structure for future use)
+    const metadata = {};
+    if (Object.keys(metadata).length > 0) {
+      formattedEdge.metadata = metadata;
     }
-  }));
+
+    return formattedEdge;
+  });
 
   const stats = computeStats(nodes, edges);
 
@@ -297,6 +312,7 @@ function upsertEdge(edgeMap, sourceId, targetId, call) {
       target: targetId,
       weight: 0,
       isDynamic: false,
+      language: call.language || null,
       callSites: [],
       resolution: null
     });
@@ -305,40 +321,47 @@ function upsertEdge(edgeMap, sourceId, targetId, call) {
   const edge = edgeMap.get(edgeKey);
   edge.weight += 1;
   edge.isDynamic = edge.isDynamic || !!call.isDynamic;
+  // Store language from first call (should be consistent for same edge)
+  if (!edge.language && call.language) {
+    edge.language = call.language;
+  }
+  // Format call sites according to payload schema: {filePath, line, column, context?}
   edge.callSites.push({
-    file: call.filePath,
+    filePath: call.filePath,
     line: call.startLine,
-    column: call.startColumn,
-    isDynamic: !!call.isDynamic
+    column: call.startColumn || 0,
+    context: call.context || null // context is optional, will be extracted if available
   });
 
   return edge;
 }
 
 function buildResolutionMetadata(resolution, selectedMatch = null) {
-  const matches = (resolution.matches || []).map(match => ({
-    id: match.func.id,
-    name: match.func.fqName || match.func.name,
-    filePath: match.func.filePath,
-    moduleId: match.func.moduleId || null,
-    matchType: match.matchType,
-    confidence: match.confidence
-  })).slice(0, 12);
+  // Convert matches to candidates format per payload schema: { id, confidence }
+  // For resolved edges: single candidate with the selected match (high confidence)
+  // For ambiguous edges: multiple matches as candidates
+  let candidates = [];
+  
+  if (selectedMatch) {
+    // For resolved edges: single candidate with the selected match
+    candidates = [{
+      id: selectedMatch.func.id,
+      confidence: selectedMatch.confidence || 0.99
+    }];
+  } else if (resolution.matches && resolution.matches.length > 0) {
+    // For ambiguous/unresolved: all matches as candidates
+    candidates = resolution.matches.map(match => ({
+      id: match.func.id,
+      confidence: match.confidence || 0.5
+    })).slice(0, 12);
+  }
 
+  // Build resolution object per payload schema
   return {
     status: resolution.status,
-    reason: resolution.reason,
-    importInfo: resolution.importInfo,
-    matchCount: resolution.matches ? resolution.matches.length : 0,
-    matches,
-    selectedMatch: selectedMatch
-      ? {
-          id: selectedMatch.func.id,
-          matchType: selectedMatch.matchType,
-          confidence: selectedMatch.confidence
-        }
-      : null,
-    calleeName: resolution.calleeName
+    reason: resolution.reason || null,
+    candidates: candidates.length > 0 ? candidates : undefined,
+    importInfo: resolution.importInfo || undefined
   };
 }
 
@@ -348,27 +371,29 @@ function mergeResolution(existing, incoming) {
   }
 
   if (!existing) {
-    return {
-      ...incoming,
-      matches: incoming.matches ? [...incoming.matches] : []
-    };
+    return { ...incoming };
   }
 
+  // Merge by worst status (unresolved > ambiguous > resolved)
   if (STATUS_PRIORITY[incoming.status] > STATUS_PRIORITY[existing.status]) {
     existing.status = incoming.status;
     existing.reason = incoming.reason;
   }
 
-  existing.matchCount = Math.max(existing.matchCount || 0, incoming.matchCount || 0);
-  existing.matches = mergeMatches(existing.matches, incoming.matches);
-  existing.importInfo = existing.importInfo || incoming.importInfo || null;
+  // Merge candidates (keep unique by id, prefer higher confidence)
+  const candidateMap = new Map();
+  (existing.candidates || []).forEach(c => candidateMap.set(c.id, c));
+  (incoming.candidates || []).forEach(c => {
+    const existingCandidate = candidateMap.get(c.id);
+    if (!existingCandidate || (c.confidence || 0) > (existingCandidate.confidence || 0)) {
+      candidateMap.set(c.id, c);
+    }
+  });
+  const mergedCandidates = Array.from(candidateMap.values());
+  existing.candidates = mergedCandidates.length > 0 ? mergedCandidates : undefined;
 
-  if (incoming.selectedMatch) {
-    existing.selectedMatch = incoming.selectedMatch;
-  }
-  if (incoming.calleeName && !existing.calleeName) {
-    existing.calleeName = incoming.calleeName;
-  }
+  // Merge importInfo (prefer non-null)
+  existing.importInfo = existing.importInfo || incoming.importInfo || undefined;
 
   return existing;
 }
