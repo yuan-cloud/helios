@@ -2852,7 +2852,10 @@
                 stats: embeddingInput.stats || similarityStats || null
             };
 
-            if (Array.isArray(functionEmbeddings) && functionEmbeddings.length) {
+            // Check input parameter first, then fall back to global variable (consistent with other fields)
+            if (Array.isArray(embeddingInput.functionEmbeddings) && embeddingInput.functionEmbeddings.length) {
+                embeddingPayload.functionEmbeddings = embeddingInput.functionEmbeddings;
+            } else if (Array.isArray(functionEmbeddings) && functionEmbeddings.length) {
                 embeddingPayload.functionEmbeddings = functionEmbeddings;
             }
 
