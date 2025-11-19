@@ -6,6 +6,8 @@
     "test:storage": "node --test tests/storage/*.test.mjs"
   },
   "dependencies": {
+    "3d-force-graph": "^1.79.0",
+    "graphology": "^0.25.4",
     "graphology-communities-louvain": "^2.0.2"
   },
   "devDependencies": {

@@ -1,0 +1,191 @@
+{
+  "functions": [
+    {
+      "id": "src/api/user.js::fetchUsers",
+      "name": "fetchUsers",
+      "fqName": "api.user.fetchUsers",
+      "filePath": "src/api/user.js",
+      "moduleId": "api.user",
+      "lang": "javascript",
+      "startLine": 18,
+      "endLine": 62,
+      "loc": 45,
+      "doc": "Retrieves a list of users from the backend API."
+    },
+    {
+      "id": "src/api/user.js::parseUser",
+      "name": "parseUser",
+      "fqName": "api.user.parseUser",
+      "filePath": "src/api/user.js",
+      "moduleId": "api.user",
+      "lang": "javascript",
+      "startLine": 64,
+      "endLine": 92,
+      "loc": 29
+    },
+    {
+      "id": "src/components/UserList.tsx::renderUserList",
+      "name": "renderUserList",
+      "fqName": "components.UserList.renderUserList",
+      "filePath": "src/components/UserList.tsx",
+      "moduleId": "components.UserList",
+      "lang": "typescript",
+      "startLine": 22,
+      "endLine": 103,
+      "loc": 82,
+      "doc": "Displays the user list and handles loading/error states."
+    }
+  ],
+  "callEdges": [
+    {
+      "id": "call::src/components/UserList.tsx::renderUserList→src/api/user.js::fetchUsers",
+      "source": "src/components/UserList.tsx::renderUserList",
+      "target": "src/api/user.js::fetchUsers",
+      "weight": 1,
+      "language": "typescript",
+      "callSites": [
+        {
+          "filePath": "src/components/UserList.tsx",
+          "line": 48,
+          "column": 15,
+          "context": "const response = await fetchUsers(props.tenantId);"
+        }
+      ],
+      "resolution": {
+        "status": "resolved",
+        "candidates": [
+          {
+            "id": "src/api/user.js::fetchUsers",
+            "confidence": 0.97
+          }
+        ],
+        "importInfo": {
+          "module": "../api/user",
+          "resolvedModule": "api.user",
+          "specifiers": ["fetchUsers"]
+        }
+      }
+    },
+    {
+      "id": "call::src/api/user.js::fetchUsers→src/api/user.js::parseUser",
+      "source": "src/api/user.js::fetchUsers",
+      "target": "src/api/user.js::parseUser",
+      "weight": 1,
+      "language": "javascript",
+      "callSites": [
+        {
+          "filePath": "src/api/user.js",
+          "line": 42,
+          "column": 18,
+          "context": "return parseUser(payload);"
+        }
+      ],
+      "resolution": {
+        "status": "resolved",
+        "candidates": [
+          {
+            "id": "src/api/user.js::parseUser",
+            "confidence": 0.94
+          }
+        ]
+      }
+    },
+    {
+      "id": "call::src/components/UserList.tsx::renderUserList→external::trackEvent",
+      "source": "src/components/UserList.tsx::renderUserList",
+      "target": "external::trackEvent",
+      "weight": 1,
+      "language": "typescript",
+      "isDynamic": true,
+      "callSites": [
+        {
+          "filePath": "src/components/UserList.tsx",
+          "line": 88,
+          "column": 8,
+          "context": "trackEvent('user_list_rendered', { count: users.length });"
+        }
+      ],
+      "resolution": {
+        "status": "ambiguous",
+        "reason": "trackEvent imported from multiple analytics providers",
+        "candidates": [
+          {
+            "id": "external::trackEvent",
+            "confidence": 0.51
+          },
+          {
+            "id": "src/lib/analytics.ts::trackEvent",
+            "confidence": 0.44
+          }
+        ],
+        "importInfo": {
+          "module": "@analytics/sdk",
+          "resolvedModule": null,
+          "specifiers": ["trackEvent"]
+        }
+      }
+    }
+  ],
+  "symbolTables": {
+    "src/api/user.js": {
+      "moduleId": "api.user",
+      "exports": [
+        {
+          "local": "fetchUsers",
+          "exported": "fetchUsers"
+        },
+        {
+          "local": "parseUser",
+          "exported": "parseUser"
+        }
+      ],
+      "imports": [
+        {
+          "specifier": "getToken",
+          "from": "../auth/session"
+        }
+      ],
+      "functions": [
+        {
+          "id": "src/api/user.js::fetchUsers"
+        },
+        {
+          "id": "src/api/user.js::parseUser"
+        }
+      ]
+    },
+    "src/components/UserList.tsx": {
+      "moduleId": "components.UserList",
+      "exports": [
+        {
+          "local": "renderUserList",
+          "exported": "renderUserList"
+        }
+      ],
+      "imports": [
+        {
+          "specifier": "fetchUsers",
+          "from": "../api/user"
+        },
+        {
+          "specifier": "trackEvent",
+          "from": "@analytics/sdk"
+        }
+      ],
+      "functions": [
+        {
+          "id": "src/components/UserList.tsx::renderUserList"
+        }
+      ]
+    }
+  },
+  "stats": {
+    "totalFunctions": 3,
+    "totalCallEdges": 3,
+    "resolvedEdges": 2,
+    "ambiguousEdges": 1,
+    "unresolvedEdges": 0
+  }
+}
+
+

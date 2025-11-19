@@ -57,6 +57,20 @@ const dependencies = [
       },
     ],
   },
+  {
+    name: "graphology-communities-louvain",
+    sources: [
+      {
+        from: path.join(repoRoot, "node_modules", "graphology-communities-louvain", "index.js"),
+        to: path.join(repoRoot, "public", "vendor", "graphology-communities-louvain", "index.js"),
+      },
+      {
+        from: path.join(repoRoot, "node_modules", "graphology-communities-louvain", "LICENSE"),
+        to: path.join(repoRoot, "public", "vendor", "graphology-communities-louvain", "LICENSE"),
+        optional: true,
+      },
+    ],
+  },
 ];
 
 async function copyFile(source, destination, optional = false) {

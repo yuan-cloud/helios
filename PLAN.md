@@ -238,7 +238,7 @@ All steps are cancellable and resumable; show clear privacy note ("Remains on yo
 ✅ Clear-data control + OPFS status messaging (`index.html`, storage client reset & tests)
 ✅ COOP/COEP service worker + CDN fallback validated (OPFS + WASM modules load under static dev server)
 ✅ SQLite-WASM assets mirrored locally (`public/sqlite/*`) with loader pointed at same-origin copy (eliminates OPFS worker CORS failures)
-⏳ Dependency packaging audit (graphology/web-tree-sitter import strategy) — 90% (inventory documented in `docs/dependency-packaging.md`; pending execution of local mirrors for graphology/3d-force-graph and transformers import-map swap)
+✅ Dependency packaging audit complete — local mirrors for graphology, 3d-force-graph, graphology-communities-louvain, transformers (import map updated to use same-origin copies; reduces CORS risk and improves offline resilience)
 ⏳ Multi-session retention policy doc (draft at `docs/retention-policy.md`, awaiting product/design sign-off on retention window)
 
 **Tables:**

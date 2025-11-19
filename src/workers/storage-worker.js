@@ -294,6 +294,11 @@ async function processMessage(event) {
         respondSuccess(id, { closed: true });
         break;
       }
+      case "export": {
+        const result = await exportDatabase();
+        respondSuccess(id, result);
+        break;
+      }
       default:
         throw new Error(`Unknown storage worker message type: ${type}`);
     }
