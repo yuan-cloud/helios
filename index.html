@@ -1682,9 +1682,18 @@
 
                 // Update graph data as embeddings complete
                 await updateGraphData({
-                    functions: allFunctions,
-                    callEdges: Array.isArray(callGraph?.edges) ? callGraph.edges : [],
-                    similarityEdges: Array.isArray(similarityEdges) ? similarityEdges : []
+                    parser: {
+                        functions: allFunctions,
+                        callEdges: Array.isArray(callGraph?.edges) ? callGraph.edges : [],
+                        stats: callGraph?.stats || null,
+                        symbolTables: exportSymbolTables(symbolTableManager)
+                    },
+                    embeddings: {
+                        similarityEdges: Array.isArray(similarityEdges) ? similarityEdges : [],
+                        metadata: embeddingMetadata || null,
+                        stats: similarityStats || null,
+                        functionEmbeddings: Array.isArray(functionEmbeddings) && functionEmbeddings.length > 0 ? functionEmbeddings : undefined
+                    }
                 });
 
                 updateEmbeddingSummary({
@@ -3524,9 +3533,18 @@
             window.heliosEmbeddingError = embeddingError;
 
             await updateGraphData({
-                functions: allFunctions,
-                callEdges: Array.isArray(callGraph?.edges) ? callGraph.edges : [],
-                similarityEdges: Array.isArray(similarityEdges) ? similarityEdges : []
+                parser: {
+                    functions: allFunctions,
+                    callEdges: Array.isArray(callGraph?.edges) ? callGraph.edges : [],
+                    stats: callGraph?.stats || null,
+                    symbolTables: exportSymbolTables(symbolTableManager)
+                },
+                embeddings: {
+                    similarityEdges: Array.isArray(similarityEdges) ? similarityEdges : [],
+                    metadata: embeddingMetadata || null,
+                    stats: similarityStats || null,
+                    functionEmbeddings: Array.isArray(functionEmbeddings) && functionEmbeddings.length > 0 ? functionEmbeddings : undefined
+                }
             });
 
             if (embeddingEnvironment.detected && embeddingMetadata.backend) {
