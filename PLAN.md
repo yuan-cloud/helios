@@ -330,7 +330,8 @@ Persist DB under OPFS (origin-private) so users can reopen the site and continue
 ✅ Clique + k-core analysis utilities — `src/analysis/cliques.js`  
 ✅ Graph serialization helper to expose analyzed metrics (`serializeGraph`)  
 ✅ Metric export wiring into storage/viz layers (resume snapshots + inspector/controls consuming metrics)  
-❌ Validation harness with sample repos (blocked until representative datasets available)
+✅ Validation harness infrastructure (`tools/validate-network-analysis.mjs`, fixtures structure, documentation)  
+⏳ Validation harness with sample repos (infrastructure complete; awaiting representative datasets for actual validation runs)
 
 - Compute: degree, betweenness, eigenvector, PageRank; community (Louvain); show histograms in a side panel. (Graphology has these out of the box.)
 
