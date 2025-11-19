@@ -5,10 +5,15 @@
 export const HELIOS_DB_NAME = "helios.sqlite3";
 export const HELIOS_SCHEMA_VERSION = 2;
 
+// Application version - increment on breaking changes that require data invalidation
+export const HELIOS_APP_VERSION = "1.0.0";
+
 export const METADATA_KEYS = Object.freeze({
   SCHEMA_VERSION: "schema.version",
   SCHEMA_CREATED_AT: "schema.created_at",
   SCHEMA_UPDATED_AT: "schema.updated_at",
+  APP_VERSION: "app.version", // Application version for cache invalidation
+  APP_VERSION_SET_AT: "app.version_set_at", // When app version was set
 });
 
 /**
@@ -121,6 +126,14 @@ export function getInitialMetadataEntries() {
     },
     {
       key: METADATA_KEYS.SCHEMA_UPDATED_AT,
+      value: now,
+    },
+    {
+      key: METADATA_KEYS.APP_VERSION,
+      value: HELIOS_APP_VERSION,
+    },
+    {
+      key: METADATA_KEYS.APP_VERSION_SET_AT,
       value: now,
     },
   ];

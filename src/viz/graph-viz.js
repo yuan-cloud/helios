@@ -2093,8 +2093,30 @@ export class GraphVisualization {
           };
           return null;
         }
+        // Validate layout version - return null if version mismatch
+        const layoutVersion = result.layoutVersion ?? result.version ?? 1;
+        let LAYOUT_SNAPSHOT_VERSION = 1;
+        try {
+          const { LAYOUT_SNAPSHOT_VERSION: version } = await import('../storage/layout-persistence.js');
+          LAYOUT_SNAPSHOT_VERSION = version;
+        } catch (err) {
+          console.debug('[GraphViz] Could not import LAYOUT_SNAPSHOT_VERSION, using default');
+        }
+        
+        if (layoutVersion !== LAYOUT_SNAPSHOT_VERSION) {
+          console.warn(
+            `[GraphViz] Layout snapshot version mismatch from provider: stored ${layoutVersion}, expected ${LAYOUT_SNAPSHOT_VERSION}. Layout will be regenerated.`
+          );
+          this.lastLayoutLoadResult = {
+            status: 'version-mismatch',
+            storedVersion: layoutVersion,
+            expectedVersion: LAYOUT_SNAPSHOT_VERSION
+          };
+          return null;
+        }
+        
         const snapshot = {
-          version: result.layoutVersion ?? 1,
+          version: layoutVersion,
           nodes: Array.isArray(result.layout) ? result.layout : [],
           savedAt: result.updatedAt || result.createdAt || null,
           metadata: result.metadata ?? null,
@@ -2139,8 +2161,38 @@ export class GraphVisualization {
         };
         return null;
       }
+      // Validate layout version - return null if version mismatch
+      const layoutVersion = parsed.version ?? parsed.layoutVersion ?? 1;
+      // Import LAYOUT_SNAPSHOT_VERSION dynamically to avoid circular dependencies
+      let LAYOUT_SNAPSHOT_VERSION = 1;
+      try {
+        const { LAYOUT_SNAPSHOT_VERSION: version } = await import('../storage/layout-persistence.js');
+        LAYOUT_SNAPSHOT_VERSION = version;
+      } catch (err) {
+        // Fallback to default if import fails
+        console.debug('[GraphViz] Could not import LAYOUT_SNAPSHOT_VERSION, using default');
+      }
+      
+      if (layoutVersion !== LAYOUT_SNAPSHOT_VERSION) {
+        console.warn(
+          `[GraphViz] Layout snapshot version mismatch: stored ${layoutVersion}, expected ${LAYOUT_SNAPSHOT_VERSION}. Layout will be regenerated.`
+        );
+        // Clear incompatible layout from localStorage
+        try {
+          localStorage.removeItem(key);
+        } catch (err) {
+          console.debug('[GraphViz] Could not clear localStorage:', err);
+        }
+        this.lastLayoutLoadResult = {
+          status: 'version-mismatch',
+          storedVersion: layoutVersion,
+          expectedVersion: LAYOUT_SNAPSHOT_VERSION
+        };
+        return null;
+      }
+      
       const snapshot = {
-        version: parsed.version ?? 1,
+        version: layoutVersion,
         nodes: parsed.nodes,
         savedAt: parsed.savedAt ?? parsed.metadata?.savedAt ?? null,
         metadata: parsed.metadata ?? null,

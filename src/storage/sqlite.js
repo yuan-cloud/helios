@@ -7,6 +7,7 @@
 import {
   HELIOS_DB_NAME,
   HELIOS_SCHEMA_VERSION,
+  HELIOS_APP_VERSION,
   METADATA_KEYS,
   getBootstrapStatements,
   getInitialMetadataEntries,
@@ -199,6 +200,14 @@ export function ensureSchema(db) {
         },
         {
           key: METADATA_KEYS.SCHEMA_UPDATED_AT,
+          value: new Date().toISOString(),
+        },
+        {
+          key: METADATA_KEYS.APP_VERSION,
+          value: HELIOS_APP_VERSION,
+        },
+        {
+          key: METADATA_KEYS.APP_VERSION_SET_AT,
           value: new Date().toISOString(),
         },
       ]);

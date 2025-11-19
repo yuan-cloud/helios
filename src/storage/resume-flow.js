@@ -295,8 +295,14 @@ export async function loadAnalysisSnapshot(clientInput) {
   if (!snapshot || typeof snapshot !== "object") {
     return null;
   }
+  // Validate snapshot version - return null if version mismatch to trigger regeneration
   if (snapshot.version !== SNAPSHOT_VERSION) {
-    return snapshot;
+    console.warn(
+      `[Resume] Snapshot version mismatch: stored ${snapshot.version}, expected ${SNAPSHOT_VERSION}. Snapshot will be regenerated.`
+    );
+    // Clear incompatible snapshot
+    await clearAnalysisSnapshot(client);
+    return null;
   }
   return snapshot;
 }

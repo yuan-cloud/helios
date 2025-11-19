@@ -847,6 +847,7 @@
         import { EmbeddingManager } from './src/embeddings/embedding-manager.js';
         import { detectEmbeddingEnvironment } from './src/embeddings/backend.js';
         import { buildFunctionEmbeddings, computeSimilarityGraph } from './src/embeddings/similarity.js';
+        import { StorageWorkerClient } from './src/storage/client.js';
         import {
             computeFunctionFingerprint,
             computeFunctionFingerprintMap,
@@ -3306,6 +3307,29 @@
                 try {
                     const client = new StorageWorkerClient();
                     const initResult = await client.ensureInitialized();
+                    
+                    // Check data compatibility after initialization
+                    try {
+                        const { checkDataCompatibility, shouldInvalidateData } = await import('./src/storage/data-compatibility.js');
+                        const compatibility = await checkDataCompatibility(client);
+                        
+                        if (!compatibility.compatible || shouldInvalidateData(compatibility, false)) {
+                            console.warn('[Storage] Data compatibility check failed:', compatibility.issues);
+                            console.info('[Storage] Consider clearing stored data if you experience issues.');
+                            
+                            if (compatibility.issues.length > 0) {
+                                // Log but don't block - app can work with stale data
+                                // User can clear storage if they encounter issues
+                                console.info('[Storage] Compatibility issues detected:', compatibility.issues);
+                            }
+                        } else {
+                            console.debug('[Storage] Data compatibility check passed');
+                        }
+                    } catch (compatErr) {
+                        // Compatibility check failed - not critical, log and continue
+                        console.debug('[Storage] Compatibility check unavailable:', compatErr?.message || compatErr);
+                    }
+                    
                     storageClient = client;
                     storageReady = true;
                     storagePersistent = initResult?.persistent === true;
@@ -3320,14 +3344,16 @@
                     return true;
                 } catch (err) {
                     console.warn('Storage worker unavailable; falling back to browser storage.', err);
+                    // Graceful degradation - app works without storage
                     storageClient = null;
                     storageReady = false;
                     storagePersistent = null;
                     if (clearStorageBtn) {
                         clearStorageBtn.disabled = true;
                     }
-                    setStorageStatus('Storage unavailable; persistence disabled.', 'error');
-                    return false;
+                    setStorageStatus('Storage unavailable; using memory mode (data won\'t persist).', 'warning');
+                    // Don't return false - app can work in memory mode
+                    return true; // Changed to true for graceful degradation
                 } finally {
                     storageClientInitPromise = null;
                 }

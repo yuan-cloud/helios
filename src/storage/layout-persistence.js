@@ -78,6 +78,18 @@ export async function loadLayoutSnapshot(client, graphKey) {
   if (!result || !Array.isArray(result.layout)) {
     return null;
   }
+  
+  // Validate layout version - return null if version mismatch to trigger regeneration
+  const layoutVersion = result.layoutVersion ?? result.layout_version ?? null;
+  if (layoutVersion !== null && layoutVersion !== LAYOUT_SNAPSHOT_VERSION) {
+    console.warn(
+      `[Layout] Snapshot version mismatch for ${graphKey}: stored ${layoutVersion}, expected ${LAYOUT_SNAPSHOT_VERSION}. Layout will be regenerated.`
+    );
+    // Clear incompatible snapshot
+    await deleteLayoutSnapshot(client, graphKey);
+    return null;
+  }
+  
   return {
     ...result,
     layout: normalizeLayoutSnapshot(result.layout),
