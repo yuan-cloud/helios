@@ -4,12 +4,27 @@
  * function nodes plus call and similarity edges into a single graph.
  */
 
-// Workers don't inherit import maps, so check for globally-provided graphology first
-// The worker will set self.__graphology before importing this module
-// In main thread (window exists), we'll use the normal import (via import map)
-import GraphDefault from 'graphology';
-// Check for worker context (no window) and global graphology
-const Graph = (typeof window === 'undefined' && typeof self !== 'undefined' && self.__graphology) || GraphDefault;
+// Workers don't inherit import maps, so we need conditional imports
+// Top-level static imports fail in workers before fallback logic can execute
+// Use dynamic imports conditionally based on environment
+let GraphDefault = null;
+
+// Handle three cases:
+// 1. Node.js (tests): use normal import (no import maps, but Node.js resolves modules)
+// 2. Main thread (browser with window): use import map via dynamic import
+// 3. Worker (browser without window): use global (set by worker)
+if (typeof window !== 'undefined') {
+  // Main thread (browser): use import map via dynamic import
+  const graphologyModule = await import('graphology');
+  GraphDefault = graphologyModule.default || graphologyModule;
+} else if (typeof process !== 'undefined' && process.versions?.node) {
+  // Node.js (tests): use normal import
+  const graphologyModule = await import('graphology');
+  GraphDefault = graphologyModule.default || graphologyModule;
+}
+
+// Check for worker context (no window, no Node.js) and global graphology, fall back to imported module
+const Graph = (typeof window === 'undefined' && typeof process === 'undefined' && typeof self !== 'undefined' && self.__graphology) || GraphDefault;
 
 export const EDGE_LAYERS = {
   CALL: 'call',

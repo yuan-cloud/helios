@@ -2,14 +2,37 @@
  * Community detection utilities (Louvain).
  */
 
-// Workers don't inherit import maps, so check for globally-provided modules first
-// The worker will set self.__graphology and self.__graphologyLouvain before importing
-// In main thread (window exists), we'll use the normal imports (via import map)
-import GraphDefault from 'graphology';
-import louvainDefault from 'graphology-communities-louvain';
-// Check for worker context (no window) and global modules
-const Graph = (typeof window === 'undefined' && typeof self !== 'undefined' && self.__graphology) || GraphDefault;
-const louvain = (typeof window === 'undefined' && typeof self !== 'undefined' && self.__graphologyLouvain) || louvainDefault;
+// Workers don't inherit import maps, so we need conditional imports
+// Top-level static imports fail in workers before fallback logic can execute
+// Use dynamic imports conditionally based on environment
+let GraphDefault = null;
+let louvainDefault = null;
+
+// Handle three cases:
+// 1. Node.js (tests): use normal import (no import maps, but Node.js resolves modules)
+// 2. Main thread (browser with window): use import map via dynamic import
+// 3. Worker (browser without window): use global (set by worker)
+if (typeof window !== 'undefined') {
+  // Main thread (browser): use import map via dynamic imports
+  const [graphologyModule, louvainModule] = await Promise.all([
+    import('graphology'),
+    import('graphology-communities-louvain')
+  ]);
+  GraphDefault = graphologyModule.default || graphologyModule;
+  louvainDefault = louvainModule.default || louvainModule;
+} else if (typeof process !== 'undefined' && process.versions?.node) {
+  // Node.js (tests): use normal imports
+  const [graphologyModule, louvainModule] = await Promise.all([
+    import('graphology'),
+    import('graphology-communities-louvain')
+  ]);
+  GraphDefault = graphologyModule.default || graphologyModule;
+  louvainDefault = louvainModule.default || louvainModule;
+}
+
+// Check for worker context (no window, no Node.js) and global modules, fall back to imported modules
+const Graph = (typeof window === 'undefined' && typeof process === 'undefined' && typeof self !== 'undefined' && self.__graphology) || GraphDefault;
+const louvain = (typeof window === 'undefined' && typeof process === 'undefined' && typeof self !== 'undefined' && self.__graphologyLouvain) || louvainDefault;
 import { assertGraph, mergeNodeMetrics } from './utils.js';
 
 const DEFAULT_ATTRIBUTE = 'community';
