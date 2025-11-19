@@ -6,8 +6,10 @@ Scope: Defines the shared JSON structures exchanged between the parser, graph/an
 **Companion resources**
 
 - End-to-end payload example: `docs/payload-sample.json`
+- Visualization-compatible payload example: `tests/fixtures/viz-payload-sample.json`
 - Validation script: `node tools/validate-payload.mjs docs/payload-sample.json`
 - Contract regression test: `node --test tests/payload/contract.test.mjs`
+- Visualization compatibility test: `node --test tests/viz/payload-compatibility.test.mjs`
 - JSON Schema export: `node tools/validate-payload.mjs --schema --output payload-schema.json`
 
 ## 1. Overview
