@@ -4,6 +4,11 @@
   "type": "module",
   "scripts": {
     "test:storage": "node --test tests/storage/*.test.mjs"
+  },
+  "dependencies": {
+    "graphology-communities-louvain": "^2.0.2"
+  },
+  "devDependencies": {
+    "better-sqlite3": "^12.4.1"
   }
 }
-
