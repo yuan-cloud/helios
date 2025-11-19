@@ -84,7 +84,7 @@ Tree-sitter's query DSL lets you capture these nodes robustly.
 
 ### 3.3 Call Graph Construction (Static, Best-Effort)
 
-[PinkMountain - UPDATED - 2025-11-19 14:41]
+[PinkMountain - UPDATED - 2025-11-20 01:25]
 
 ✅ Static call graph extraction complete (caller→callee edges with call-site metadata)  
 ✅ Python grammar support added (functions/imports/calls feed call graph + viz)  
@@ -96,6 +96,8 @@ Tree-sitter's query DSL lets you capture these nodes robustly.
 ✅ Schema ratification complete (2025-11-19) - call edges format matches payload schema, unblocks viz/graph agents  
 ✅ Parser output format validation tests complete (`tests/extractors/call-graph.test.mjs` - validates against payload schema)  
 ✅ Resolution metadata confidence conversion fixed (string 'high'/'medium'/'low' → numeric 0.9/0.6/0.3 per schema)  
+✅ Parser fixture generator complete (tools/generate-parser-fixtures.mjs - creates small/medium/large payloads for validation harness)  
+✅ computeStats bug fix (HIGH severity - now correctly uses top-level edge.resolution?.status instead of edge.metadata?.resolution?.status)  
 ⏳ Enhanced name resolution (stack-graphs integration) — 0% (planned post-MVP once upstream support unblocks)  
 ❌ Stack-graph powered name resolution blocked: awaiting WASM-capable stack-graphs build and integration guidance
 
@@ -180,7 +182,7 @@ Tree-sitter's query DSL lets you capture these nodes robustly.
 
 ### 3.7 Visualization (3D)
 
-[LilacLake - UPDATED - 2025-11-20 01:00]
+[LilacLake - UPDATED - 2025-11-20 01:20]
 
 ✅ Core 3d-force-graph scaffold hooked to call graph output (directional particles, camera helpers, fit-to-view)  
 ✅ Controls + inspector polish (hover sidebar, neighbor quick jumps, inbound/outbound call lists, Prism-highlighted source)  
@@ -191,7 +193,7 @@ Tree-sitter's query DSL lets you capture these nodes robustly.
 ✅ Enhanced payload validator (actionable error messages, statistics collection, JSON Schema export for tooling integration)  
 ✅ Local vendor import compatibility (Three.js and peer dependencies added to import map for local vendor file support)  
 ✅ Visualization payload compatibility test (comprehensive test suite verifying payload → graph pipeline → visualization integration; 8 tests, all passing; updated for BlueBear's schema-compliant similarity edge format)  
-✅ Live parser payload hookup (100% — schema ratification complete; worker plumbing complete; visualization auto-refreshes when embeddings finish; end-to-end integration complete)  
+✅ Live parser payload hookup (100% — schema ratification complete; worker plumbing complete; visualization auto-refreshes when embeddings finish; end-to-end integration complete; defensive check added to avoid refreshing with empty data)  
 ✅ Graphology metrics surfaced in UI (node sizing/color by centrality/community; hover badges for PR/BC/core/community)  
 ✅ Controls panel shows graph-level summaries (counts, top communities, central nodes, cores)  
 ✅ Resume flow integration & regression guard (call/sim edge toggles restored; viz consumes storage snapshots)  
