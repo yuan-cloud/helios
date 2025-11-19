@@ -217,6 +217,7 @@
         "source": "src/utils/math.ts::add",
         "target": "src/utils/math.ts::sumArray",
         "similarity": 0.82,
+        "type": "similarity",
         "method": "topk-avg",
         "representativeSimilarity": 0.78,
         "topPairs": [
@@ -236,9 +237,12 @@
             "score": 0.76
           }
         ],
+        "undirected": true,
         "metadata": {
           "bundleSize": 3,
-          "model": "Xenova/all-MiniLM-L6-v2"
+          "model": "all-MiniLM-L6-v2",
+          "sourceChunkCount": 2,
+          "targetChunkCount": 4
         }
       }
     ],
