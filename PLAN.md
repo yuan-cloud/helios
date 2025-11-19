@@ -112,7 +112,7 @@ Tree-sitter's query DSL lets you capture these nodes robustly.
 
 ### 3.4 Function Chunking and Embeddings
 
-[BlueBear - UPDATED - 2025-11-19 15:33]
+[BlueBear - UPDATED - 2025-11-19 15:48]
 
 ✅ Chunking scaffolding (line-aware splits with source offsets)
 ✅ Embedding worker inference (Transformers.js MiniLM via WebGPU/WASM)
@@ -128,7 +128,7 @@ Tree-sitter's query DSL lets you capture these nodes robustly.
 
 ### 3.5 Embedding Aggregation and Similarity
 
-[BlueBear - UPDATED - 2025-11-19 15:33]
+[BlueBear - UPDATED - 2025-11-19 15:48]
 
 ✅ Representative vector computation (per-function mean + normalization)
 ✅ Top-k bundle similarity with cosine metrics (candidate limit + thresholding)
@@ -238,7 +238,7 @@ All steps are cancellable and resumable; show clear privacy note ("Remains on yo
 
 ## 6) Data Model (SQLite)
 
-[ChartreuseHill - UPDATED - 2025-11-20 01:03]
+[ChartreuseHill - UPDATED - 2025-11-19 15:46]
 
 ✅ SQLite-WASM bootstrap w/ OPFS fallback (`src/storage/sqlite.js`)
 ✅ Schema definition & metadata helpers (`src/storage/schema.js`, `src/storage/migrations.js`)
@@ -251,7 +251,7 @@ All steps are cancellable and resumable; show clear privacy note ("Remains on yo
 ✅ COOP/COEP service worker + CDN fallback validated (OPFS + WASM modules load under static dev server)
 ✅ SQLite-WASM assets mirrored locally (`public/sqlite/*`) with loader pointed at same-origin copy (eliminates OPFS worker CORS failures)
 ✅ Dependency packaging audit complete — local mirrors for graphology, 3d-force-graph, graphology-communities-louvain, transformers (import map updated to use same-origin copies; reduces CORS risk and improves offline resilience)
-✅ Multi-session retention policy cleanup structure (`src/storage/retention.js`, `tests/storage/retention.test.mjs` — comprehensive cleanup logic with 17 passing tests; integrated into storage worker via `config.retention.enabled` flag and manual `retention:enforce` message handler)
+✅ Multi-session retention policy cleanup structure (`src/storage/retention.js`, `tests/storage/retention.test.mjs` — comprehensive cleanup logic with 20 passing tests; includes analysis snapshot cleanup; integrated into storage worker via `config.retention.enabled` flag and manual `retention:enforce` message handler)
 ✅ Retention policy activation (active in production with 24h default retention window; enabled via `config.retention.enabled = true` in `index.html`; 7-day override UI deferred to post-MVP; documented in `docs/retention-policy.md` and `docs/storage.md`)
 
 **Tables:**
@@ -392,6 +392,8 @@ Persist DB under OPFS (origin-private) so users can reopen the site and continue
 ## 14) Testing & Validation
 
 - **Goldens**: Small curated repos (few hundred functions) for regression on counts: #functions, #edges, top central nodes.
+  - ✅ Regression testing framework complete (`tools/regression-test.mjs`, `tests/golden-repos/`, `docs/regression-testing.md`)
+  - ⏳ Golden repo baselines (infrastructure ready, awaiting golden repo additions)
 - **Diff mode**: Allow comparing two runs (e.g., before/after a refactor); compute graph deltas and community changes.
 - **Cross-browser**: Chrome/Edge/Safari baseline; Firefox with WASM/WASM-SIMD; WebGPU where available.
 
