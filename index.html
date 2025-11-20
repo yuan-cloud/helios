@@ -1681,7 +1681,7 @@
                 }
 
                 // Update graph data as embeddings complete
-                const graphUpdateResult = await updateGraphData({
+                await updateGraphData({
                     parser: {
                         functions: allFunctions,
                         callEdges: Array.isArray(callGraph?.edges) ? callGraph.edges : [],
