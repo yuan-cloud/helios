@@ -116,7 +116,7 @@ Tree-sitter's query DSL lets you capture these nodes robustly.
 
 ### 3.4 Function Chunking and Embeddings
 
-[BlueBear - UPDATED - 2025-11-20 07:35]
+[BlueBear - UPDATED - 2025-11-20 08:05]
 
 ✅ Chunking scaffolding (line-aware splits with source offsets)
 ✅ Embedding worker inference (Transformers.js MiniLM via WebGPU/WASM)
@@ -124,7 +124,7 @@ Tree-sitter's query DSL lets you capture these nodes robustly.
 ✅ Incremental delta updates (reuse cached function chunks, re-embed only changed sources via per-function fingerprints)
 ✅ Runtime backend detection surfaced (WebGPU probe + UI summary to confirm active inference engine)
 ✅ Local Transformers/ORT mirrors with worker fallback (prefers `/public/vendor` bundles; CDN-only environments still supported)
-✅ Code review completed (2025-11-20) - reviewed recent commits from OrangeSnow, PinkMountain, ChartreuseHill; found HIGH severity issue in PinkMountain's regression test (reported via [REVIEW] message); all other commits look solid
+✅ Code review completed (2025-11-20) - reviewed recent commits from OrangeSnow, PinkMountain, ChartreuseHill, LilacLake; all commits look solid, no bugs found in embedding-related code
 
 - **Chunking**: Within each function, split by syntactic boundaries (statement blocks / loop bodies / logical sections) to keep chunks ~100–200 tokens. Maintain chunk offsets into the source so clicks can highlight text accurately.
 - **Model**: Start with a compact, general-purpose text/code embedding like MiniLM (384-dim) in ONNX via Transformers.js, loading from HF hub through the library's CDN resolver. Models cache in the browser (Cache API/IndexedDB) to avoid re-downloads. Provide a setting to force WebGPU backend when available; fall back to WASM.
@@ -133,7 +133,7 @@ Tree-sitter's query DSL lets you capture these nodes robustly.
 
 ### 3.5 Embedding Aggregation and Similarity
 
-[BlueBear - UPDATED - 2025-11-20 07:35]
+[BlueBear - UPDATED - 2025-11-20 08:05]
 
 ✅ Representative vector computation (per-function mean + normalization)
 ✅ Top-k bundle similarity with cosine metrics (candidate limit + thresholding)
@@ -143,7 +143,7 @@ Tree-sitter's query DSL lets you capture these nodes robustly.
 ✅ Large-scale ANN benchmarking (100% — harness + CLI + export tool + browser export button complete; full workflow: load repo → click export → run benchmark CLI)
 ✅ Similarity edge schema compliance (type: 'similarity', id, metadata, undirected fields added; full compliance with docs/payloads.md; visualization-ready)
 ✅ Payload sample updated (docs/payload-sample.json updated with schema-compliant similarity edges for integration testing)
-✅ Code review completed (2025-11-20) - reviewed recent commits from OrangeSnow, PinkMountain, ChartreuseHill; found HIGH severity issue in PinkMountain's regression test (reported via [REVIEW] message); all other commits look solid
+✅ Code review completed (2025-11-20) - reviewed recent commits from OrangeSnow, PinkMountain, ChartreuseHill, LilacLake; all commits look solid, no bugs found in embedding-related code
 
 - Represent each function by a set `E_f = {e_1 … e_m}` of chunk vectors.
 - **Function-to-function correlation**: Default metric = cosine similarity.
