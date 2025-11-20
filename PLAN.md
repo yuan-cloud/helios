@@ -417,7 +417,7 @@ Persist DB under OPFS (origin-private) so users can reopen the site and continue
 
 - **Goldens**: Small curated repos (few hundred functions) for regression on counts: #functions, #edges, top central nodes.
   - ✅ Regression testing framework complete (`tools/regression-test.mjs`, `tests/golden-repos/`, `docs/regression-testing.md`)
-  - ⏳ Golden repo baselines (infrastructure ready, awaiting golden repo additions)
+  - ✅ Golden repo baselines complete (`tests/golden-repos/simple-web-app/`, `tests/golden-repos/mixed-language-api/`, `tests/golden-repos/typescript-library/` - 3 synthetic baselines for regression testing)
 - **Diff mode**: Allow comparing two runs (e.g., before/after a refactor); compute graph deltas and community changes.
 - **Cross-browser**: Chrome/Edge/Safari baseline; Firefox with WASM/WASM-SIMD; WebGPU where available.
 
