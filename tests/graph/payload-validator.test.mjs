@@ -136,6 +136,21 @@ function runInvalidCandidateConfidenceOutOfRange() {
   );
 }
 
+function runInvalidDuplicateCandidateIds() {
+  const envelope = buildEnvelope();
+  envelope.parser.callEdges[0].resolution.candidates = [
+    { id: 'src/bar.ts::bar', confidence: 0.92 },
+    { id: 'src/bar.ts::bar', confidence: 0.75 }  // Duplicate ID
+  ];
+
+  const result = validateGraphPayload(envelope);
+  assert.equal(result.valid, false);
+  assert.ok(
+    result.errors.some(err => err.path.includes('candidates') && err.message.includes('Duplicate candidate id')),
+    `Expected duplicate candidate id error but got:\n${printValidationErrors(result.errors)}`
+  );
+}
+
 function runValidCandidates() {
   const envelope = buildEnvelope();
   envelope.parser.callEdges[0].resolution.candidates = [
@@ -154,6 +169,7 @@ runInvalidCandidatesNotArray();
 runInvalidCandidateMissingId();
 runInvalidCandidateInvalidConfidence();
 runInvalidCandidateConfidenceOutOfRange();
+runInvalidDuplicateCandidateIds();
 runValidCandidates();
 
 console.log('payload-validator.test.mjs passed');

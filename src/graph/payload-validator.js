@@ -286,6 +286,7 @@ function validateCallEdges(edges, errors, functionIds, stats) {
               suggestion: 'candidates should be an array of objects: [{ id: string, confidence: number }]'
             });
           } else {
+            const seenCandidateIds = new Set();
             edge.resolution.candidates.forEach((candidate, idx) => {
               const candidatePath = `${path}.resolution.candidates[${idx}]`;
               if (typeof candidate !== 'object' || candidate === null) {
@@ -299,6 +300,18 @@ function validateCallEdges(edges, errors, functionIds, stats) {
                   required: true,
                   suggestion: 'candidate.id must be a function id string.'
                 });
+                
+                // Check for duplicate candidate IDs
+                if (candidate.id && seenCandidateIds.has(candidate.id)) {
+                  errors.push({
+                    path: candidatePath,
+                    message: `Duplicate candidate id "${candidate.id}" in candidates array.`,
+                    suggestion: 'Each candidate should have a unique id. Remove duplicate entries or merge them with the highest confidence value.'
+                  });
+                } else if (candidate.id) {
+                  seenCandidateIds.add(candidate.id);
+                }
+                
                 validateNumber(candidate.confidence, `${candidatePath}.confidence`, errors, {
                   required: true,
                   min: 0,
