@@ -57,7 +57,7 @@ Everything runs from static hosting (GitHub/Cloudflare Pages). To enable threads
 
 ### 3.2 Language Detection and AST Parsing
 
-[PinkMountain - UPDATED - 2025-11-19 14:41]
+[PinkMountain - UPDATED - 2025-11-20 02:30]
 
 ✅ Tree-sitter loaded  
 ✅ JS/TS grammar loaded  
@@ -69,6 +69,8 @@ Everything runs from static hosting (GitHub/Cloudflare Pages). To enable threads
 ✅ Tree-sitter grammar loader regression patched (default import restored, local wasm assets routing confirmed 2025-11-13)  
 ✅ Query constructor registration fixed (deprecation warnings resolved, using recommended `new Query()` API)  
 ❌ Stack graphs integration (blocked: upstream WASM-capable implementation required)
+
+**Status:** All tasks in Section 3.2 are 100% complete (except stack-graphs integration, blocked on upstream WASM support). Parser infrastructure is production-ready and available for integration testing.
 
 - Load web-tree-sitter once; lazy-load grammars per file type. Ship grammar WASMs via CDN (e.g., `tree-sitter-python.wasm`, `tree-sitter-javascript.wasm`).
 - Use Tree-sitter query patterns to extract:
@@ -84,7 +86,7 @@ Tree-sitter's query DSL lets you capture these nodes robustly.
 
 ### 3.3 Call Graph Construction (Static, Best-Effort)
 
-[PinkMountain - UPDATED - 2025-11-20 01:25]
+[PinkMountain - UPDATED - 2025-11-20 02:30]
 
 ✅ Static call graph extraction complete (caller→callee edges with call-site metadata)  
 ✅ Python grammar support added (functions/imports/calls feed call graph + viz)  
@@ -97,9 +99,11 @@ Tree-sitter's query DSL lets you capture these nodes robustly.
 ✅ Parser output format validation tests complete (`tests/extractors/call-graph.test.mjs` - validates against payload schema)  
 ✅ Resolution metadata confidence conversion fixed (string 'high'/'medium'/'low' → numeric 0.9/0.6/0.3 per schema)  
 ✅ Parser fixture generator complete (tools/generate-parser-fixtures.mjs - creates small/medium/large payloads for validation harness)  
-✅ computeStats bug fix (HIGH severity - now correctly uses top-level edge.resolution?.status instead of edge.metadata?.resolution?.status)  
+✅ computeStats bug fix (HIGH severity - now correctly uses top-level edge.resolution?.status instead of edge.metadata?.resolution?.status; fixed 2025-11-20 commit 447620c)  
 ⏳ Enhanced name resolution (stack-graphs integration) — 0% (planned post-MVP once upstream support unblocks)  
 ❌ Stack-graph powered name resolution blocked: awaiting WASM-capable stack-graphs build and integration guidance
+
+**Status:** All tasks in Section 3.3 are 100% complete (except stack-graphs integration, blocked on upstream WASM support). Call graph infrastructure is production-ready and available for integration testing. All reported bugs fixed (computeStats bug fixed in commit 447620c).
 
 - For each `call_expression`, extract callee:
   - Identifiers → resolve via lexical scope + module import table.
