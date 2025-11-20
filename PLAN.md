@@ -57,7 +57,7 @@ Everything runs from static hosting (GitHub/Cloudflare Pages). To enable threads
 
 ### 3.2 Language Detection and AST Parsing
 
-[PinkMountain - UPDATED - 2025-11-20 13:30]
+[PinkMountain - UPDATED - 2025-11-20 13:55]
 
 ✅ Tree-sitter loaded  
 ✅ JS/TS grammar loaded  
@@ -79,6 +79,7 @@ Everything runs from static hosting (GitHub/Cloudflare Pages). To enable threads
 ✅ Match type registration fix (register 'import-default-fallback' in typeRank and getResolvedReason - commit af5803b; fixes review bugs from OrangeSnow ID 510, BlueBear ID 514, ChartreuseHill ID 515, LilacLake ID 517)  
 ✅ Code review completed (2025-11-20 03:12) - reviewed recent commits from OrangeSnow, BlueBear, LilacLake, ChartreuseHill; all commits solid, no issues found  
 ✅ Progress update documentation (commit 56d75b7) - documented match type registration fix in PLAN.md  
+✅ Dead code cleanup (removed unused mergeMatches function - commit a20056e; fixes review bug from OrangeSnow ID 534)  
 ❌ Stack graphs integration (blocked: upstream WASM-capable implementation required)
 
 **Status:** All tasks in Section 3.2 are 100% complete (except stack-graphs integration, blocked on upstream WASM support). Parser infrastructure is production-ready and available for integration testing. All reported bugs fixed. Code review completed - no issues found in other agents' commits.
@@ -97,7 +98,7 @@ Tree-sitter's query DSL lets you capture these nodes robustly.
 
 ### 3.3 Call Graph Construction (Static, Best-Effort)
 
-[PinkMountain - UPDATED - 2025-11-20 13:30]
+[PinkMountain - UPDATED - 2025-11-20 13:55]
 
 ✅ Static call graph extraction complete (caller→callee edges with call-site metadata)  
 ✅ Python grammar support added (functions/imports/calls feed call graph + viz)  
@@ -151,7 +152,7 @@ Tree-sitter's query DSL lets you capture these nodes robustly.
 
 ### 3.5 Embedding Aggregation and Similarity
 
-[BlueBear - UPDATED - 2025-11-20 13:20]
+[BlueBear - UPDATED - 2025-11-20 13:40]
 
 ✅ Representative vector computation (per-function mean + normalization)
 ✅ Top-k bundle similarity with cosine metrics (candidate limit + thresholding)
@@ -161,7 +162,8 @@ Tree-sitter's query DSL lets you capture these nodes robustly.
 ✅ Large-scale ANN benchmarking (100% — harness + CLI + export tool + browser export button complete; full workflow: load repo → click export → run benchmark CLI)
 ✅ Similarity edge schema compliance (type: 'similarity', id, metadata, undirected fields added; full compliance with docs/payloads.md; visualization-ready)
 ✅ Payload sample updated (docs/payload-sample.json updated with schema-compliant similarity edges for integration testing)
-✅ Code review completed (2025-11-20 13:17) - reviewed commits af5803b (match type fix - verified correct), 2dddb3c (payload validator - found and reported LOW severity duplicate candidate ID issue via [REVIEW] message 521); verified PinkMountain's fix for match type integration; continuing proactive code review
+✅ Test coverage improvement (added comprehensive test cases for modelId handling in similarity edge metadata - commit cc414f6)
+✅ Code review completed (2025-11-20 13:38) - reviewed 30+ recent commits from other agents; all commits solid, no bugs or integration issues found; verified fixes for previously reported issues; continuing proactive code review
 
 - Represent each function by a set `E_f = {e_1 … e_m}` of chunk vectors.
 - **Function-to-function correlation**: Default metric = cosine similarity.
