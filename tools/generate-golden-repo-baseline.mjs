@@ -195,14 +195,19 @@ function computeMockPageRank(functions, edges) {
     }
   });
   
-  // Compute simple PageRank approximation: (in-degree + out-degree) / max-degree
-  const allDegrees = Array.from(inDegree.values()).concat(Array.from(outDegree.values()));
-  const maxDegree = Math.max(...allDegrees, 1);
+  // Compute simple PageRank approximation: (in-degree + out-degree) / max-total-degree
+  // First compute total degrees (sum of in + out) to find the maximum
+  const totalDegrees = new Map();
+  functions.forEach(func => {
+    const total = (inDegree.get(func.id) || 0) + (outDegree.get(func.id) || 0);
+    totalDegrees.set(func.id, total);
+  });
+  const maxTotalDegree = Math.max(...Array.from(totalDegrees.values()), 1);
   
   const pageRanks = new Map();
   functions.forEach(func => {
-    const degree = (inDegree.get(func.id) || 0) + (outDegree.get(func.id) || 0);
-    const rank = Math.max(0.01, (degree / maxDegree) * 0.1); // Scale to 0.01-0.1 range
+    const degree = totalDegrees.get(func.id) || 0;
+    const rank = Math.max(0.01, (degree / maxTotalDegree) * 0.1); // Scale to 0.01-0.1 range
     pageRanks.set(func.id, rank);
   });
   
