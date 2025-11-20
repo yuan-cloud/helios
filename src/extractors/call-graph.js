@@ -803,13 +803,13 @@ function buildResolutionMetadata(resolution, selectedMatch = null) {
     // For resolved edges: single candidate with the selected match
     candidates = [{
       id: selectedMatch.func.id,
-      confidence: convertConfidence(selectedMatch.confidence) || 0.99
+      confidence: convertConfidence(selectedMatch.confidence)
     }];
   } else if (resolution.matches && resolution.matches.length > 0) {
     // For ambiguous/unresolved: all matches as candidates
     candidates = resolution.matches.map(match => ({
       id: match.func.id,
-      confidence: convertConfidence(match.confidence) || 0.5
+      confidence: convertConfidence(match.confidence)
     })).slice(0, 12);
   }
 
