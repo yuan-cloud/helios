@@ -276,6 +276,39 @@ function validateCallEdges(edges, errors, functionIds, stats) {
             suggestion: `Status must be one of: ${validStatuses.join(', ')}.`
           });
         }
+        
+        // Validate candidates array if present
+        if (edge.resolution.candidates !== undefined) {
+          if (!Array.isArray(edge.resolution.candidates)) {
+            errors.push({
+              path: `${path}.resolution.candidates`,
+              message: 'resolution.candidates must be an array when provided.',
+              suggestion: 'candidates should be an array of objects: [{ id: string, confidence: number }]'
+            });
+          } else {
+            edge.resolution.candidates.forEach((candidate, idx) => {
+              const candidatePath = `${path}.resolution.candidates[${idx}]`;
+              if (typeof candidate !== 'object' || candidate === null) {
+                errors.push({
+                  path: candidatePath,
+                  message: 'Each candidate must be an object.',
+                  suggestion: 'Candidate should have structure: { id: string, confidence: number }'
+                });
+              } else {
+                validateString(candidate.id, `${candidatePath}.id`, errors, {
+                  required: true,
+                  suggestion: 'candidate.id must be a function id string.'
+                });
+                validateNumber(candidate.confidence, `${candidatePath}.confidence`, errors, {
+                  required: true,
+                  min: 0,
+                  max: 1,
+                  suggestion: 'candidate.confidence must be a number between 0 and 1.'
+                });
+              }
+            });
+          }
+        }
       }
     }
     

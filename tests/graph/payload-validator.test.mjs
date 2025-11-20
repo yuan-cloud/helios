@@ -84,9 +84,77 @@ function runUnknownEdgeScenario() {
   );
 }
 
+function runInvalidCandidatesNotArray() {
+  const envelope = buildEnvelope();
+  envelope.parser.callEdges[0].resolution.candidates = 'not an array';
+
+  const result = validateGraphPayload(envelope);
+  assert.equal(result.valid, false);
+  assert.ok(
+    result.errors.some(err => err.path.includes('resolution.candidates') && err.message.includes('must be an array')),
+    `Expected candidates array error but got:\n${printValidationErrors(result.errors)}`
+  );
+}
+
+function runInvalidCandidateMissingId() {
+  const envelope = buildEnvelope();
+  envelope.parser.callEdges[0].resolution.candidates = [{ confidence: 0.9 }];
+
+  const result = validateGraphPayload(envelope);
+  assert.equal(result.valid, false);
+  assert.ok(
+    result.errors.some(err => err.path.includes('candidates[0].id')),
+    `Expected missing id error but got:\n${printValidationErrors(result.errors)}`
+  );
+}
+
+function runInvalidCandidateInvalidConfidence() {
+  const envelope = buildEnvelope();
+  envelope.parser.callEdges[0].resolution.candidates = [
+    { id: 'src/bar.ts::bar', confidence: 'high' }
+  ];
+
+  const result = validateGraphPayload(envelope);
+  assert.equal(result.valid, false);
+  assert.ok(
+    result.errors.some(err => err.path.includes('candidates[0].confidence')),
+    `Expected invalid confidence error but got:\n${printValidationErrors(result.errors)}`
+  );
+}
+
+function runInvalidCandidateConfidenceOutOfRange() {
+  const envelope = buildEnvelope();
+  envelope.parser.callEdges[0].resolution.candidates = [
+    { id: 'src/bar.ts::bar', confidence: 1.5 }
+  ];
+
+  const result = validateGraphPayload(envelope);
+  assert.equal(result.valid, false);
+  assert.ok(
+    result.errors.some(err => err.path.includes('candidates[0].confidence')),
+    `Expected confidence out of range error but got:\n${printValidationErrors(result.errors)}`
+  );
+}
+
+function runValidCandidates() {
+  const envelope = buildEnvelope();
+  envelope.parser.callEdges[0].resolution.candidates = [
+    { id: 'src/bar.ts::bar', confidence: 0.92 },
+    { id: 'src/baz.ts::baz', confidence: 0.75 }
+  ];
+
+  const result = validateGraphPayload(envelope);
+  assert.equal(result.valid, true, printValidationErrors(result.errors));
+}
+
 runValidScenario();
 runInvalidFunctionScenario();
 runUnknownEdgeScenario();
+runInvalidCandidatesNotArray();
+runInvalidCandidateMissingId();
+runInvalidCandidateInvalidConfidence();
+runInvalidCandidateConfidenceOutOfRange();
+runValidCandidates();
 
 console.log('payload-validator.test.mjs passed');
 
