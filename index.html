@@ -1242,6 +1242,15 @@
             };
             storageStatusEl.textContent = message || '';
             storageStatusEl.style.color = palette[tone] || palette.info;
+            
+            // Add helpful tooltip based on message content
+            if (message && message.includes('saved locally')) {
+                storageStatusEl.title = 'Your layouts, sessions, and analysis data are saved locally on your device. They persist even after closing the browser, so you can resume where you left off. All data stays private on your computer - nothing is sent to any server.';
+            } else if (message && message.includes('will not persist')) {
+                storageStatusEl.title = 'Your data is stored temporarily in browser memory. It will be lost when you close the browser tab. To enable persistent storage, your browser needs to support local file storage (most modern browsers do this automatically).';
+            } else {
+                storageStatusEl.title = message || 'Storage status';
+            }
         }
 
         setStorageStatus('Storage initializing…', 'info');
