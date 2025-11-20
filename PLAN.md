@@ -57,7 +57,7 @@ Everything runs from static hosting (GitHub/Cloudflare Pages). To enable threads
 
 ### 3.2 Language Detection and AST Parsing
 
-[PinkMountain - UPDATED - 2025-11-20 09:10]
+[PinkMountain - UPDATED - 2025-11-20 09:30]
 
 ✅ Tree-sitter loaded  
 ✅ JS/TS grammar loaded  
@@ -71,6 +71,7 @@ Everything runs from static hosting (GitHub/Cloudflare Pages). To enable threads
 ✅ Golden repos and regression testing framework complete (PLAN §14 - infrastructure + 3 baselines complete: simple-web-app, mixed-language-api, typescript-library)  
 ✅ Regression test bug fixes complete (defensive checks for topCentralNodes access - commit e1f4ab1; fixes review bugs from OrangeSnow ID 466 and BlueBear ID 463)  
 ✅ Golden repo baseline generator bug fix (PageRank computation fixed - commit 951b294; fixes review bug from LilacLake ID 491)  
+✅ Golden repo baselines regenerated with corrected PageRank values and regression testing re-run (all baselines pass; ensures metadata accuracy)  
 ❌ Stack graphs integration (blocked: upstream WASM-capable implementation required)
 
 **Status:** All tasks in Section 3.2 are 100% complete (except stack-graphs integration, blocked on upstream WASM support). Parser infrastructure is production-ready and available for integration testing. All reported bugs fixed.

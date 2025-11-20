@@ -15,44 +15,44 @@
     },
     "topCentralNodes": [
       {
-        "id": "src/lib/func4.js::func4",
-        "pageRank": 0.2
-      },
-      {
-        "id": "src/helpers/func14.ts::func14",
-        "pageRank": 0.2
-      },
-      {
-        "id": "src/services/func33.py::func33",
-        "pageRank": 0.2
+        "id": "src/utils/func92.ts::func92",
+        "pageRank": 0.1
       },
       {
         "id": "src/utils/func36.py::func36",
-        "pageRank": 0.2
-      },
-      {
-        "id": "src/services/func54.py::func54",
-        "pageRank": 0.2
-      },
-      {
-        "id": "src/models/func55.js::func55",
-        "pageRank": 0.2
+        "pageRank": 0.1
       },
       {
         "id": "src/services/func61.js::func61",
-        "pageRank": 0.2
+        "pageRank": 0.1
+      },
+      {
+        "id": "src/services/func54.py::func54",
+        "pageRank": 0.1
+      },
+      {
+        "id": "src/services/func33.py::func33",
+        "pageRank": 0.1
+      },
+      {
+        "id": "src/models/func55.js::func55",
+        "pageRank": 0.1
       },
       {
         "id": "src/lib/func88.js::func88",
-        "pageRank": 0.2
+        "pageRank": 0.1
+      },
+      {
+        "id": "src/lib/func4.js::func4",
+        "pageRank": 0.1
       },
       {
         "id": "src/helpers/func91.js::func91",
-        "pageRank": 0.2
+        "pageRank": 0.1
       },
       {
-        "id": "src/utils/func92.ts::func92",
-        "pageRank": 0.2
+        "id": "src/helpers/func14.ts::func14",
+        "pageRank": 0.1
       }
     ]
   },

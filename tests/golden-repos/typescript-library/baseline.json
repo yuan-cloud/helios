@@ -15,44 +15,44 @@
     },
     "topCentralNodes": [
       {
-        "id": "src/models/func20.ts::func20",
-        "pageRank": 0.2
+        "id": "src/utils/func197.ts::func197",
+        "pageRank": 0.1
       },
       {
-        "id": "src/helpers/func21.py::func21",
-        "pageRank": 0.2
+        "id": "src/utils/func176.ts::func176",
+        "pageRank": 0.1
       },
       {
-        "id": "src/components/func31.js::func31",
-        "pageRank": 0.2
-      },
-      {
-        "id": "src/lib/func32.ts::func32",
-        "pageRank": 0.2
-      },
-      {
-        "id": "src/services/func33.py::func33",
-        "pageRank": 0.2
-      },
-      {
-        "id": "src/services/func47.ts::func47",
-        "pageRank": 0.2
-      },
-      {
-        "id": "src/models/func48.py::func48",
-        "pageRank": 0.2
-      },
-      {
-        "id": "src/api/func51.py::func51",
-        "pageRank": 0.2
+        "id": "src/utils/func127.js::func127",
+        "pageRank": 0.1
       },
       {
         "id": "src/services/func54.py::func54",
-        "pageRank": 0.2
+        "pageRank": 0.1
       },
       {
-        "id": "src/helpers/func77.ts::func77",
-        "pageRank": 0.2
+        "id": "src/services/func47.ts::func47",
+        "pageRank": 0.1
+      },
+      {
+        "id": "src/services/func33.py::func33",
+        "pageRank": 0.1
+      },
+      {
+        "id": "src/models/func48.py::func48",
+        "pageRank": 0.1
+      },
+      {
+        "id": "src/models/func209.ts::func209",
+        "pageRank": 0.1
+      },
+      {
+        "id": "src/models/func20.ts::func20",
+        "pageRank": 0.1
+      },
+      {
+        "id": "src/models/func188.ts::func188",
+        "pageRank": 0.1
       }
     ]
   },
