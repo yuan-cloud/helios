@@ -171,7 +171,8 @@ test("End-to-end: Small parser payload → graph pipeline → analysis", async (
   
   // Validate merged payload
   const validation = validateGraphPayload(mergedPayload);
-  assert.ok(validation.valid, `Payload should be valid: ${validation.errors?.join(", ") || "unknown error"}`);
+  const errorMessages = validation.errors?.map(e => e.message || String(e)).join(", ") || "unknown error";
+  assert.ok(validation.valid, `Payload should be valid: ${errorMessages}`);
   
   // Collect payload (should return same structure)
   const collected = collectGraphPayload({
@@ -281,7 +282,8 @@ test("End-to-end: Medium parser payload → graph pipeline → analysis", async 
   
   // Validate
   const validation = validateGraphPayload(mergedPayload);
-  assert.ok(validation.valid, `Medium payload should be valid: ${validation.errors?.join(", ") || "unknown error"}`);
+  const errorMessages = validation.errors?.map(e => e.message || String(e)).join(", ") || "unknown error";
+  assert.ok(validation.valid, `Medium payload should be valid: ${errorMessages}`);
   
   // Build and analyze
   const analysisResult = buildAnalyzedGraph(mergedPayload, {
@@ -331,7 +333,8 @@ test("End-to-end: Large parser payload → graph pipeline → analysis", async (
   
   // Validate
   const validation = validateGraphPayload(mergedPayload);
-  assert.ok(validation.valid, `Large payload should be valid: ${validation.errors?.join(", ") || "unknown error"}`);
+  const errorMessages = validation.errors?.map(e => e.message || String(e)).join(", ") || "unknown error";
+  assert.ok(validation.valid, `Large payload should be valid: ${errorMessages}`);
   
   // Build and analyze
   const analysisResult = buildAnalyzedGraph(mergedPayload, {
