@@ -456,14 +456,16 @@ function resolveCallee(call, callerFile, functionByName, symbolTableManager) {
   const topMatch = summary.matches[0];
   const topConfidence = topMatch.confidence;
   const hasHighConfidenceUnique = summary.matches.length === 1 && topConfidence === 'high';
-  const hasMultipleHighConfidence = summary.matches.filter(m => m.confidence === 'high').length > 1;
+  // Compute high-confidence count once to avoid redundant filter operation
+  const highConfidenceCount = summary.matches.filter(m => m.confidence === 'high').length;
+  const hasMultipleHighConfidence = highConfidenceCount > 1;
 
   if (hasHighConfidenceUnique) {
     summary.status = 'resolved';
     summary.reason = getResolvedReason(topMatch.matchType, topMatch.details);
   } else if (hasMultipleHighConfidence) {
     summary.status = 'ambiguous';
-    summary.reason = `Multiple high-confidence candidates match this call (${summary.matches.filter(m => m.confidence === 'high').length} candidates)`;
+    summary.reason = `Multiple high-confidence candidates match this call (${highConfidenceCount} candidates)`;
   } else if (summary.matches.length === 1) {
     summary.status = 'resolved';
     summary.reason = getResolvedReason(topMatch.matchType, topMatch.details);
