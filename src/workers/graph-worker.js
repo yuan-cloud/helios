@@ -1,7 +1,7 @@
 // Workers don't inherit import maps, so we need to pre-load graphology using absolute URLs
 // and make it available globally before importing modules that depend on it
 const graphologyUrl = '/public/vendor/graphology/graphology.esm.js';
-const louvainUrl = '/public/vendor/graphology-communities-louvain/index.js';
+const louvainUrl = 'https://esm.run/graphology-communities-louvain@2.0.2';
 
 // Pre-load graphology modules and store them globally so dependent modules can use them
 // If this fails, the worker will fail to initialize and the client will fall back to inline computation
