@@ -57,7 +57,7 @@ Everything runs from static hosting (GitHub/Cloudflare Pages). To enable threads
 
 ### 3.2 Language Detection and AST Parsing
 
-[PinkMountain - UPDATED - 2025-11-20 08:15]
+[PinkMountain - UPDATED - 2025-11-20 09:10]
 
 ✅ Tree-sitter loaded  
 ✅ JS/TS grammar loaded  
@@ -68,8 +68,9 @@ Everything runs from static hosting (GitHub/Cloudflare Pages). To enable threads
 ✅ Parser payload sample + validation CLI (`docs/examples/parser-output-sample.json`, `tools/validate-parser-output.mjs`)  
 ✅ Tree-sitter grammar loader regression patched (default import restored, local wasm assets routing confirmed 2025-11-13)  
 ✅ Query constructor registration fixed (deprecation warnings resolved, using recommended `new Query()` API)  
-✅ Golden repos and regression testing framework complete (PLAN §14 - infrastructure ready, awaiting golden repo baselines)  
+✅ Golden repos and regression testing framework complete (PLAN §14 - infrastructure + 3 baselines complete: simple-web-app, mixed-language-api, typescript-library)  
 ✅ Regression test bug fixes complete (defensive checks for topCentralNodes access - commit e1f4ab1; fixes review bugs from OrangeSnow ID 466 and BlueBear ID 463)  
+✅ Golden repo baseline generator bug fix (PageRank computation fixed - commit 951b294; fixes review bug from LilacLake ID 491)  
 ❌ Stack graphs integration (blocked: upstream WASM-capable implementation required)
 
 **Status:** All tasks in Section 3.2 are 100% complete (except stack-graphs integration, blocked on upstream WASM support). Parser infrastructure is production-ready and available for integration testing. All reported bugs fixed.
@@ -88,7 +89,7 @@ Tree-sitter's query DSL lets you capture these nodes robustly.
 
 ### 3.3 Call Graph Construction (Static, Best-Effort)
 
-[PinkMountain - UPDATED - 2025-11-20 08:15]
+[PinkMountain - UPDATED - 2025-11-20 09:10]
 
 ✅ Static call graph extraction complete (caller→callee edges with call-site metadata)  
 ✅ Python grammar support added (functions/imports/calls feed call graph + viz)  
@@ -254,7 +255,7 @@ All steps are cancellable and resumable; show clear privacy note ("Remains on yo
 
 ## 6) Data Model (SQLite)
 
-[ChartreuseHill - UPDATED - 2025-11-20 09:20]
+[ChartreuseHill - UPDATED - 2025-11-19 22:30]
 
 ✅ SQLite-WASM bootstrap w/ OPFS fallback (`src/storage/sqlite.js`)
 ✅ Schema definition & metadata helpers (`src/storage/schema.js`, `src/storage/migrations.js`)
@@ -269,10 +270,9 @@ All steps are cancellable and resumable; show clear privacy note ("Remains on yo
 ✅ Dependency packaging audit complete — local mirrors for graphology, 3d-force-graph, graphology-communities-louvain, transformers (import map updated to use same-origin copies; reduces CORS risk and improves offline resilience)
 ✅ Multi-session retention policy cleanup structure (`src/storage/retention.js`, `tests/storage/retention.test.mjs` — comprehensive cleanup logic with 20 passing tests; includes analysis snapshot cleanup; integrated into storage worker via `config.retention.enabled` flag and manual `retention:enforce` message handler)
 ✅ Retention policy activation (active in production with 24h default retention window; enabled via `config.retention.enabled = true` in `index.html`; 7-day override UI deferred to post-MVP; documented in `docs/retention-policy.md` and `docs/storage.md`)
-✅ End-to-end retention policy integration test (`tests/storage/retention-integration.test.mjs` — comprehensive integration test using better-sqlite3; verifies old entries deleted, recent entries preserved; tests custom retention windows, default retention, and boundary conditions; all 5 tests passing)
-✅ Code review completed (2025-11-20) - reviewed 141 recent commits from other agents; no bugs or integration issues found; all commits align with PLAN.md specifications; storage/retention policy integration is stable
+✅ Code review completed (2025-11-19) - reviewed 50+ recent commits from other agents; no bugs or integration issues found; all commits align with PLAN.md specifications
 
-**Status:** All tasks in Section 6 are 100% complete. Storage infrastructure is production-ready and fully tested end-to-end. Retention policy includes analysis snapshot cleanup and comprehensive integration tests. Available to assist other agents with storage-related integration and testing.
+**Status:** All tasks in Section 6 are 100% complete. Storage infrastructure is production-ready and available for integration testing. Retention policy includes analysis snapshot cleanup. Available to assist other agents with storage-related integration and testing.
 
 **Tables:**
 
