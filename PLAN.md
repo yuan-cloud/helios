@@ -92,7 +92,7 @@ Tree-sitter's query DSL lets you capture these nodes robustly.
 
 ### 3.3 Call Graph Construction (Static, Best-Effort)
 
-[PinkMountain - UPDATED - 2025-11-20 09:10]
+[PinkMountain - UPDATED - 2025-11-20 12:45]
 
 ✅ Static call graph extraction complete (caller→callee edges with call-site metadata)  
 ✅ Python grammar support added (functions/imports/calls feed call graph + viz)  
@@ -108,9 +108,10 @@ Tree-sitter's query DSL lets you capture these nodes robustly.
 ✅ computeStats bug fix (HIGH severity - now correctly uses top-level edge.resolution?.status instead of edge.metadata?.resolution?.status; fixed 2025-11-20 commit 447620c)  
 ✅ Regression test bug fixes complete (defensive checks for topCentralNodes access - commit e1f4ab1; fixes review bugs from OrangeSnow ID 466 and BlueBear ID 463)  
 ✅ Enhanced heuristic name resolution complete (2025-11-20 commit a03484a) - lexical scope priority, default export matching, module path similarity, improved confidence scoring; improves accuracy without stack-graphs  
+✅ Default export resolution edge case fix (handle empty targetModuleFiles array with fallback matching - commit b536b2d; fixes review bug ID 504)  
 ⏳ Stack-graphs integration — 0% (planned post-MVP once upstream WASM support unblocks; current heuristic resolution provides good baseline)
 
-**Status:** All tasks in Section 3.3 are 100% complete (except stack-graphs integration, blocked on upstream WASM support). Call graph infrastructure is production-ready and available for integration testing. All reported bugs fixed (computeStats bug fixed in commit 447620c, regression test bugs fixed in commit e1f4ab1).
+**Status:** All tasks in Section 3.3 are 100% complete (except stack-graphs integration, blocked on upstream WASM support). Call graph infrastructure is production-ready and available for integration testing. All reported bugs fixed (computeStats bug fixed in commit 447620c, regression test bugs fixed in commit e1f4ab1, default export resolution edge case fixed in commit b536b2d).
 
 - For each `call_expression`, extract callee:
   - Identifiers → resolve via lexical scope + module import table.
@@ -198,7 +199,7 @@ Tree-sitter's query DSL lets you capture these nodes robustly.
 
 ### 3.7 Visualization (3D)
 
-[LilacLake - UPDATED - 2025-11-20 09:10]
+[LilacLake - UPDATED - 2025-11-20 12:15]
 
 ✅ Core 3d-force-graph scaffold hooked to call graph output (directional particles, camera helpers, fit-to-view)  
 ✅ Controls + inspector polish (hover sidebar, neighbor quick jumps, inbound/outbound call lists, Prism-highlighted source)  
@@ -215,7 +216,8 @@ Tree-sitter's query DSL lets you capture these nodes robustly.
 ✅ Resume flow integration & regression guard (call/sim edge toggles restored; viz consumes storage snapshots)  
 ✅ Demo loader with spinner + export tooling (curated dataset, segmented performance selector, verified PNG/JSON downloads)  
 ✅ Bug fix completed (2025-11-20) - removed unused variable graphUpdateResult per OrangeSnow's review (commit aba7b46)  
-✅ Code review completed (2025-11-20 09:04) - reviewed recent commits from OrangeSnow, PinkMountain, ChartreuseHill, BlueBear; found LOW severity bug in PinkMountain's golden repo baseline generator (PageRank computation exceeds intended range; reported via [REVIEW] message ID 491); all other commits look solid
+✅ Code review completed (2025-11-20 09:04) - reviewed recent commits from OrangeSnow, PinkMountain, ChartreuseHill, BlueBear; found LOW severity bug in PinkMountain's golden repo baseline generator (PageRank computation exceeds intended range; reported via [REVIEW] message ID 491); all other commits look solid  
+✅ Code review completed (2025-11-20 12:15) - reviewed commit a03484a (PinkMountain's enhanced heuristic name resolution); found LOW severity optimization opportunity (redundant filter operation in status determination logic; reported via [REVIEW] message ID 502); schema compliance maintained, tests pass, visualization integration verified; overall implementation is solid
 
 **Status:** All tasks in Section 3.7 are 100% complete. Visualization infrastructure is production-ready and fully integrated. Available to assist other agents with visualization integration, testing, or cross-agent support.  
 
@@ -373,7 +375,7 @@ Persist DB under OPFS (origin-private) so users can reopen the site and continue
 
 ## 11) Visualization Details
 
-[LilacLake - UPDATED - 2025-11-20 09:10]
+[LilacLake - UPDATED - 2025-11-20 12:15]
 
 ✅ Call-edge palette finalized (directional particles, arrowheads, module-aware colors, hover fades)  
 ✅ Interaction polish (hover sidebar metrics, inspector call lists, camera focus + quick-jump syncing)  
@@ -387,7 +389,8 @@ Persist DB under OPFS (origin-private) so users can reopen the site and continue
 ✅ Contract validation tooling shared with parser/graph (`docs/payload-sample.json`, `tools/validate-payload.mjs`, `tests/payload/contract.test.mjs`)  
 ✅ Enhanced payload validator (actionable error messages with suggestions, statistics collection, JSON Schema export via `--schema` flag)  
 ✅ Bug fix completed (2025-11-20) - removed unused variable graphUpdateResult per OrangeSnow's review (commit aba7b46)  
-✅ Code review completed (2025-11-20 09:04) - reviewed recent commits from OrangeSnow, PinkMountain, ChartreuseHill, BlueBear; found LOW severity bug in PinkMountain's golden repo baseline generator (PageRank computation exceeds intended range; reported via [REVIEW] message ID 491); all other commits look solid
+✅ Code review completed (2025-11-20 09:04) - reviewed recent commits from OrangeSnow, PinkMountain, ChartreuseHill, BlueBear; found LOW severity bug in PinkMountain's golden repo baseline generator (PageRank computation exceeds intended range; reported via [REVIEW] message ID 491); all other commits look solid  
+✅ Code review completed (2025-11-20 12:15) - reviewed commit a03484a (PinkMountain's enhanced heuristic name resolution); found LOW severity optimization opportunity (redundant filter operation in status determination logic; reported via [REVIEW] message ID 502); schema compliance maintained, tests pass, visualization integration verified; overall implementation is solid
 
 **Status:** All tasks in Section 11 are 100% complete. Visualization details and polish are production-ready. Available to assist other agents with visualization integration, testing, or cross-agent support.  
 
