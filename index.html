@@ -1256,9 +1256,16 @@
             } else if (message && message.includes('will not persist')) {
                 storageStatusEl.dataset.explanation = 'Your data is stored temporarily in browser memory. It will be lost when you close the browser tab. To enable persistent storage, your browser needs to support local file storage (most modern browsers do this automatically).';
                 storageStatusEl.title = 'Click for details';
+            } else if (message && (message.includes('Demo dataset') || message.includes('in-memory sample'))) {
+                storageStatusEl.dataset.explanation = 'Demo dataset loaded - This is a sample codebase for exploring HELIOS features. The demo data is loaded into memory and will not be saved. To analyze your own code, click "Select Repository".';
+                storageStatusEl.title = 'Click for details';
+            } else if (message && message.length > 0) {
+                // For other messages, use the message as explanation but make it clickable
+                storageStatusEl.dataset.explanation = message;
+                storageStatusEl.title = 'Click for details';
             } else {
-                storageStatusEl.dataset.explanation = message || 'Storage status';
-                storageStatusEl.title = message || 'Storage status';
+                storageStatusEl.dataset.explanation = 'Storage status';
+                storageStatusEl.title = 'Storage status';
             }
         }
 
