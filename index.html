@@ -788,7 +788,7 @@
             </button>
             </div>
             <div class="storage-controls" style="margin-top: 1rem;">
-                <button class="button" id="clearStorageBtn" type="button" style="background: rgba(248, 113, 113, 0.15); border: 1px solid rgba(248, 113, 113, 0.35); color: #fecaca;" title="Clear all saved layouts and sessions - useful if experiencing issues or want a fresh start">
+                <button class="button" id="clearStorageBtn" type="button" style="background: rgba(248, 113, 113, 0.15); border: 1px solid rgba(248, 113, 113, 0.35); color: #fecaca;" title="Reset App - Clear all saved layouts, sessions, and analysis data. Use this if experiencing issues or want a completely fresh start. This action cannot be undone.">
                     Reset App
                 </button>
                 <div class="storage-status" id="storageStatus" role="status" aria-live="polite"></div>
@@ -994,7 +994,7 @@
         const clearStorageBtn = document.getElementById('clearStorageBtn');
         const storageStatusEl = document.getElementById('storageStatus');
         const STORAGE_FALLBACK_MESSAGE =
-            'Storage ready (in-memory fallback). Enable COOP/COEP headers to unlock OPFS persistence.';
+            'Storage ready (data will not persist after closing browser).';
         if (clearStorageBtn) {
             clearStorageBtn.disabled = true;
         }
@@ -1370,15 +1370,15 @@
                 resumeBtn?.classList.add('hidden');
 
                 const message = result?.removed
-                    ? 'Stored data cleared (OPFS file removed).'
-                    : 'Stored data cleared.';
+                    ? 'All stored data cleared successfully.'
+                    : 'All stored data cleared.';
 
                 const reinitialized = await ensureStorageClient();
                 await initializeResumeOption();
                 if (reinitialized) {
                     setStorageStatus(message, 'success');
                 } else {
-                    setStorageStatus(`${message} Enable COOP/COEP headers to unlock OPFS persistence.`, 'warning');
+                    setStorageStatus(message, 'success');
                 }
             } catch (err) {
                 console.error('Failed to clear stored data', err);
@@ -3439,7 +3439,7 @@
                     clearStorageBtn.disabled = false;
                 }
                 if (storagePersistent === true) {
-                    setStorageStatus('Storage ready (OPFS persistent).', 'success');
+                    setStorageStatus('Storage ready (your data will be saved).', 'success');
                 } else if (storagePersistent === false) {
                     setStorageStatus(STORAGE_FALLBACK_MESSAGE, 'warning');
                 }
@@ -3485,7 +3485,7 @@
                         clearStorageBtn.disabled = false;
                     }
                     if (storagePersistent) {
-                        setStorageStatus('Storage ready (OPFS persistent).', 'success');
+                        setStorageStatus('Storage ready (your data will be saved).', 'success');
                     } else {
                         setStorageStatus(STORAGE_FALLBACK_MESSAGE, 'warning');
                     }
