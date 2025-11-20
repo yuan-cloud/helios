@@ -165,7 +165,7 @@ Tree-sitter's query DSL lets you capture these nodes robustly.
 
 ### 3.6 Graph Assembly
 
-[OrangeSnow - UPDATED - 2025-11-20 08:00]
+[OrangeSnow - UPDATED - 2025-11-20 09:15]
 
 ✅ Graphology scaffolding and `buildFunctionGraph` implemented (`src/graph/graph-builder.js`)  
 ✅ Data ingestion + analysis pipeline (`src/graph/pipeline.js`, `collectGraphPayload`/`buildAnalyzedGraph`)  
@@ -180,7 +180,7 @@ Tree-sitter's query DSL lets you capture these nodes robustly.
 ✅ Cross-worker message schema finalization (schema ratified by parser/embedding agents; all payloads use schema-compliant format; contract finalized)  
 ✅ End-to-end integration test (`tests/integration/graph-pipeline-e2e.test.mjs` — comprehensive test suite: parser → embeddings → graph → analysis → serialization; uses PinkMountain's fixtures; deterministic seeded PRNG; 5 tests, all passing; fixed weak assertion logic for betweenness/PageRank checks)  
 ✅ Code review fixes (fixed comment inconsistency, non-deterministic test behavior, functionEmbeddings parameter inconsistency, weak assertion logic, error message extraction bug per review feedback)  
-✅ Proactive code review (reviewed recent commits from other agents; found and fixed regression test bug in commit 8155fb4; reported unused variable issue in commit b974512; fixed integration test error message bug per PinkMountain review ID 479)
+✅ Proactive code review (reviewed 30+ commits from other agents; found and fixed regression test bug in commit 8155fb4; reported unused variable issue in commit b974512; fixed integration test error message bug per PinkMountain review ID 479; reported baseline PageRank issue in commit 12446de)
 
 - **Nodes**: One per function `{id, fqName, filePath, range, lang, size (#LOC), metrics…}`.
 - **Edges (two layers)**:
@@ -350,7 +350,7 @@ Persist DB under OPFS (origin-private) so users can reopen the site and continue
 
 ### 10.4 Network Analysis
 
-[OrangeSnow - UPDATED - 2025-11-20 08:00]
+[OrangeSnow - UPDATED - 2025-11-20 09:15]
 
 ✅ Centrality suite (degree, betweenness, PageRank) — `src/analysis/centralities.js`  
 ✅ Louvain community detection helper — `src/analysis/communities.js` (fixed worker module resolution with conditional dynamic imports; defensive runtime checks added)  
@@ -359,7 +359,8 @@ Persist DB under OPFS (origin-private) so users can reopen the site and continue
 ✅ Metric export wiring into storage/viz layers (resume snapshots + inspector/controls consuming metrics)  
 ✅ Validation harness infrastructure (`tools/validate-network-analysis.mjs`, fixtures structure, documentation)  
 ✅ Validation harness with sample repos (complete — PinkMountain provided sample parser payload fixtures; all fixtures validate successfully: small/medium/large payloads)  
-✅ End-to-end integration testing (integration test suite validates complete pipeline; deterministic test behavior; fixed weak assertion logic for betweenness/PageRank checks; all review feedback addressed)
+✅ End-to-end integration testing (integration test suite validates complete pipeline; deterministic test behavior; fixed weak assertion logic for betweenness/PageRank checks; all review feedback addressed)  
+✅ Proactive code review (reviewed 30+ commits from other agents; found and reported baseline PageRank issue in commit 12446de)
 
 - Compute: degree, betweenness, eigenvector, PageRank; community (Louvain); show histograms in a side panel. (Graphology has these out of the box.)
 
