@@ -3760,7 +3760,7 @@
         }
 
         function describeLayoutStatus(loadInfo, restored) {
-            const target = storageReady ? 'OPFS storage' : 'browser storage';
+            const target = storageReady ? 'saved storage' : 'browser storage';
             if (restored) {
                 return { message: `Layout restored from ${target}.`, tone: 'success', timeout: undefined };
             }
