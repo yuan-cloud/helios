@@ -120,5 +120,38 @@ assert.deepEqual(
   'Approximate KNN should match exact edge pairs for cleanly clustered data'
 );
 
+// Test modelId handling in similarity edge metadata
+const modelIdTestResult = computeSimilarityGraph(functionEmbeddings, {
+  similarityThreshold: 0.6,
+  maxNeighbors: 4,
+  candidateLimit: 5,
+  bundleTopK: 2,
+  modelId: 'Xenova/all-MiniLM-L6-v2'
+});
+
+const modelIdEdge = modelIdTestResult.edges.find(item => canonicalPair(item.source, item.target) === 'fnA::fnB');
+assert.ok(modelIdEdge, 'Expected edge with modelId');
+assert.ok(modelIdEdge.metadata, 'Expected metadata object');
+assert.equal(modelIdEdge.metadata.model, 'all-MiniLM-L6-v2', 'Expected model name to be extracted from org/model-name format');
+
+// Test modelId without slash (should use as-is)
+const simpleModelIdResult = computeSimilarityGraph(functionEmbeddings, {
+  similarityThreshold: 0.6,
+  maxNeighbors: 4,
+  candidateLimit: 5,
+  bundleTopK: 2,
+  modelId: 'custom-model'
+});
+
+const simpleModelIdEdge = simpleModelIdResult.edges.find(item => canonicalPair(item.source, item.target) === 'fnA::fnB');
+assert.ok(simpleModelIdEdge, 'Expected edge with simple modelId');
+assert.equal(simpleModelIdEdge.metadata.model, 'custom-model', 'Expected simple modelId to be used as-is');
+
+// Test without modelId (should not include model in metadata)
+const noModelIdEdge = similarityResult.edges.find(item => canonicalPair(item.source, item.target) === 'fnA::fnB');
+assert.ok(noModelIdEdge, 'Expected edge without modelId');
+assert.ok(noModelIdEdge.metadata, 'Expected metadata object');
+assert.equal(noModelIdEdge.metadata.model, undefined, 'Expected metadata.model to be undefined when modelId not provided');
+
 console.log('similarity.test.mjs passed');
 
