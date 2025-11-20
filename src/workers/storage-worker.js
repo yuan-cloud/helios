@@ -53,8 +53,10 @@ function ensureDbReady() {
 }
 
 async function handleInit(id, payload) {
+  // Extract config from payload (needed for retention check later)
+  const config = payload?.config ?? {};
+  
   if (!initializationPromise) {
-    const config = payload?.config ?? {};
     currentDbName =
       typeof config.dbName === "string" && config.dbName.trim().length
         ? config.dbName

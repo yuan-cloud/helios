@@ -718,6 +718,9 @@
             border-radius: 0.5rem !important;
             cursor: pointer !important;
             transition: all 0.2s !important;
+        }
+        
+        .viz-close-button:not(.hidden) {
             display: block !important;
             visibility: visible !important;
             opacity: 1 !important;
@@ -940,6 +943,15 @@
             vizContainer.style.setProperty('visibility', 'hidden', 'important');
             vizContainer.style.setProperty('opacity', '0', 'important');
             console.log('[STARTUP] Viz container forced hidden');
+        }
+        
+        // EMERGENCY: Force close button hidden on startup (should already be hidden, but ensure it)
+        if (vizCloseBtn) {
+            vizCloseBtn.classList.add('hidden');
+            vizCloseBtn.style.setProperty('display', 'none', 'important');
+            vizCloseBtn.style.setProperty('visibility', 'hidden', 'important');
+            vizCloseBtn.style.setProperty('opacity', '0', 'important');
+            console.log('[STARTUP] Close button forced hidden');
         }
         
         // EMERGENCY: Verify we can see something
