@@ -415,6 +415,7 @@ function resolveCallee(call, callerFile, functionByName, symbolTableManager) {
       'symbol-table-module': 2, // Module context match
       'symbol-table': 2,      // FQN match
       'import': 2,            // Import match
+      'import-default-fallback': 2, // Default export fallback (module path unresolved)
       'same-module': 3,       // Same module/directory
       'external': 4           // External/unknown
     };
@@ -703,6 +704,7 @@ function getResolvedReason(matchType, details) {
     'symbol-table-exact': `Resolved via exact symbol table match${details?.resolvedFqn ? ` (${details.resolvedFqn})` : ''}`,
     'import-exact': `Resolved via exact import match${details?.moduleId ? ` (module: ${details.moduleId})` : ''}`,
     'import-default': `Resolved via default export import${details?.moduleId ? ` (module: ${details.moduleId})` : ''}`,
+    'import-default-fallback': `Resolved via default export fallback${details?.moduleId ? ` (module: ${details.moduleId}, path unresolved)` : ' (module path unresolved)'}${details?.originalName ? ` matching '${details.originalName}'` : ''}`,
     'symbol-table-module': `Resolved via module-scoped symbol table match${details?.moduleId ? ` (${details.moduleId})` : ''}`,
     'symbol-table': `Resolved via symbol table match${details?.resolvedFqn ? ` (${details.resolvedFqn})` : ''}`,
     'import': `Resolved via import${details?.moduleId ? ` (module: ${details.moduleId})` : ''}`,
