@@ -806,8 +806,8 @@
             <div class="viz-controls" id="vizControls"></div>
             <div class="viz-inspector" id="vizInspector"></div>
         </div>
-        <button class="viz-close-button" id="vizCloseBtn">Close Visualization</button>
     </div>
+    <button class="viz-close-button hidden" id="vizCloseBtn">Close Visualization</button>
 
     <script type="module">
         // Suppress harmless browser extension messaging errors
@@ -1875,6 +1875,14 @@
                 vizContainer.style.setProperty('z-index', '-1', 'important');
             }
             
+            // Hide close button
+            if (vizCloseBtn) {
+                vizCloseBtn.classList.add('hidden');
+                vizCloseBtn.style.setProperty('display', 'none', 'important');
+                vizCloseBtn.style.setProperty('visibility', 'hidden', 'important');
+                vizCloseBtn.style.setProperty('opacity', '0', 'important');
+            }
+            
             if (inspector) inspector.hide();
             
             // UX Improvement: After closing visualization, clear results and return to hero page
@@ -2429,6 +2437,14 @@
                 vizContainer.style.setProperty('visibility', 'visible', 'important');
                 vizContainer.style.setProperty('opacity', '1', 'important');
                 vizContainer.style.setProperty('z-index', '100', 'important');
+                
+                // Show close button
+                if (vizCloseBtn) {
+                    vizCloseBtn.classList.remove('hidden');
+                    vizCloseBtn.style.setProperty('display', 'block', 'important');
+                    vizCloseBtn.style.setProperty('visibility', 'visible', 'important');
+                    vizCloseBtn.style.setProperty('opacity', '1', 'important');
+                }
                 
                 // EMERGENCY: Force all child elements visible
                 const vizGraphEl = document.getElementById('vizGraph');
