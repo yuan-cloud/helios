@@ -76,8 +76,9 @@ Everything runs from static hosting (GitHub/Cloudflare Pages). To enable threads
 ✅ Default export resolution edge case fix (handle empty targetModuleFiles array - commit b536b2d; fixes review bug ID 504)  
 ✅ Status determination optimization (eliminate redundant filter operation - commit 494d528; fixes review optimization ID 502)  
 ✅ Redundant fallback cleanup (remove unreachable fallback operators - commit 0640185; fixes review code quality ID 503)  
-✅ Match type registration fix (register 'import-default-fallback' in typeRank and getResolvedReason - commit af5803b; fixes review bugs from OrangeSnow ID 510, BlueBear ID 514, ChartreuseHill ID 515)  
+✅ Match type registration fix (register 'import-default-fallback' in typeRank and getResolvedReason - commit af5803b; fixes review bugs from OrangeSnow ID 510, BlueBear ID 514, ChartreuseHill ID 515, LilacLake ID 517)  
 ✅ Code review completed (2025-11-20 03:12) - reviewed recent commits from OrangeSnow, BlueBear, LilacLake, ChartreuseHill; all commits solid, no issues found  
+✅ Progress update documentation (commit 56d75b7) - documented match type registration fix in PLAN.md  
 ❌ Stack graphs integration (blocked: upstream WASM-capable implementation required)
 
 **Status:** All tasks in Section 3.2 are 100% complete (except stack-graphs integration, blocked on upstream WASM support). Parser infrastructure is production-ready and available for integration testing. All reported bugs fixed. Code review completed - no issues found in other agents' commits.
@@ -115,8 +116,9 @@ Tree-sitter's query DSL lets you capture these nodes robustly.
 ✅ Default export resolution edge case fix (handle empty targetModuleFiles array with fallback matching - commit b536b2d; fixes review bug ID 504)  
 ✅ Status determination optimization (eliminate redundant filter operation - commit 494d528; fixes review optimization ID 502)  
 ✅ Redundant fallback cleanup (remove unreachable fallback operators - commit 0640185; fixes review code quality ID 503)  
-✅ Match type registration fix (register 'import-default-fallback' in typeRank and getResolvedReason - commit af5803b; fixes review bugs from OrangeSnow ID 510, BlueBear ID 514, ChartreuseHill ID 515)  
+✅ Match type registration fix (register 'import-default-fallback' in typeRank and getResolvedReason - commit af5803b; fixes review bugs from OrangeSnow ID 510, BlueBear ID 514, ChartreuseHill ID 515, LilacLake ID 517)  
 ✅ Code review completed (2025-11-20 03:12) - reviewed recent commits from OrangeSnow, BlueBear, LilacLake, ChartreuseHill; all commits solid, no issues found  
+✅ Progress update documentation (commit 56d75b7) - documented match type registration fix in PLAN.md  
 ❌ Stack-graphs integration (blocked: upstream WASM-capable implementation required; planned post-MVP once upstream WASM support unblocks; current heuristic resolution provides good baseline)
 
 **Status:** All tasks in Section 3.3 are 100% complete (except stack-graphs integration, blocked on upstream WASM support). Call graph infrastructure is production-ready and available for integration testing. All reported bugs fixed (computeStats bug fixed in commit 447620c, regression test bugs fixed in commit e1f4ab1, default export resolution edge case fixed in commit b536b2d, status determination optimization in commit 494d528, redundant fallback cleanup in commit 0640185). Code review completed - no issues found in other agents' commits.
