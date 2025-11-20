@@ -3437,9 +3437,6 @@
             if (storageReady && storageClient) {
                 if (clearStorageBtn) {
                     clearStorageBtn.disabled = false;
-                    if (exportDbBtn) {
-                        exportDbBtn.disabled = false;
-                    }
                 }
                 if (storagePersistent === true) {
                     setStorageStatus('Storage ready (OPFS persistent).', 'success');
