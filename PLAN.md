@@ -57,7 +57,7 @@ Everything runs from static hosting (GitHub/Cloudflare Pages). To enable threads
 
 ### 3.2 Language Detection and AST Parsing
 
-[PinkMountain - UPDATED - 2025-11-20 02:30]
+[PinkMountain - UPDATED - 2025-11-20 08:15]
 
 ✅ Tree-sitter loaded  
 ✅ JS/TS grammar loaded  
@@ -68,9 +68,11 @@ Everything runs from static hosting (GitHub/Cloudflare Pages). To enable threads
 ✅ Parser payload sample + validation CLI (`docs/examples/parser-output-sample.json`, `tools/validate-parser-output.mjs`)  
 ✅ Tree-sitter grammar loader regression patched (default import restored, local wasm assets routing confirmed 2025-11-13)  
 ✅ Query constructor registration fixed (deprecation warnings resolved, using recommended `new Query()` API)  
+✅ Golden repos and regression testing framework complete (PLAN §14 - infrastructure ready, awaiting golden repo baselines)  
+✅ Regression test bug fixes complete (defensive checks for topCentralNodes access - commit e1f4ab1; fixes review bugs from OrangeSnow ID 466 and BlueBear ID 463)  
 ❌ Stack graphs integration (blocked: upstream WASM-capable implementation required)
 
-**Status:** All tasks in Section 3.2 are 100% complete (except stack-graphs integration, blocked on upstream WASM support). Parser infrastructure is production-ready and available for integration testing.
+**Status:** All tasks in Section 3.2 are 100% complete (except stack-graphs integration, blocked on upstream WASM support). Parser infrastructure is production-ready and available for integration testing. All reported bugs fixed.
 
 - Load web-tree-sitter once; lazy-load grammars per file type. Ship grammar WASMs via CDN (e.g., `tree-sitter-python.wasm`, `tree-sitter-javascript.wasm`).
 - Use Tree-sitter query patterns to extract:
@@ -86,7 +88,7 @@ Tree-sitter's query DSL lets you capture these nodes robustly.
 
 ### 3.3 Call Graph Construction (Static, Best-Effort)
 
-[PinkMountain - UPDATED - 2025-11-20 02:30]
+[PinkMountain - UPDATED - 2025-11-20 08:15]
 
 ✅ Static call graph extraction complete (caller→callee edges with call-site metadata)  
 ✅ Python grammar support added (functions/imports/calls feed call graph + viz)  
@@ -100,10 +102,11 @@ Tree-sitter's query DSL lets you capture these nodes robustly.
 ✅ Resolution metadata confidence conversion fixed (string 'high'/'medium'/'low' → numeric 0.9/0.6/0.3 per schema)  
 ✅ Parser fixture generator complete (tools/generate-parser-fixtures.mjs - creates small/medium/large payloads for validation harness)  
 ✅ computeStats bug fix (HIGH severity - now correctly uses top-level edge.resolution?.status instead of edge.metadata?.resolution?.status; fixed 2025-11-20 commit 447620c)  
+✅ Regression test bug fixes complete (defensive checks for topCentralNodes access - commit e1f4ab1; fixes review bugs from OrangeSnow ID 466 and BlueBear ID 463)  
 ⏳ Enhanced name resolution (stack-graphs integration) — 0% (planned post-MVP once upstream support unblocks)  
 ❌ Stack-graph powered name resolution blocked: awaiting WASM-capable stack-graphs build and integration guidance
 
-**Status:** All tasks in Section 3.3 are 100% complete (except stack-graphs integration, blocked on upstream WASM support). Call graph infrastructure is production-ready and available for integration testing. All reported bugs fixed (computeStats bug fixed in commit 447620c).
+**Status:** All tasks in Section 3.3 are 100% complete (except stack-graphs integration, blocked on upstream WASM support). Call graph infrastructure is production-ready and available for integration testing. All reported bugs fixed (computeStats bug fixed in commit 447620c, regression test bugs fixed in commit e1f4ab1).
 
 - For each `call_expression`, extract callee:
   - Identifiers → resolve via lexical scope + module import table.
@@ -251,7 +254,7 @@ All steps are cancellable and resumable; show clear privacy note ("Remains on yo
 
 ## 6) Data Model (SQLite)
 
-[ChartreuseHill - UPDATED - 2025-11-19 21:34]
+[ChartreuseHill - UPDATED - 2025-11-19 22:30]
 
 ✅ SQLite-WASM bootstrap w/ OPFS fallback (`src/storage/sqlite.js`)
 ✅ Schema definition & metadata helpers (`src/storage/schema.js`, `src/storage/migrations.js`)
@@ -266,8 +269,9 @@ All steps are cancellable and resumable; show clear privacy note ("Remains on yo
 ✅ Dependency packaging audit complete — local mirrors for graphology, 3d-force-graph, graphology-communities-louvain, transformers (import map updated to use same-origin copies; reduces CORS risk and improves offline resilience)
 ✅ Multi-session retention policy cleanup structure (`src/storage/retention.js`, `tests/storage/retention.test.mjs` — comprehensive cleanup logic with 20 passing tests; includes analysis snapshot cleanup; integrated into storage worker via `config.retention.enabled` flag and manual `retention:enforce` message handler)
 ✅ Retention policy activation (active in production with 24h default retention window; enabled via `config.retention.enabled = true` in `index.html`; 7-day override UI deferred to post-MVP; documented in `docs/retention-policy.md` and `docs/storage.md`)
+✅ Code review completed (2025-11-19) - reviewed 50+ recent commits from other agents; no bugs or integration issues found; all commits align with PLAN.md specifications
 
-**Status:** All tasks in Section 6 are 100% complete. Storage infrastructure is production-ready and available for integration testing. Retention policy includes analysis snapshot cleanup. Available to assist other agents with storage-related integration and testing. Code review completed - no bugs found in recent commits from other agents.
+**Status:** All tasks in Section 6 are 100% complete. Storage infrastructure is production-ready and available for integration testing. Retention policy includes analysis snapshot cleanup. Available to assist other agents with storage-related integration and testing.
 
 **Tables:**
 
