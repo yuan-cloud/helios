@@ -357,13 +357,62 @@ export class GraphVisualization {
       
       console.log(`[GraphViz] Container dimensions: ${width}x${height}, display: ${containerStyle.display}, visibility: ${containerStyle.visibility}`);
       
-      // Verify canvas was created
-      const canvas = this.container.querySelector('canvas');
+      // Force container to have dimensions if it doesn't
+      if (width === 0 || height === 0) {
+        console.warn('[GraphViz] Container has zero dimensions! Forcing dimensions...');
+        // Try to get parent dimensions or use viewport
+        const parent = this.container.parentElement;
+        const parentWidth = parent ? (parent.clientWidth || parent.offsetWidth) : window.innerWidth;
+        const parentHeight = parent ? (parent.clientHeight || parent.offsetHeight) : window.innerHeight;
+        
+        if (width === 0) {
+          this.container.style.width = `${parentWidth}px`;
+          console.log(`[GraphViz] Set container width to ${parentWidth}px`);
+        }
+        if (height === 0) {
+          this.container.style.height = `${parentHeight}px`;
+          console.log(`[GraphViz] Set container height to ${parentHeight}px`);
+        }
+        
+        // Force display
+        this.container.style.display = 'block';
+        this.container.style.visibility = 'visible';
+      }
+      
+      // Verify canvas was created - wait a bit for 3d-force-graph to create it
+      let canvas = this.container.querySelector('canvas');
+      if (!canvas) {
+        // Wait a frame for canvas to be created
+        await new Promise(resolve => requestAnimationFrame(resolve));
+        canvas = this.container.querySelector('canvas');
+      }
+      
       if (canvas) {
         const canvasStyle = window.getComputedStyle(canvas);
         console.log(`[GraphViz] Canvas found: ${canvas.width}x${canvas.height}, display: ${canvasStyle.display}, visibility: ${canvasStyle.visibility}`);
+        
+        // Ensure canvas is visible
+        if (canvasStyle.display === 'none' || canvasStyle.visibility === 'hidden') {
+          canvas.style.display = 'block';
+          canvas.style.visibility = 'visible';
+          console.log('[GraphViz] Forced canvas visibility');
+        }
       } else {
-        console.warn('[GraphViz] Canvas not found in container - graph may not be rendering');
+        console.error('[GraphViz] ERROR: Canvas not found in container after initialization!');
+        console.error('[GraphViz] Container HTML:', this.container.innerHTML.substring(0, 200));
+        // Try to force graph to render
+        if (this.graph && typeof this.graph.refresh === 'function') {
+          console.log('[GraphViz] Attempting to refresh graph to create canvas...');
+          this.graph.refresh();
+          // Check again
+          await new Promise(resolve => setTimeout(resolve, 100));
+          canvas = this.container.querySelector('canvas');
+          if (canvas) {
+            console.log('[GraphViz] Canvas created after refresh!');
+          } else {
+            console.error('[GraphViz] Canvas still not found after refresh!');
+          }
+        }
       }
     }
 
@@ -1771,15 +1820,51 @@ export class GraphVisualization {
       this.graph.graphData(graphDataToSet);
       console.log('[GraphViz] graphData() called successfully');
       
+      // Force a refresh to ensure graph renders
+      if (typeof this.graph.refresh === 'function') {
+        this.graph.refresh();
+        console.log('[GraphViz] graph.refresh() called');
+      }
+      
+      // Also try resumeAnimation to ensure simulation is running
+      if (typeof this.graph.resumeAnimation === 'function') {
+        this.graph.resumeAnimation();
+        console.log('[GraphViz] graph.resumeAnimation() called');
+      }
+      
       this.repaintGraph();
       console.log('[GraphViz] repaintGraph() called');
+      
+      // Wait a frame for rendering to complete
+      await new Promise(resolve => requestAnimationFrame(resolve));
       
       // Verify canvas exists after render
       const canvas = this.container?.querySelector('canvas');
       if (canvas) {
-        console.log('[GraphViz] Canvas found after render:', canvas.width, 'x', canvas.height);
+        const canvasStyle = window.getComputedStyle(canvas);
+        console.log('[GraphViz] Canvas found after render:', canvas.width, 'x', canvas.height, 
+                   'display:', canvasStyle.display, 'visibility:', canvasStyle.visibility);
+        
+        // Ensure canvas is visible
+        if (canvasStyle.display === 'none' || canvasStyle.visibility === 'hidden') {
+          canvas.style.display = 'block';
+          canvas.style.visibility = 'visible';
+          console.log('[GraphViz] Forced canvas to be visible');
+        }
+        
+        // Check if canvas has actual content (non-zero dimensions)
+        if (canvas.width === 0 || canvas.height === 0) {
+          console.error('[GraphViz] ERROR: Canvas has zero dimensions!', {
+            width: canvas.width,
+            height: canvas.height,
+            containerWidth: this.container?.offsetWidth,
+            containerHeight: this.container?.offsetHeight
+          });
+        }
       } else {
         console.error('[GraphViz] ERROR: Canvas not found after render!');
+        console.error('[GraphViz] Container:', this.container);
+        console.error('[GraphViz] Container children:', Array.from(this.container?.children || []).map(c => c.tagName));
       }
     } catch (err) {
       console.error('[GraphViz] ERROR in graphData() or repaintGraph():', err);
