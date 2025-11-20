@@ -57,7 +57,7 @@ Everything runs from static hosting (GitHub/Cloudflare Pages). To enable threads
 
 ### 3.2 Language Detection and AST Parsing
 
-[PinkMountain - UPDATED - 2025-11-20 12:45]
+[PinkMountain - UPDATED - 2025-11-20 12:40]
 
 ✅ Tree-sitter loaded  
 ✅ JS/TS grammar loaded  
@@ -74,6 +74,8 @@ Everything runs from static hosting (GitHub/Cloudflare Pages). To enable threads
 ✅ Golden repo baselines regenerated with corrected PageRank values and regression testing re-run (all baselines pass; ensures metadata accuracy)  
 ✅ Parser documentation complete (`docs/parser.md` - comprehensive 487-line documentation covering architecture, integration points, troubleshooting, API reference; commit 3e83379)  
 ✅ Default export resolution edge case fix (handle empty targetModuleFiles array - commit b536b2d; fixes review bug ID 504)  
+✅ Status determination optimization (eliminate redundant filter operation - commit 494d528; fixes review optimization ID 502)  
+✅ Redundant fallback cleanup (remove unreachable fallback operators - commit 0640185; fixes review code quality ID 503)  
 ❌ Stack graphs integration (blocked: upstream WASM-capable implementation required)
 
 **Status:** All tasks in Section 3.2 are 100% complete (except stack-graphs integration, blocked on upstream WASM support). Parser infrastructure is production-ready and available for integration testing. All reported bugs fixed.
@@ -92,7 +94,7 @@ Tree-sitter's query DSL lets you capture these nodes robustly.
 
 ### 3.3 Call Graph Construction (Static, Best-Effort)
 
-[PinkMountain - UPDATED - 2025-11-20 12:45]
+[PinkMountain - UPDATED - 2025-11-20 12:40]
 
 ✅ Static call graph extraction complete (caller→callee edges with call-site metadata)  
 ✅ Python grammar support added (functions/imports/calls feed call graph + viz)  
@@ -109,9 +111,11 @@ Tree-sitter's query DSL lets you capture these nodes robustly.
 ✅ Regression test bug fixes complete (defensive checks for topCentralNodes access - commit e1f4ab1; fixes review bugs from OrangeSnow ID 466 and BlueBear ID 463)  
 ✅ Enhanced heuristic name resolution complete (2025-11-20 commit a03484a) - lexical scope priority, default export matching, module path similarity, improved confidence scoring; improves accuracy without stack-graphs  
 ✅ Default export resolution edge case fix (handle empty targetModuleFiles array with fallback matching - commit b536b2d; fixes review bug ID 504)  
+✅ Status determination optimization (eliminate redundant filter operation - commit 494d528; fixes review optimization ID 502)  
+✅ Redundant fallback cleanup (remove unreachable fallback operators - commit 0640185; fixes review code quality ID 503)  
 ⏳ Stack-graphs integration — 0% (planned post-MVP once upstream WASM support unblocks; current heuristic resolution provides good baseline)
 
-**Status:** All tasks in Section 3.3 are 100% complete (except stack-graphs integration, blocked on upstream WASM support). Call graph infrastructure is production-ready and available for integration testing. All reported bugs fixed (computeStats bug fixed in commit 447620c, regression test bugs fixed in commit e1f4ab1, default export resolution edge case fixed in commit b536b2d).
+**Status:** All tasks in Section 3.3 are 100% complete (except stack-graphs integration, blocked on upstream WASM support). Call graph infrastructure is production-ready and available for integration testing. All reported bugs fixed (computeStats bug fixed in commit 447620c, regression test bugs fixed in commit e1f4ab1, default export resolution edge case fixed in commit b536b2d, status determination optimization in commit 494d528, redundant fallback cleanup in commit 0640185).
 
 - For each `call_expression`, extract callee:
   - Identifiers → resolve via lexical scope + module import table.
