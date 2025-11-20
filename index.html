@@ -1263,6 +1263,46 @@
         }
 
         setStorageStatus('Storage initializing…', 'info');
+        
+        // Make storage status clickable to show detailed explanation
+        if (storageStatusEl) {
+            storageStatusEl.addEventListener('click', () => {
+                const explanation = storageStatusEl.dataset.explanation || storageStatusEl.textContent;
+                if (explanation && explanation.length > 50) {
+                    alert(explanation);
+                }
+            });
+        }
+        
+        // Add click handlers to buttons to show their explanations
+        function showButtonHelp(buttonId, explanation) {
+            const btn = document.getElementById(buttonId);
+            if (btn && explanation) {
+                btn.addEventListener('click', (e) => {
+                    // Only show help if holding Shift key (so normal clicks still work)
+                    if (e.shiftKey) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        alert(explanation);
+                        return false;
+                    }
+                });
+                // Update title to indicate Shift+click for help
+                const currentTitle = btn.getAttribute('title') || '';
+                if (currentTitle) {
+                    btn.title = currentTitle + ' (Shift+click for details)';
+                }
+            }
+        }
+        
+        // Set up help for buttons
+        showButtonHelp('selectBtn', 'Select Repository\n\nChoose a local code repository folder from your computer. HELIOS will analyze the code structure and create an interactive 3D visualization showing functions, dependencies, and relationships.\n\nYour code stays on your computer - nothing is uploaded to any server.');
+        
+        showButtonHelp('loadDemoBtn', 'Try Demo\n\nLoad a pre-built sample codebase to explore HELIOS features without using your own code. The demo includes:\n\n• 4 example TypeScript files\n• Function call relationships\n• Interactive 3D graph visualization\n\nPerfect for first-time users to see how HELIOS works.');
+        
+        showButtonHelp('clearStorageBtn', 'Reset App\n\nClear all saved data:\n\n• Saved graph layouts\n• Resume sessions\n• Analysis snapshots\n\nWhen to use:\n• Experiencing issues (simulation not working, export failing)\n• Want a completely fresh start\n• Testing and need clean state\n\n⚠️ This action cannot be undone. All data will be permanently deleted.');
+        
+        showButtonHelp('resumeBtn', 'Resume Last Session\n\nContinue your previous analysis session. This restores:\n\n• Your last analyzed repository\n• Saved graph layout\n• Analysis results\n\nOnly available if you\'ve analyzed a repository before and haven\'t cleared your data.');
         function updateEmbeddingSummary(summary) {
             latestEmbeddingSummary = summary;
             if (controls && typeof controls.setEmbeddingSummary === 'function') {
