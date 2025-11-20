@@ -1835,8 +1835,8 @@ export class GraphVisualization {
       this.repaintGraph();
       console.log('[GraphViz] repaintGraph() called');
       
-      // Wait a frame for rendering to complete
-      await new Promise(resolve => requestAnimationFrame(resolve));
+      // Wait a frame for rendering to complete (use setTimeout instead of await for non-async function)
+      setTimeout(() => {
       
       // Verify canvas exists after render
       const canvas = this.container?.querySelector('canvas');
