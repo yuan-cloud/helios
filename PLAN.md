@@ -57,7 +57,7 @@ Everything runs from static hosting (GitHub/Cloudflare Pages). To enable threads
 
 ### 3.2 Language Detection and AST Parsing
 
-[PinkMountain - UPDATED - 2025-11-20 03:12]
+[PinkMountain - UPDATED - 2025-11-20 13:20]
 
 ✅ Tree-sitter loaded  
 ✅ JS/TS grammar loaded  
@@ -76,6 +76,7 @@ Everything runs from static hosting (GitHub/Cloudflare Pages). To enable threads
 ✅ Default export resolution edge case fix (handle empty targetModuleFiles array - commit b536b2d; fixes review bug ID 504)  
 ✅ Status determination optimization (eliminate redundant filter operation - commit 494d528; fixes review optimization ID 502)  
 ✅ Redundant fallback cleanup (remove unreachable fallback operators - commit 0640185; fixes review code quality ID 503)  
+✅ Match type registration fix (register 'import-default-fallback' in typeRank and getResolvedReason - commit af5803b; fixes review bugs from OrangeSnow ID 510, BlueBear ID 514, ChartreuseHill ID 515)  
 ✅ Code review completed (2025-11-20 03:12) - reviewed recent commits from OrangeSnow, BlueBear, LilacLake, ChartreuseHill; all commits solid, no issues found  
 ❌ Stack graphs integration (blocked: upstream WASM-capable implementation required)
 
@@ -95,7 +96,7 @@ Tree-sitter's query DSL lets you capture these nodes robustly.
 
 ### 3.3 Call Graph Construction (Static, Best-Effort)
 
-[PinkMountain - UPDATED - 2025-11-20 03:12]
+[PinkMountain - UPDATED - 2025-11-20 13:20]
 
 ✅ Static call graph extraction complete (caller→callee edges with call-site metadata)  
 ✅ Python grammar support added (functions/imports/calls feed call graph + viz)  
@@ -114,6 +115,7 @@ Tree-sitter's query DSL lets you capture these nodes robustly.
 ✅ Default export resolution edge case fix (handle empty targetModuleFiles array with fallback matching - commit b536b2d; fixes review bug ID 504)  
 ✅ Status determination optimization (eliminate redundant filter operation - commit 494d528; fixes review optimization ID 502)  
 ✅ Redundant fallback cleanup (remove unreachable fallback operators - commit 0640185; fixes review code quality ID 503)  
+✅ Match type registration fix (register 'import-default-fallback' in typeRank and getResolvedReason - commit af5803b; fixes review bugs from OrangeSnow ID 510, BlueBear ID 514, ChartreuseHill ID 515)  
 ✅ Code review completed (2025-11-20 03:12) - reviewed recent commits from OrangeSnow, BlueBear, LilacLake, ChartreuseHill; all commits solid, no issues found  
 ❌ Stack-graphs integration (blocked: upstream WASM-capable implementation required; planned post-MVP once upstream WASM support unblocks; current heuristic resolution provides good baseline)
 
