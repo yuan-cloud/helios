@@ -105,8 +105,8 @@ Tree-sitter's query DSL lets you capture these nodes robustly.
 ✅ Parser fixture generator complete (tools/generate-parser-fixtures.mjs - creates small/medium/large payloads for validation harness)  
 ✅ computeStats bug fix (HIGH severity - now correctly uses top-level edge.resolution?.status instead of edge.metadata?.resolution?.status; fixed 2025-11-20 commit 447620c)  
 ✅ Regression test bug fixes complete (defensive checks for topCentralNodes access - commit e1f4ab1; fixes review bugs from OrangeSnow ID 466 and BlueBear ID 463)  
-⏳ Enhanced name resolution (stack-graphs integration) — 0% (planned post-MVP once upstream support unblocks)  
-❌ Stack-graph powered name resolution blocked: awaiting WASM-capable stack-graphs build and integration guidance
+✅ Enhanced heuristic name resolution complete (2025-11-20 commit a03484a) - lexical scope priority, default export matching, module path similarity, improved confidence scoring; improves accuracy without stack-graphs  
+⏳ Stack-graphs integration — 0% (planned post-MVP once upstream WASM support unblocks; current heuristic resolution provides good baseline)
 
 **Status:** All tasks in Section 3.3 are 100% complete (except stack-graphs integration, blocked on upstream WASM support). Call graph infrastructure is production-ready and available for integration testing. All reported bugs fixed (computeStats bug fixed in commit 447620c, regression test bugs fixed in commit e1f4ab1).
 
