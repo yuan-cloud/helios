@@ -791,9 +791,6 @@
                 <button class="button" id="clearStorageBtn" type="button" style="background: rgba(248, 113, 113, 0.15); border: 1px solid rgba(248, 113, 113, 0.35); color: #fecaca;" title="Clear all saved layouts and sessions - useful if experiencing issues or want a fresh start">
                     Reset App
                 </button>
-                <button class="button" id="exportDbBtn" type="button" style="background: rgba(59, 130, 246, 0.15); border: 1px solid rgba(59, 130, 246, 0.35); color: #bfdbfe; opacity: 0.6;" title="Export database for debugging (developer feature - may not work in all browsers)">
-                    Export DB
-                </button>
                 <div class="storage-status" id="storageStatus" role="status" aria-live="polite"></div>
             </div>
             <div style="margin-top: 2rem; padding: 1rem; background: rgba(30, 41, 59, 0.3); border-radius: 0.5rem; border: 1px solid rgba(148, 163, 184, 0.1); max-width: 600px; margin-left: auto; margin-right: auto;">
@@ -995,15 +992,11 @@
             }
         }, 100);
         const clearStorageBtn = document.getElementById('clearStorageBtn');
-        const exportDbBtn = document.getElementById('exportDbBtn');
         const storageStatusEl = document.getElementById('storageStatus');
         const STORAGE_FALLBACK_MESSAGE =
             'Storage ready (in-memory fallback). Enable COOP/COEP headers to unlock OPFS persistence.';
         if (clearStorageBtn) {
             clearStorageBtn.disabled = true;
-        }
-        if (exportDbBtn) {
-            exportDbBtn.disabled = true;
         }
 
         function setProgressDetail(detailText) {
@@ -1389,47 +1382,12 @@
                 }
             } catch (err) {
                 console.error('Failed to clear stored data', err);
-                setStorageStatus('Failed to clear stored data. See console for details.', 'error');
+                    setStorageStatus('Failed to clear stored data. Please try again.', 'error');
             } finally {
                 clearStorageBtn.disabled = false;
             }
         });
 
-        exportDbBtn?.addEventListener('click', async () => {
-            if (exportDbBtn.disabled || !storageReady || !storageClient) {
-                if (!storageReady || !storageClient) {
-                    setStorageStatus('Storage not ready. Load a repository first.', 'warning');
-                }
-                return;
-            }
-            exportDbBtn.disabled = true;
-            setStorageStatus('Exporting database…', 'info');
-            try {
-                const result = await storageClient.exportDatabase();
-                if (!result || !result.bytes || result.bytes.length === 0) {
-                    throw new Error('Export returned no data');
-                }
-
-                // Create download link
-                // result.bytes is a Uint8Array from client.js
-                const blob = new Blob([result.bytes], { type: 'application/x-sqlite3' });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = result.dbName || 'helios.sqlite3';
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-                URL.revokeObjectURL(url);
-
-                setStorageStatus(`Database exported (${(result.size / 1024).toFixed(1)} KB)`, 'success');
-            } catch (err) {
-                console.error('Failed to export database', err);
-                setStorageStatus('Failed to export database. See console for details.', 'error');
-            } finally {
-                exportDbBtn.disabled = false;
-            }
-        });
 
         selectBtn.addEventListener('click', async () => {
             try {
@@ -2214,7 +2172,7 @@
             } catch (err) {
                 console.error('[Demo] Failed to load demo dataset:', err);
                 console.error('[Demo] Error details:', err?.stack || err);
-                alert('Failed to load demo dataset: ' + (err?.message || err) + '\n\nCheck console for details.');
+                alert('Failed to load demo dataset. Please refresh the page and try again.');
             } finally {
                 hideDemoLoading();
                 loadDemoBtn.disabled = false;
@@ -2822,7 +2780,7 @@
                 vizContainer.classList.add('hidden');
                 vizContainer.style.setProperty('display', 'none', 'important');
                 
-                alert(`Failed to initialize visualization: ${error.message || error}. Check console for details.\n\nYou can click "Visualize Graph" to retry.`);
+                alert(`Failed to initialize visualization. You can click "Visualize Graph" to retry.`);
                 throw error; // Re-throw so caller knows it failed
             }
         }
@@ -3856,7 +3814,7 @@
 
         bootstrapApp().catch(err => {
             console.error('HELIOS bootstrap error:', err);
-            setStorageStatus('Initialization failed. See console for details.', 'error');
+            setStorageStatus('Initialization failed. Please refresh the page.', 'error');
         });
     </script>
 </body>
