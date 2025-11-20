@@ -1835,37 +1835,37 @@ export class GraphVisualization {
       this.repaintGraph();
       console.log('[GraphViz] repaintGraph() called');
       
-      // Wait a frame for rendering to complete (use setTimeout instead of await for non-async function)
-      setTimeout(() => {
-      
-      // Verify canvas exists after render
-      const canvas = this.container?.querySelector('canvas');
-      if (canvas) {
-        const canvasStyle = window.getComputedStyle(canvas);
-        console.log('[GraphViz] Canvas found after render:', canvas.width, 'x', canvas.height, 
-                   'display:', canvasStyle.display, 'visibility:', canvasStyle.visibility);
-        
-        // Ensure canvas is visible
-        if (canvasStyle.display === 'none' || canvasStyle.visibility === 'hidden') {
-          canvas.style.display = 'block';
-          canvas.style.visibility = 'visible';
-          console.log('[GraphViz] Forced canvas to be visible');
+      // Wait a frame for rendering to complete (use requestAnimationFrame instead of await for non-async function)
+      requestAnimationFrame(() => {
+        // Verify canvas exists after render
+        const canvas = this.container?.querySelector('canvas');
+        if (canvas) {
+          const canvasStyle = window.getComputedStyle(canvas);
+          console.log('[GraphViz] Canvas found after render:', canvas.width, 'x', canvas.height, 
+                     'display:', canvasStyle.display, 'visibility:', canvasStyle.visibility);
+          
+          // Ensure canvas is visible
+          if (canvasStyle.display === 'none' || canvasStyle.visibility === 'hidden') {
+            canvas.style.display = 'block';
+            canvas.style.visibility = 'visible';
+            console.log('[GraphViz] Forced canvas to be visible');
+          }
+          
+          // Check if canvas has actual content (non-zero dimensions)
+          if (canvas.width === 0 || canvas.height === 0) {
+            console.error('[GraphViz] ERROR: Canvas has zero dimensions!', {
+              width: canvas.width,
+              height: canvas.height,
+              containerWidth: this.container?.offsetWidth,
+              containerHeight: this.container?.offsetHeight
+            });
+          }
+        } else {
+          console.error('[GraphViz] ERROR: Canvas not found after render!');
+          console.error('[GraphViz] Container:', this.container);
+          console.error('[GraphViz] Container children:', Array.from(this.container?.children || []).map(c => c.tagName));
         }
-        
-        // Check if canvas has actual content (non-zero dimensions)
-        if (canvas.width === 0 || canvas.height === 0) {
-          console.error('[GraphViz] ERROR: Canvas has zero dimensions!', {
-            width: canvas.width,
-            height: canvas.height,
-            containerWidth: this.container?.offsetWidth,
-            containerHeight: this.container?.offsetHeight
-          });
-        }
-      } else {
-        console.error('[GraphViz] ERROR: Canvas not found after render!');
-        console.error('[GraphViz] Container:', this.container);
-        console.error('[GraphViz] Container children:', Array.from(this.container?.children || []).map(c => c.tagName));
-      }
+      });
     } catch (err) {
       console.error('[GraphViz] ERROR in graphData() or repaintGraph():', err);
       throw err;
