@@ -228,8 +228,15 @@ function compareMetrics(expected, actual) {
   }
 
   // Compare top central nodes (first 10)
-  const expectedTop = expected.topCentralNodes.slice(0, 10).map(n => n.id);
-  const actualTop = actual.topCentralNodes.slice(0, 10).map(n => n.id);
+  // Defensive: filter out undefined/null items and ensure id exists
+  const expectedTop = expected.topCentralNodes
+    .filter(n => n && typeof n === 'object' && n.id)
+    .slice(0, 10)
+    .map(n => n.id);
+  const actualTop = actual.topCentralNodes
+    .filter(n => n && typeof n === 'object' && n.id)
+    .slice(0, 10)
+    .map(n => n.id);
   if (JSON.stringify(expectedTop) !== JSON.stringify(actualTop)) {
     diffs.push({
       field: 'topCentralNodes',
@@ -262,9 +269,16 @@ function printMetrics(metrics) {
   console.log(`    Stats: resolved=${metrics.stats.resolvedEdges}, ambiguous=${metrics.stats.ambiguousEdges}, unresolved=${metrics.stats.unresolvedEdges}`);
   if (metrics.topCentralNodes.length > 0) {
     console.log(`    Top central nodes (top 5):`);
-    metrics.topCentralNodes.slice(0, 5).forEach(node => {
-      console.log(`      - ${node.id} (PageRank: ${node.pageRank.toFixed(4)})`);
-    });
+    metrics.topCentralNodes
+      .filter(node => node && typeof node === 'object' && node.id)
+      .slice(0, 5)
+      .forEach(node => {
+        // Defensive: check if pageRank exists before calling toFixed
+        const pageRankStr = (node.pageRank != null) 
+          ? `PageRank: ${node.pageRank.toFixed(4)}`
+          : 'PageRank: N/A';
+        console.log(`      - ${node.id} (${pageRankStr})`);
+      });
   }
 }
 
