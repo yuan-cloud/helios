@@ -2741,6 +2741,42 @@
                 });
             }
 
+            // CRITICAL: Unfreeze the simulation after layout restore
+            // The restoreLayoutFromStorage pauses the simulation, but we need it running for interactivity
+            if (restored) {
+                console.log('[Visualization] Layout restored, unfreezing simulation...');
+                // Wait a moment for layout to settle, then unfreeze
+                setTimeout(() => {
+                    if (graphViz) {
+                        graphViz.freezePositions(false);
+                        graphViz.pauseSimulation(false);
+                        console.log('[Visualization] Simulation unfrozen and running');
+                    }
+                }, 500);
+            } else {
+                // No layout restored, ensure simulation is running
+                console.log('[Visualization] No layout restored, ensuring simulation is running...');
+                if (graphViz) {
+                    graphViz.freezePositions(false);
+                    graphViz.pauseSimulation(false);
+                }
+            }
+
+            // Ensure simulation is running regardless of layout restore
+            console.log('[Visualization] Ensuring simulation is active...');
+            if (graphViz) {
+                graphViz.freezePositions(false);
+                graphViz.pauseSimulation(false);
+                // Force a refresh to ensure graph is rendering
+                if (typeof graphViz.graph?.refresh === 'function') {
+                    graphViz.graph.refresh();
+                }
+                if (typeof graphViz.graph?.resumeAnimation === 'function') {
+                    graphViz.graph.resumeAnimation();
+                }
+                console.log('[Visualization] Simulation confirmed running');
+            }
+
             console.log('[Visualization] Fitting to view...');
             if (!restored) {
                 setTimeout(() => graphViz.fitToView(), 400);

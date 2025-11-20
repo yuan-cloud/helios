@@ -2560,30 +2560,78 @@ export class GraphVisualization {
       // use html2canvas fallback - this is the reliable method
       console.log('[GraphViz] Using html2canvas fallback for PNG export (preserveDrawingBuffer not enabled on WebGL context)');
       try {
-        const html2canvas = await import('https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js');
-        const html2canvasFn = html2canvas.default || html2canvas;
+        // Try multiple CDN sources for html2canvas in case one fails
+        let html2canvasFn = null;
+        const html2canvasUrls = [
+          'https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js',
+          'https://unpkg.com/html2canvas@1.4.1/dist/html2canvas.min.js',
+          'https://esm.run/html2canvas@1.4.1'
+        ];
+        
+        for (const url of html2canvasUrls) {
+          try {
+            const html2canvas = await import(url);
+            html2canvasFn = html2canvas.default || html2canvas.html2canvas || html2canvas;
+            if (typeof html2canvasFn === 'function') {
+              console.log(`[GraphViz] Successfully loaded html2canvas from ${url}`);
+              break;
+            }
+          } catch (importErr) {
+            console.warn(`[GraphViz] Failed to load html2canvas from ${url}:`, importErr?.message || importErr);
+            continue;
+          }
+        }
+        
+        if (!html2canvasFn || typeof html2canvasFn !== 'function') {
+          throw new Error('Failed to load html2canvas from all CDN sources');
+        }
         
         if (typeof html2canvasFn === 'function' && this.container) {
-          // Ensure graph is rendered
+          // Ensure graph is rendered and visible
           if (typeof this.graph.render === 'function') {
             this.graph.render();
           }
+          // Wait multiple frames to ensure rendering completes
           await new Promise(resolve => requestAnimationFrame(resolve));
+          await new Promise(resolve => requestAnimationFrame(resolve));
+          
+          // Get actual container dimensions
+          const containerRect = this.container.getBoundingClientRect();
+          const width = containerRect.width || this.container.clientWidth || this.container.offsetWidth;
+          const height = containerRect.height || this.container.clientHeight || this.container.offsetHeight;
+          
+          console.log(`[GraphViz] Exporting with html2canvas, container size: ${width}x${height}`);
           
           const canvas = await html2canvasFn(this.container, {
             backgroundColor: '#0a0e27', // Match the background
             useCORS: true,
+            allowTaint: false,
             logging: false,
             scale: 1,
-            width: this.container.clientWidth,
-            height: this.container.clientHeight
+            width: width,
+            height: height,
+            windowWidth: width,
+            windowHeight: height,
+            // Ensure WebGL canvas is captured
+            ignoreElements: (element) => {
+              // Don't ignore anything - we want to capture the WebGL canvas
+              return false;
+            }
           });
+          
+          if (!canvas || canvas.width === 0 || canvas.height === 0) {
+            throw new Error('html2canvas returned empty canvas');
+          }
           
           const dataUrl = canvas.toDataURL('image/png');
           if (dataUrl && dataUrl !== 'data:,' && dataUrl.length > 100) {
-            console.log('[GraphViz] PNG exported using html2canvas fallback');
+            console.log('[GraphViz] PNG exported using html2canvas fallback, size:', canvas.width, 'x', canvas.height);
             return dataUrl;
+          } else {
+            throw new Error('html2canvas returned invalid data URL');
           }
+        } else {
+          throw new Error('html2canvas function not available or container missing');
         }
       } catch (html2canvasErr) {
         console.warn('[GraphViz] html2canvas fallback also failed:', html2canvasErr?.message || html2canvasErr);
