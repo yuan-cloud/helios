@@ -169,8 +169,9 @@ export class GraphVisualization {
     try {
       ForceGraph3DModule = await import('3d-force-graph');
     } catch (err) {
-      console.warn('[GraphViz] Primary import failed, using jsDelivr fallback:', err?.message || err);
-      ForceGraph3DModule = await import('https://cdn.jsdelivr.net/npm/3d-force-graph@1.70.25/dist/3d-force-graph.esm.min.js');
+      console.warn('[GraphViz] Primary import failed, using esm.run fallback:', err?.message || err);
+      // Use esm.run which handles dependencies better than jsDelivr
+      ForceGraph3DModule = await import('https://esm.run/3d-force-graph@1.79.0');
     }
     const ForceGraph3D = ForceGraph3DModule.default || ForceGraph3DModule.ForceGraph3D || ForceGraph3DModule;
 
