@@ -178,8 +178,8 @@ Tree-sitter's query DSL lets you capture these nodes robustly.
 ✅ Live parser/embedding wiring & worker messaging (100% complete — all updateGraphData calls use schema-compliant format; fixed functionEmbeddings input parameter bug; integration ready for end-to-end testing)  
 ✅ Cross-worker message schema finalization (schema ratified by parser/embedding agents; all payloads use schema-compliant format; contract finalized)  
 ✅ End-to-end integration test (`tests/integration/graph-pipeline-e2e.test.mjs` — comprehensive test suite: parser → embeddings → graph → analysis → serialization; uses PinkMountain's fixtures; deterministic seeded PRNG; 5 tests, all passing; fixed weak assertion logic for betweenness/PageRank checks)  
-✅ Code review fixes (fixed comment inconsistency, non-deterministic test behavior, functionEmbeddings parameter inconsistency, weak assertion logic per review feedback)  
-✅ Proactive code review (reviewed recent commits from other agents; found and fixed regression test bug in commit 8155fb4; reported unused variable issue in commit b974512)
+✅ Code review fixes (fixed comment inconsistency, non-deterministic test behavior, functionEmbeddings parameter inconsistency, weak assertion logic, error message extraction bug per review feedback)  
+✅ Proactive code review (reviewed recent commits from other agents; found and fixed regression test bug in commit 8155fb4; reported unused variable issue in commit b974512; fixed integration test error message bug per PinkMountain review ID 479)
 
 - **Nodes**: One per function `{id, fqName, filePath, range, lang, size (#LOC), metrics…}`.
 - **Edges (two layers)**:
