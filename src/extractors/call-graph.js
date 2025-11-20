@@ -276,39 +276,60 @@ function resolveCallee(call, callerFile, functionByName, symbolTableManager) {
         ? [importInfo.resolvedFilePath]
         : symbolTableManager.getModuleFilePaths(importInfo.moduleId || '');
       
-      for (const targetFile of targetModuleFiles) {
-        const targetTable = symbolTableManager.getTable(targetFile);
-        if (targetTable) {
-          // Check for default export - default exports can be imported with any local name
-          const exports = targetTable.getExports();
-          const defaultExport = exports.find(exp => exp.isDefault);
-          
-          if (defaultExport) {
-            // Match functions in the target file that match the default export name
-            candidates
-              .filter(fn => normalizePath(fn.filePath) === normalizePath(targetFile))
-              .filter(fn => fn.name === defaultExport.name || fn.name === importInfo.originalName)
-              .forEach(fn => {
-                addMatch(fn, 'import-default', 'high', { 
-                  isDefaultExport: true,
-                  moduleId: importInfo.moduleId,
-                  exportName: defaultExport.name,
-                  importedAs: calleeName
+      // Defensive: If no module files found, fall back to matching by original name
+      // This handles cases where module path resolution failed (external modules, etc.)
+      if (targetModuleFiles.length === 0) {
+        // Try to match by original name as a fallback for unresolved modules
+        candidates
+          .filter(fn => {
+            if (matches.has(fn.id)) return false; // Skip already matched
+            // Match by name if we can't resolve the module path
+            return fn.name === importInfo.originalName;
+          })
+          .forEach(fn => {
+            addMatch(fn, 'import-default-fallback', 'medium', { 
+              isDefaultExport: false,
+              moduleId: importInfo.moduleId,
+              originalName: importInfo.originalName,
+              reason: 'module path unresolved'
+            });
+          });
+      } else {
+        // Normal path: we have module files to check
+        for (const targetFile of targetModuleFiles) {
+          const targetTable = symbolTableManager.getTable(targetFile);
+          if (targetTable) {
+            // Check for default export - default exports can be imported with any local name
+            const exports = targetTable.getExports();
+            const defaultExport = exports.find(exp => exp.isDefault);
+            
+            if (defaultExport) {
+              // Match functions in the target file that match the default export name
+              candidates
+                .filter(fn => normalizePath(fn.filePath) === normalizePath(targetFile))
+                .filter(fn => fn.name === defaultExport.name || fn.name === importInfo.originalName)
+                .forEach(fn => {
+                  addMatch(fn, 'import-default', 'high', { 
+                    isDefaultExport: true,
+                    moduleId: importInfo.moduleId,
+                    exportName: defaultExport.name,
+                    importedAs: calleeName
+                  });
                 });
-              });
-          } else {
-            // No default export found, but still try to match by original name
-            // (fallback for cases where export info might be incomplete)
-            candidates
-              .filter(fn => normalizePath(fn.filePath) === normalizePath(targetFile))
-              .filter(fn => fn.name === importInfo.originalName)
-              .forEach(fn => {
-                addMatch(fn, 'import-default', 'medium', { 
-                  isDefaultExport: false,
-                  moduleId: importInfo.moduleId,
-                  originalName: importInfo.originalName
+            } else {
+              // No default export found, but still try to match by original name
+              // (fallback for cases where export info might be incomplete)
+              candidates
+                .filter(fn => normalizePath(fn.filePath) === normalizePath(targetFile))
+                .filter(fn => fn.name === importInfo.originalName)
+                .forEach(fn => {
+                  addMatch(fn, 'import-default', 'medium', { 
+                    isDefaultExport: false,
+                    moduleId: importInfo.moduleId,
+                    originalName: importInfo.originalName
+                  });
                 });
-              });
+            }
           }
         }
       }
