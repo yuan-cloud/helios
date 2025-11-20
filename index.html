@@ -841,16 +841,23 @@
             }
         });
         
-        // Suppress console warnings about multiple d3.js instances (harmless - 3d-force-graph bundles d3-force)
+        // Suppress console warnings about multiple d3.js and Three.js instances (harmless - 3d-force-graph bundles both)
         const originalWarn = console.warn;
         console.warn = function(...args) {
             const message = args.join(' ');
-            if (typeof message === 'string' && 
-                (message.includes('Multiple instances of d3') || 
-                 message.includes('Multiple instances of D3'))) {
-                // Suppress the warning - it's harmless (3d-force-graph bundles d3-force)
-                console.debug('[HELIOS] Suppressed multiple d3.js instance warning (harmless)');
-                return;
+            if (typeof message === 'string') {
+                // Suppress multiple d3.js instance warning (harmless - 3d-force-graph bundles d3-force)
+                if (message.includes('Multiple instances of d3') || message.includes('Multiple instances of D3')) {
+                    console.debug('[HELIOS] Suppressed multiple d3.js instance warning (harmless)');
+                    return;
+                }
+                // Suppress multiple Three.js instance warning (harmless - 3d-force-graph bundles Three.js internally)
+                // We intentionally don't import Three.js directly to avoid this, but the warning still appears
+                // because 3d-force-graph and three-render-objects both bundle Three.js
+                if (message.includes('Multiple instances of Three.js') || message.includes('WARNING: Multiple instances of Three.js')) {
+                    console.debug('[HELIOS] Suppressed multiple Three.js instance warning (harmless - 3d-force-graph bundles Three.js)');
+                    return;
+                }
             }
             originalWarn.apply(console, args);
         };
@@ -1998,13 +2005,29 @@
         }
 
         async function loadDemoExperience() {
+            // Ensure demo button is enabled and reset any blocking state
+            if (loadDemoBtn) {
+                loadDemoBtn.disabled = false;
+            }
+            
+            // Close any open visualization first to ensure clean state
+            if (vizContainer && !vizContainer.classList.contains('hidden')) {
+                handleCloseVisualization();
+                // Wait a moment for cleanup
+                await new Promise(resolve => setTimeout(resolve, 100));
+            }
+            
             loadDemoBtn.disabled = true;
             showDemoLoading('Loading demo dataset...');
             try {
                 await ensureStorageClient();
                 const demo = getDemoDataset();
 
+                // Reset all state including visualization
                 resetAnalysisState({ showProgress: false, progressLabel: 'Preparing demo dataset...', resetVisualization: true });
+                
+                // Mark as demo mode
+                isDemoMode = true;
 
                 sourceFiles = Array.isArray(demo.sourceFiles)
                     ? demo.sourceFiles.map(file => ({ ...file }))

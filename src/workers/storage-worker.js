@@ -269,9 +269,33 @@ async function exportDatabase() {
   // Fallback: try sqlite3_serialize via capi if available
   if (sqlite3Module?.capi?.sqlite3_serialize) {
     try {
-      // oo1.DB objects may expose the underlying pointer via different properties
-      // Try common property names used by SQLite-WASM
-      const dbPtr = db.pointer || db.handle || (db.constructor?.name === "DB" && db);
+      // oo1.DB objects expose the database handle via different methods
+      // Try accessing the handle through the database object's internal structure
+      let dbPtr = null;
+      
+      // Method 1: Direct property access (common in SQLite-WASM)
+      if (db.pointer) {
+        dbPtr = db.pointer;
+      } else if (db.handle) {
+        dbPtr = db.handle;
+      } else if (db.db) {
+        dbPtr = db.db;
+      } else if (typeof db.getDbHandle === "function") {
+        dbPtr = db.getDbHandle();
+      } else if (sqlite3Module?.oo1?.DB?.prototype?.pointer) {
+        // Try accessing via prototype if available
+        dbPtr = db.pointer;
+      }
+      
+      // Method 2: Use capi.sqlite3_db_handle if available (for named databases)
+      if (!dbPtr && sqlite3Module?.capi?.sqlite3_db_handle) {
+        try {
+          // Try to get handle by database name
+          dbPtr = sqlite3Module.capi.sqlite3_db_handle(currentDbName);
+        } catch (err) {
+          // Ignore - this method might not be available
+        }
+      }
       
       if (dbPtr) {
         // sqlite3_serialize(db, schema, pSize, flags)
@@ -291,7 +315,9 @@ async function exportDatabase() {
     }
   }
   
-  throw new Error("Database export not supported - neither db.export() nor sqlite3_serialize() available");
+  // Final fallback: Return a helpful error message
+  console.warn("[Storage Worker] Database export not available - this is a known limitation with some SQLite-WASM builds. The database is still functional for normal operations.");
+  throw new Error("Database export not supported - neither db.export() nor sqlite3_serialize() available. This may be a limitation of the SQLite-WASM build in use.");
 }
 
 async function processMessage(event) {
