@@ -1354,6 +1354,22 @@
             if (clearStorageBtn.disabled) {
                 return;
             }
+            
+            // Ask for confirmation since this is a destructive action
+            const confirmed = confirm(
+                'Reset App will clear all saved data:\n\n' +
+                '• Saved layouts\n' +
+                '• Resume sessions\n' +
+                '• Analysis snapshots\n\n' +
+                'This action cannot be undone.\n\n' +
+                'Use this if you\'re experiencing issues or want a fresh start.\n\n' +
+                'Continue?'
+            );
+            
+            if (!confirmed) {
+                return;
+            }
+            
             clearStorageBtn.disabled = true;
             setStorageStatus('Clearing stored data…', 'info');
             try {
