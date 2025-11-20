@@ -3434,15 +3434,14 @@
                         const { checkDataCompatibility, shouldInvalidateData } = await import('./src/storage/data-compatibility.js');
                         const compatibility = await checkDataCompatibility(client);
                         
-                        if (!compatibility.compatible || shouldInvalidateData(compatibility, false)) {
+                        // Only warn if there are actual issues (not just empty array)
+                        if ((!compatibility.compatible || shouldInvalidateData(compatibility, false)) && compatibility.issues.length > 0) {
                             console.warn('[Storage] Data compatibility check failed:', compatibility.issues);
                             console.info('[Storage] Consider clearing stored data if you experience issues.');
-                            
-                            if (compatibility.issues.length > 0) {
-                                // Log but don't block - app can work with stale data
-                                // User can clear storage if they encounter issues
-                                console.info('[Storage] Compatibility issues detected:', compatibility.issues);
-                            }
+                            console.info('[Storage] Compatibility issues detected:', compatibility.issues);
+                        } else if (!compatibility.compatible || shouldInvalidateData(compatibility, false)) {
+                            // Incompatible but no specific issues (e.g., new database) - use debug level
+                            console.debug('[Storage] Data compatibility check: incompatible but no issues (likely new database)');
                         } else {
                             console.debug('[Storage] Data compatibility check passed');
                         }
