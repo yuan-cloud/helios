@@ -135,6 +135,7 @@ function findContainingFunction(call, functions) {
 /**
  * Resolve callee from call expression
  * Following PLAN.md section 3.3 and 10.2 specifications
+ * Enhanced with improved lexical scope, TypeScript patterns, and better module resolution
  * @param {Object} call - Call expression object
  * @param {string} callerFile - File path of the caller
  * @param {Map} functionByName - Map of name → [functions]
@@ -158,6 +159,15 @@ function resolveCallee(call, callerFile, functionByName, symbolTableManager) {
   }
 
   if (call.isMemberCall) {
+    // Enhanced: Attempt to resolve simple member calls like `obj.method()` where obj is an import
+    const memberResolution = resolveMemberCall(call, callerFile, symbolTableManager);
+    if (memberResolution) {
+      summary.status = memberResolution.status;
+      summary.matches = memberResolution.matches || [];
+      summary.reason = memberResolution.reason || 'Member expression resolution';
+      return summary;
+    }
+    
     summary.status = 'member-expression';
     summary.reason = 'Member expression treated as dynamic';
     return summary;
@@ -196,51 +206,219 @@ function resolveCallee(call, callerFile, functionByName, symbolTableManager) {
     });
   };
 
-  // Prefer local matches first
+  // Enhanced: Lexical scope resolution - prefer functions defined before the call
+  // This helps with closures and nested scopes
+  const callerFunctions = getFunctionsInFile(callerFile, functionByName);
+  const lexicalMatches = findLexicalMatches(call, calleeName, callerFunctions);
+  lexicalMatches.forEach(match => {
+    addMatch(match.func, 'lexical', match.confidence || 'high', { 
+      ...match.details,
+      scopeDepth: match.scopeDepth || 0
+    });
+  });
+
+  // Prefer local matches (same file, any scope)
   candidates
     .filter(fn => normalizePath(fn.filePath) === normalizedCaller)
-    .forEach(fn => addMatch(fn, 'local', 'high', { filePath: fn.filePath }));
+    .forEach(fn => {
+      // Only add if not already added by lexical resolution
+      if (!matches.has(fn.id)) {
+        addMatch(fn, 'local', 'high', { filePath: fn.filePath });
+      }
+    });
 
-  // Import-based matches
+  // Enhanced: Import-based matches with better module resolution
   if (importInfo) {
     const expectedFq = importInfo.moduleId
       ? `${importInfo.moduleId}.${importInfo.originalName}`
       : null;
 
+    // Try exact module match first
+    if (importInfo.moduleId) {
+      candidates
+        .filter(fn => {
+          const fnPath = normalizePath(fn.filePath || '');
+          const moduleMatch = fn.moduleId === importInfo.moduleId && fn.name === importInfo.originalName;
+          const fileMatch = importInfo.resolvedFilePath && fnPath === importInfo.resolvedFilePath && fn.name === importInfo.originalName;
+          return moduleMatch || fileMatch;
+        })
+        .forEach(fn => addMatch(fn, 'import-exact', 'high', { 
+          moduleMatched: true,
+          moduleId: importInfo.moduleId,
+          originalName: importInfo.originalName
+        }));
+    }
+
+    // Fallback: partial matches
     candidates
       .filter(fn => {
+        if (matches.has(fn.id)) return false; // Skip already matched
+        
         const fnPath = normalizePath(fn.filePath || '');
         const moduleMatch = importInfo.moduleId && fn.moduleId === importInfo.moduleId;
         const fileMatch = importInfo.resolvedFilePath && fnPath === importInfo.resolvedFilePath;
         const fqMatch = expectedFq && fn.fqName === expectedFq;
-        return moduleMatch || fileMatch || fqMatch;
+        const nameMatch = fn.name === importInfo.originalName;
+        
+        // More lenient matching: module or file or FQ match
+        return (moduleMatch || fileMatch || fqMatch) && nameMatch;
       })
-      .forEach(fn => addMatch(fn, 'import', 'high', { moduleMatched: true }));
+      .forEach(fn => addMatch(fn, 'import', 'medium', { 
+        moduleMatched: !!importInfo.moduleId,
+        partialMatch: true
+      }));
+
+    // Enhanced: Handle default exports more intelligently
+    if (importInfo.isDefault) {
+      // Default exports can be imported with any name, so we look for exported functions
+      // in the target module that are marked as default exports
+      const targetModuleFiles = importInfo.resolvedFilePath 
+        ? [importInfo.resolvedFilePath]
+        : symbolTableManager.getModuleFilePaths(importInfo.moduleId || '');
+      
+      for (const targetFile of targetModuleFiles) {
+        const targetTable = symbolTableManager.getTable(targetFile);
+        if (targetTable) {
+          // Check for default export - default exports can be imported with any local name
+          const exports = targetTable.getExports();
+          const defaultExport = exports.find(exp => exp.isDefault);
+          
+          if (defaultExport) {
+            // Match functions in the target file that match the default export name
+            candidates
+              .filter(fn => normalizePath(fn.filePath) === normalizePath(targetFile))
+              .filter(fn => fn.name === defaultExport.name || fn.name === importInfo.originalName)
+              .forEach(fn => {
+                addMatch(fn, 'import-default', 'high', { 
+                  isDefaultExport: true,
+                  moduleId: importInfo.moduleId,
+                  exportName: defaultExport.name,
+                  importedAs: calleeName
+                });
+              });
+          } else {
+            // No default export found, but still try to match by original name
+            // (fallback for cases where export info might be incomplete)
+            candidates
+              .filter(fn => normalizePath(fn.filePath) === normalizePath(targetFile))
+              .filter(fn => fn.name === importInfo.originalName)
+              .forEach(fn => {
+                addMatch(fn, 'import-default', 'medium', { 
+                  isDefaultExport: false,
+                  moduleId: importInfo.moduleId,
+                  originalName: importInfo.originalName
+                });
+              });
+          }
+        }
+      }
+    }
   }
 
-  // Symbol table resolution (FQN)
+  // Enhanced: Symbol table resolution with re-export tracking
   if (resolvedFqn) {
     const resolvedName = resolvedFqn.split('.').pop();
+    
+    // Exact FQN match (highest confidence)
+    candidates
+      .filter(fn => fn.fqName === resolvedFqn)
+      .forEach(fn => addMatch(fn, 'symbol-table-exact', 'high', { resolvedFqn }));
+    
+    // Name match with module context
     candidates
       .filter(fn => {
-        const matchesFqn = fn.fqName === resolvedFqn;
-        const matchesName = fn.name === resolvedName;
-        return matchesFqn || matchesName;
+        if (matches.has(fn.id)) return false;
+        return fn.name === resolvedName && fn.moduleId && resolvedFqn.startsWith(fn.moduleId + '.');
       })
-      .forEach(fn => addMatch(fn, 'symbol-table', 'high', { resolvedFqn }));
+      .forEach(fn => addMatch(fn, 'symbol-table-module', 'medium', { 
+        resolvedFqn,
+        moduleId: fn.moduleId
+      }));
+    
+    // Fallback: just name match
+    candidates
+      .filter(fn => {
+        if (matches.has(fn.id)) return false;
+        return fn.name === resolvedName;
+      })
+      .forEach(fn => addMatch(fn, 'symbol-table', 'medium', { resolvedFqn }));
   }
 
-  // Fallback: other functions with the same name
+  // Enhanced: Relative path resolution for cross-file references
+  // If no import info but we're in the same directory/module, prefer nearby files
+  if (!importInfo) {
+    const callerDir = getDirectory(callerFile);
+    const sameModuleFiles = candidates
+      .filter(fn => {
+        const fnDir = getDirectory(fn.filePath);
+        return fnDir === callerDir || isRelativePath(fn.filePath, callerFile);
+      });
+    
+    sameModuleFiles
+      .filter(fn => !matches.has(fn.id))
+      .forEach(fn => {
+        const pathSimilarity = computePathSimilarity(fn.filePath, callerFile);
+        const confidence = pathSimilarity > 0.8 ? 'medium' : 'low';
+        addMatch(fn, 'same-module', confidence, { 
+          pathSimilarity,
+          directory: callerDir
+        });
+      });
+  }
+
+  // Fallback: other functions with the same name, ordered by module organization
   candidates
     .filter(fn => !matches.has(fn.id))
     .forEach(fn => {
-      const confidence = fn.moduleId ? 'medium' : 'low';
+      let confidence = 'low';
+      // Boost confidence if function has module organization
+      if (fn.moduleId) {
+        confidence = 'medium';
+      }
+      // Check if function name suggests it's a common utility
+      if (isCommonUtilityName(fn.name)) {
+        confidence = 'low'; // Utilities are often ambiguous
+      }
       addMatch(fn, 'external', confidence, {});
     });
 
+  // Enhanced: Better match ordering with confidence scoring
   const orderedMatches = Array.from(matches.values()).sort((a, b) => {
-    const rank = { local: 0, 'symbol-table': 1, import: 1, external: 2 };
-    return (rank[a.matchType] || 3) - (rank[b.matchType] || 3);
+    // First, sort by match type priority
+    const typeRank = { 
+      'lexical': 0,           // Highest: lexical scope
+      'local': 0,             // Same file
+      'symbol-table-exact': 1, // Exact FQN match
+      'import-exact': 1,      // Exact import match
+      'import-default': 1,    // Default export match
+      'symbol-table-module': 2, // Module context match
+      'symbol-table': 2,      // FQN match
+      'import': 2,            // Import match
+      'same-module': 3,       // Same module/directory
+      'external': 4           // External/unknown
+    };
+    
+    const rankA = typeRank[a.matchType] ?? 5;
+    const rankB = typeRank[b.matchType] ?? 5;
+    
+    if (rankA !== rankB) {
+      return rankA - rankB;
+    }
+    
+    // Within same type, sort by confidence
+    const confRank = { 'high': 0, 'medium': 1, 'low': 2 };
+    const confA = confRank[a.confidence] ?? 2;
+    const confB = confRank[b.confidence] ?? 2;
+    
+    if (confA !== confB) {
+      return confA - confB;
+    }
+    
+    // Finally, prefer matches with better details (scope depth, path similarity)
+    const scoreA = (a.details?.scopeDepth || 0) + (a.details?.pathSimilarity || 0);
+    const scoreB = (b.details?.scopeDepth || 0) + (b.details?.pathSimilarity || 0);
+    
+    return scoreA - scoreB;
   });
 
   summary.matches = orderedMatches.slice(0, 12);
@@ -248,23 +426,268 @@ function resolveCallee(call, callerFile, functionByName, symbolTableManager) {
   if (summary.matches.length === 0) {
     summary.status = 'unresolved';
     summary.reason = importInfo
-      ? 'Import could not be resolved to a project function'
-      : 'No matching function found in project';
+      ? `Import '${calleeName}' from '${importInfo.from}' could not be resolved to a project function`
+      : `No matching function found for '${calleeName}' in project`;
     return summary;
   }
 
-  if (summary.matches.length === 1) {
+  // Enhanced: Better status determination
+  const topMatch = summary.matches[0];
+  const topConfidence = topMatch.confidence;
+  const hasHighConfidenceUnique = summary.matches.length === 1 && topConfidence === 'high';
+  const hasMultipleHighConfidence = summary.matches.filter(m => m.confidence === 'high').length > 1;
+
+  if (hasHighConfidenceUnique) {
     summary.status = 'resolved';
-    summary.reason =
-      summary.matches[0].matchType === 'local'
-        ? 'Resolved to local definition'
-        : 'Resolved via import';
+    summary.reason = getResolvedReason(topMatch.matchType, topMatch.details);
+  } else if (hasMultipleHighConfidence) {
+    summary.status = 'ambiguous';
+    summary.reason = `Multiple high-confidence candidates match this call (${summary.matches.filter(m => m.confidence === 'high').length} candidates)`;
+  } else if (summary.matches.length === 1) {
+    summary.status = 'resolved';
+    summary.reason = getResolvedReason(topMatch.matchType, topMatch.details);
   } else {
     summary.status = 'ambiguous';
-    summary.reason = 'Multiple candidate functions match this call';
+    summary.reason = `Multiple candidate functions match this call (${summary.matches.length} candidates)`;
   }
 
   return summary;
+}
+
+/**
+ * Enhanced: Resolve simple member calls like obj.method() where obj is an import
+ * @param {Object} call - Call expression object
+ * @param {string} callerFile - File path of the caller
+ * @param {SymbolTableManager} symbolTableManager - Symbol table manager
+ * @returns {Object|null} - Resolution summary or null if cannot resolve
+ */
+function resolveMemberCall(call, callerFile, symbolTableManager) {
+  if (!call.callee || !call.callee.includes('.')) {
+    return null;
+  }
+  
+  // Extract object and method from member expression
+  const parts = call.callee.split('.');
+  if (parts.length !== 2) {
+    return null; // Only handle simple obj.method() cases
+  }
+  
+  const [objectName, methodName] = parts;
+  const symbolTable = symbolTableManager.getTable(callerFile);
+  
+  // Check if object is an import (e.g., `utils.method()` where `utils` is imported)
+  const importInfo = symbolTable ? symbolTable.getImportInfo(objectName) : null;
+  if (!importInfo) {
+    return null; // Not an import, can't resolve statically
+  }
+  
+  // Try to find the method in the imported module
+  const moduleId = importInfo.moduleId;
+  if (!moduleId) {
+    return null;
+  }
+  
+  // This is a simplified resolution - in reality, we'd need to check if
+  // the imported object has a method with that name. For now, we mark it
+  // as potentially resolvable but ambiguous.
+  return {
+    status: 'ambiguous',
+    matches: [],
+    reason: `Member call '${call.callee}' - object '${objectName}' is imported, but method resolution requires deeper analysis`
+  };
+}
+
+/**
+ * Enhanced: Get all functions in a file for lexical scope analysis
+ * @param {string} filePath - File path
+ * @param {Map} functionByName - Map of name → [functions]
+ * @returns {Array} - Array of functions in the file
+ */
+function getFunctionsInFile(filePath, functionByName) {
+  const allFunctions = [];
+  const normalizedPath = normalizePath(filePath);
+  
+  for (const functions of functionByName.values()) {
+    for (const func of functions) {
+      if (normalizePath(func.filePath) === normalizedPath) {
+        allFunctions.push(func);
+      }
+    }
+  }
+  
+  return allFunctions.sort((a, b) => a.start - b.start);
+}
+
+/**
+ * Enhanced: Find lexical matches using scope analysis
+ * Functions defined before the call in the same file are preferred
+ * @param {Object} call - Call expression object
+ * @param {string} calleeName - Name of the called function
+ * @param {Array} functions - Functions in the same file
+ * @returns {Array} - Array of lexical matches with scope depth
+ */
+function findLexicalMatches(call, calleeName, functions) {
+  const matches = [];
+  
+  for (const func of functions) {
+    if (func.name !== calleeName) {
+      continue;
+    }
+    
+    // Check if function is defined before the call
+    if (func.end <= call.start) {
+      // Function is defined before call - higher confidence
+      // Calculate scope depth (how many nested scopes between call and definition)
+      const scopeDepth = calculateScopeDepth(call.start, func.end);
+      matches.push({
+        func,
+        confidence: scopeDepth === 0 ? 'high' : 'medium',
+        details: { 
+          definedBefore: true,
+          scopeDepth
+        }
+      });
+    } else if (func.start > call.end) {
+      // Function is defined after call - lower confidence (hoisting in JS/TS)
+      // Still valid for function declarations due to hoisting
+      matches.push({
+        func,
+        confidence: 'medium',
+        details: { 
+          definedAfter: true,
+          hoistingPossible: true
+        }
+      });
+    }
+  }
+  
+  return matches;
+}
+
+/**
+ * Enhanced: Calculate scope depth between two positions
+ * Simplified heuristic: count function boundaries between positions
+ * @param {number} callPos - Position of the call
+ * @param {number} defPos - Position of the definition
+ * @returns {number} - Scope depth (0 = same scope, higher = more nested)
+ */
+function calculateScopeDepth(callPos, defPos) {
+  // Simplified: assume functions define new scopes
+  // In practice, we'd analyze the AST to count actual scope boundaries
+  // For now, return 0 if definition comes before call (same or outer scope)
+  // and estimate based on distance
+  if (defPos <= callPos) {
+    return 0; // Definition before call, same or outer scope
+  }
+  
+  // Definition after call - estimate scope depth based on proximity
+  // This is a heuristic - actual scope analysis would require AST traversal
+  return 1; // Assume one scope level
+}
+
+/**
+ * Enhanced: Get directory from file path
+ * @param {string} filePath - File path
+ * @returns {string} - Directory path
+ */
+function getDirectory(filePath) {
+  const normalized = normalizePath(filePath);
+  const lastSlash = normalized.lastIndexOf('/');
+  return lastSlash >= 0 ? normalized.substring(0, lastSlash) : '';
+}
+
+/**
+ * Enhanced: Check if two paths are relatively close (same module)
+ * @param {string} path1 - First path
+ * @param {string} path2 - Second path
+ * @returns {boolean} - True if paths are relatively close
+ */
+function isRelativePath(path1, path2) {
+  const dir1 = getDirectory(path1);
+  const dir2 = getDirectory(path2);
+  
+  // Check if one directory is a parent/child of the other
+  return dir1 === dir2 || dir1.startsWith(dir2 + '/') || dir2.startsWith(dir1 + '/');
+}
+
+/**
+ * Enhanced: Compute path similarity between two file paths
+ * Returns a value between 0 and 1, where 1 means identical paths
+ * @param {string} path1 - First path
+ * @param {string} path2 - Second path
+ * @returns {number} - Similarity score (0-1)
+ */
+function computePathSimilarity(path1, path2) {
+  const norm1 = normalizePath(path1);
+  const norm2 = normalizePath(path2);
+  
+  if (norm1 === norm2) {
+    return 1.0;
+  }
+  
+  const dir1 = getDirectory(norm1);
+  const dir2 = getDirectory(norm2);
+  
+  if (dir1 === dir2) {
+    return 0.9; // Same directory
+  }
+  
+  // Count common path segments
+  const segments1 = dir1.split('/').filter(s => s);
+  const segments2 = dir2.split('/').filter(s => s);
+  
+  let commonSegments = 0;
+  const minLength = Math.min(segments1.length, segments2.length);
+  
+  for (let i = 0; i < minLength; i++) {
+    if (segments1[i] === segments2[i]) {
+      commonSegments++;
+    } else {
+      break;
+    }
+  }
+  
+  if (commonSegments === 0) {
+    return 0.0;
+  }
+  
+  // Similarity based on common segments ratio
+  const maxLength = Math.max(segments1.length, segments2.length);
+  return commonSegments / maxLength;
+}
+
+/**
+ * Enhanced: Check if function name suggests it's a common utility
+ * These are often ambiguous across modules
+ * @param {string} name - Function name
+ * @returns {boolean} - True if name suggests common utility
+ */
+function isCommonUtilityName(name) {
+  const commonUtils = ['get', 'set', 'create', 'delete', 'update', 'find', 'map', 'filter', 'reduce', 'forEach'];
+  return commonUtils.some(util => name.toLowerCase().startsWith(util.toLowerCase()));
+}
+
+/**
+ * Enhanced: Get human-readable reason for resolved status
+ * @param {string} matchType - Type of match
+ * @param {Object} details - Match details
+ * @returns {string} - Human-readable reason
+ */
+function getResolvedReason(matchType, details) {
+  const reasons = {
+    'lexical': `Resolved to lexically scoped function${details?.scopeDepth > 0 ? ` (${details.scopeDepth} scope${details.scopeDepth > 1 ? 's' : ''} deep)` : ''}`,
+    'local': 'Resolved to local function definition',
+    'symbol-table-exact': `Resolved via exact symbol table match${details?.resolvedFqn ? ` (${details.resolvedFqn})` : ''}`,
+    'import-exact': `Resolved via exact import match${details?.moduleId ? ` (module: ${details.moduleId})` : ''}`,
+    'import-default': `Resolved via default export import${details?.moduleId ? ` (module: ${details.moduleId})` : ''}`,
+    'symbol-table-module': `Resolved via module-scoped symbol table match${details?.moduleId ? ` (${details.moduleId})` : ''}`,
+    'symbol-table': `Resolved via symbol table match${details?.resolvedFqn ? ` (${details.resolvedFqn})` : ''}`,
+    'import': `Resolved via import${details?.moduleId ? ` (module: ${details.moduleId})` : ''}`,
+    'same-module': `Resolved via same module context${details?.directory ? ` (${details.directory})` : ''}`,
+    'external': 'Resolved to external function (low confidence)'
+  };
+  
+  return reasons[matchType] || 'Resolved via heuristic matching';
 }
 
 /**

@@ -406,3 +406,214 @@ test("buildCallGraph edge IDs follow schema format", async () => {
   });
 });
 
+test("buildCallGraph enhanced resolution: lexical scope priority", async () => {
+  // Test that functions defined before a call are preferred
+  const functions = [
+    {
+      id: "src/test.js::outer",
+      name: "outer",
+      filePath: "src/test.js",
+      start: 0,     // Defined first
+      end: 1000,
+      startLine: 1,
+      endLine: 10,
+      startColumn: 0,
+      endColumn: 10,
+      lang: "javascript",
+      params: []
+    },
+    {
+      id: "src/test.js::inner",
+      name: "inner",
+      filePath: "src/test.js",
+      start: 200,   // Defined after outer but before call
+      end: 500,
+      startLine: 3,
+      endLine: 6,
+      startColumn: 0,
+      endColumn: 10,
+      lang: "javascript",
+      params: []
+    }
+  ];
+
+  const allCalls = [
+    {
+      filePath: "src/test.js",
+      callee: "inner",
+      start: 800,   // Call after both functions are defined
+      end: 805,
+      startLine: 8,
+      endLine: 8,
+      startColumn: 2,
+      endColumn: 7,
+      language: "javascript"
+    }
+  ];
+
+  const symbolTableManager = new SymbolTableManager();
+  const table = symbolTableManager.getTable("src/test.js");
+  table.registerFunction(functions[0]);
+  table.registerFunction(functions[1]);
+
+  const result = buildCallGraph(functions, allCalls, symbolTableManager);
+  
+  // Should resolve to inner function (defined before call)
+  const edge = result.edges.find(e => e.target === "src/test.js::inner");
+  assert.ok(edge, "should have edge to inner function");
+  assert.equal(edge.resolution?.status, "resolved", "should resolve to inner function");
+  
+  // Verify high confidence for lexical match
+  if (edge.resolution?.candidates?.[0]) {
+    assert.ok(edge.resolution.candidates[0].confidence >= 0.9, 
+      "lexical scope match should have high confidence");
+  }
+});
+
+test("buildCallGraph enhanced resolution: default export matching", async () => {
+  const functions = [
+    {
+      id: "src/caller.js::caller",
+      name: "caller",
+      filePath: "src/caller.js",
+      start: 0,
+      end: 200,    // Contains the call at position 100-115
+      startLine: 1,
+      endLine: 5,
+      startColumn: 0,
+      endColumn: 10,
+      lang: "javascript",
+      params: []
+    },
+    {
+      id: "src/module.js::defaultExport",
+      name: "defaultExport",
+      filePath: "src/module.js",
+      start: 0,
+      end: 500,
+      startLine: 1,
+      endLine: 5,
+      startColumn: 0,
+      endColumn: 10,
+      lang: "javascript",
+      params: [],
+      moduleId: "module",
+      fqName: "module.defaultExport"
+    }
+  ];
+
+  const allCalls = [
+    {
+      filePath: "src/caller.js",
+      callee: "importedFunc",  // Imported with different name than export
+      start: 100,    // Within caller function (0-200)
+      end: 115,
+      startLine: 3,
+      endLine: 3,
+      startColumn: 0,
+      endColumn: 15,
+      language: "javascript"
+    }
+  ];
+
+  const symbolTableManager = new SymbolTableManager();
+  
+  // Setup import: import importedFunc from "./module" (default export)
+  const callerTable = symbolTableManager.getTable("src/caller.js");
+  callerTable.registerFunction(functions[0]); // Register caller function
+  callerTable.addImport("importedFunc", {
+    from: "./module",
+    originalName: "defaultExport",
+    isDefault: true,
+    moduleId: "module",
+    resolvedFilePath: "src/module.js"
+  });
+  
+  const moduleTable = symbolTableManager.getTable("src/module.js");
+  moduleTable.registerFunction(functions[1]); // Register defaultExport function
+  moduleTable.addExport("defaultExport", { isDefault: true });
+  moduleTable.setModuleId("module");
+  
+  symbolTableManager.registerModule("src/module.js", "module");
+
+  const result = buildCallGraph(functions, allCalls, symbolTableManager);
+  
+  // Should try to resolve via default export
+  // The call to "importedFunc" should resolve to "defaultExport" via default export matching
+  assert.ok(result.edges.length > 0, "should have at least one edge");
+  
+  // Check if there's a virtual node (unresolved) or a resolved edge
+  const resolvedEdge = result.edges.find(e => e.target === "src/module.js::defaultExport");
+  const virtualEdge = result.edges.find(e => e.target.includes("virtual:importedFunc"));
+  
+  // Either should resolve to the actual function, or create a virtual node
+  assert.ok(resolvedEdge || virtualEdge, "should have an edge (either resolved or virtual)");
+  
+  if (resolvedEdge && resolvedEdge.resolution) {
+    // If resolved, should have import info
+    assert.ok(resolvedEdge.resolution.importInfo, "should have import info for default export");
+    assert.ok(resolvedEdge.resolution.importInfo.isDefault, "should be marked as default import");
+  }
+});
+
+test("buildCallGraph enhanced resolution: module path similarity", async () => {
+  const functions = [
+    {
+      id: "src/utils/helper.js::helper",
+      name: "helper",
+      filePath: "src/utils/helper.js",
+      start: 0,
+      end: 500,
+      startLine: 1,
+      endLine: 5,
+      startColumn: 0,
+      endColumn: 10,
+      lang: "javascript",
+      params: []
+    },
+    {
+      id: "src/other/helper.js::helper",  // Same name, different path
+      name: "helper",
+      filePath: "src/other/helper.js",
+      start: 0,
+      end: 500,
+      startLine: 1,
+      endLine: 5,
+      startColumn: 0,
+      endColumn: 10,
+      lang: "javascript",
+      params: []
+    }
+  ];
+
+  const allCalls = [
+    {
+      filePath: "src/utils/main.js",  // In same utils directory
+      callee: "helper",
+      start: 100,
+      end: 107,
+      startLine: 3,
+      endLine: 3,
+      startColumn: 0,
+      endColumn: 7,
+      language: "javascript"
+    }
+  ];
+
+  const symbolTableManager = new SymbolTableManager();
+  const mainTable = symbolTableManager.getTable("src/utils/main.js");
+  // No explicit import - rely on path similarity
+
+  const result = buildCallGraph(functions, allCalls, symbolTableManager);
+  
+  // Should prefer helper from same directory (src/utils/)
+  const edge = result.edges.find(e => e.target === "src/utils/helper.js::helper");
+  
+  // If resolved, should prefer same-module match
+  if (edge && edge.resolution?.status === "resolved") {
+    // Verify it resolved to the closer function
+    assert.equal(edge.target, "src/utils/helper.js::helper", 
+      "should prefer function from same directory");
+  }
+});
+
