@@ -775,23 +775,31 @@
         <div class="text-center space-y-6">
             <h1 class="title">HELIOS</h1>
             <p class="tagline">See the gravity of your code</p>
+            <p style="font-size: 0.9rem; color: #94a3b8; margin-top: -0.5rem; margin-bottom: 1.5rem;">
+                Visualize your codebase as an interactive 3D graph
+            </p>
             <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
-                <button class="button" id="selectBtn">Select Repository</button>
-                <button class="button hidden" id="resumeBtn" style="background: rgba(129, 140, 248, 0.15); border: 1px solid rgba(129, 140, 248, 0.5);">
+                <button class="button" id="selectBtn" title="Select a local code repository to analyze">Select Repository</button>
+                <button class="button hidden" id="resumeBtn" style="background: rgba(129, 140, 248, 0.15); border: 1px solid rgba(129, 140, 248, 0.5);" title="Resume your last analysis session">
                     Resume Last Session
                 </button>
-                <button class="button" id="loadDemoBtn" type="button" style="background: rgba(34, 197, 94, 0.18); border: 1px solid rgba(34, 197, 94, 0.45); color: #bbf7d0;">
-                    Load Demo
+                <button class="button" id="loadDemoBtn" type="button" style="background: rgba(34, 197, 94, 0.18); border: 1px solid rgba(34, 197, 94, 0.45); color: #bbf7d0;" title="Try HELIOS with a sample codebase - explore features without your own code">
+                    Try Demo
             </button>
             </div>
-            <div class="storage-controls">
-                <button class="button" id="clearStorageBtn" type="button" style="background: rgba(248, 113, 113, 0.15); border: 1px solid rgba(248, 113, 113, 0.35); color: #fecaca;">
-                    Clear Stored Data
+            <div class="storage-controls" style="margin-top: 1rem;">
+                <button class="button" id="clearStorageBtn" type="button" style="background: rgba(248, 113, 113, 0.15); border: 1px solid rgba(248, 113, 113, 0.35); color: #fecaca;" title="Clear all saved layouts and sessions - useful if experiencing issues or want a fresh start">
+                    Reset App
                 </button>
-                <button class="button" id="exportDbBtn" type="button" style="background: rgba(59, 130, 246, 0.15); border: 1px solid rgba(59, 130, 246, 0.35); color: #bfdbfe;" title="Export database for benchmarking">
-                    Export Database
+                <button class="button" id="exportDbBtn" type="button" style="background: rgba(59, 130, 246, 0.15); border: 1px solid rgba(59, 130, 246, 0.35); color: #bfdbfe; opacity: 0.6;" title="Export database for debugging (developer feature - may not work in all browsers)">
+                    Export DB
                 </button>
                 <div class="storage-status" id="storageStatus" role="status" aria-live="polite"></div>
+            </div>
+            <div style="margin-top: 2rem; padding: 1rem; background: rgba(30, 41, 59, 0.3); border-radius: 0.5rem; border: 1px solid rgba(148, 163, 184, 0.1); max-width: 600px; margin-left: auto; margin-right: auto;">
+                <p style="font-size: 0.85rem; color: #94a3b8; margin: 0; line-height: 1.5;">
+                    <strong style="color: #a5b4fc;">First time?</strong> Click "Try Demo" to explore a sample codebase, or "Select Repository" to analyze your own code. HELIOS creates an interactive 3D visualization of your code's structure, dependencies, and relationships.
+                </p>
             </div>
         </div>
 
