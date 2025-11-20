@@ -212,8 +212,8 @@ test("End-to-end: Small parser payload → graph pipeline → analysis", async (
   const summary = analysisResult.summary;
   assert.ok(summary.centrality, "Should have centrality metrics");
   assert.ok(summary.centrality.degree, "Should have degree centrality");
-  assert.ok(summary.centrality.betweenness || Object.keys(summary.centrality.betweenness || {}).length >= 0, "Should have betweenness centrality");
-  assert.ok(summary.centrality.pageRank || Object.keys(summary.centrality.pageRank || {}).length >= 0, "Should have PageRank");
+  assert.ok(summary.centrality.betweenness && typeof summary.centrality.betweenness === 'object', "Should have betweenness centrality");
+  assert.ok(summary.centrality.pageRank && typeof summary.centrality.pageRank === 'object', "Should have PageRank");
   
   assert.ok(summary.communities, "Should have community detection results");
   assert.ok(summary.cliques, "Should have clique analysis results");
