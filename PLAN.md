@@ -128,7 +128,7 @@ Tree-sitter's query DSL lets you capture these nodes robustly.
 
 ### 3.4 Function Chunking and Embeddings
 
-[BlueBear - UPDATED - 2025-11-20 12:20]
+[BlueBear - UPDATED - 2025-11-20 13:05]
 
 ✅ Chunking scaffolding (line-aware splits with source offsets)
 ✅ Embedding worker inference (Transformers.js MiniLM via WebGPU/WASM)
@@ -136,7 +136,7 @@ Tree-sitter's query DSL lets you capture these nodes robustly.
 ✅ Incremental delta updates (reuse cached function chunks, re-embed only changed sources via per-function fingerprints)
 ✅ Runtime backend detection surfaced (WebGPU probe + UI summary to confirm active inference engine)
 ✅ Local Transformers/ORT mirrors with worker fallback (prefers `/public/vendor` bundles; CDN-only environments still supported)
-✅ Code review completed (2025-11-20 12:19) - reviewed commits a03484a (enhanced name resolution), 951b294 (PageRank fix), 4d69c3f (retention integration test), 73af23c (baseline regeneration); found LOW severity edge case in PinkMountain's default export resolution (empty targetModuleFiles array; reported via [REVIEW] message 504); all other commits verified solid; continuing proactive code review
+✅ Code review completed (2025-11-20 13:01) - reviewed commits b536b2d (edge case fix), 494d528 (status optimization), 0640185 (redundant fallback cleanup), 3e83379 (parser documentation), 1bfcc5e (progress update); verified fixes are correct; found LOW severity issue in b536b2d (missing match type handling for 'import-default-fallback'; reported via [REVIEW] message 515); continuing proactive code review
 
 - **Chunking**: Within each function, split by syntactic boundaries (statement blocks / loop bodies / logical sections) to keep chunks ~100–200 tokens. Maintain chunk offsets into the source so clicks can highlight text accurately.
 - **Model**: Start with a compact, general-purpose text/code embedding like MiniLM (384-dim) in ONNX via Transformers.js, loading from HF hub through the library's CDN resolver. Models cache in the browser (Cache API/IndexedDB) to avoid re-downloads. Provide a setting to force WebGPU backend when available; fall back to WASM.
@@ -145,7 +145,7 @@ Tree-sitter's query DSL lets you capture these nodes robustly.
 
 ### 3.5 Embedding Aggregation and Similarity
 
-[BlueBear - UPDATED - 2025-11-20 12:20]
+[BlueBear - UPDATED - 2025-11-20 13:05]
 
 ✅ Representative vector computation (per-function mean + normalization)
 ✅ Top-k bundle similarity with cosine metrics (candidate limit + thresholding)
@@ -155,7 +155,7 @@ Tree-sitter's query DSL lets you capture these nodes robustly.
 ✅ Large-scale ANN benchmarking (100% — harness + CLI + export tool + browser export button complete; full workflow: load repo → click export → run benchmark CLI)
 ✅ Similarity edge schema compliance (type: 'similarity', id, metadata, undirected fields added; full compliance with docs/payloads.md; visualization-ready)
 ✅ Payload sample updated (docs/payload-sample.json updated with schema-compliant similarity edges for integration testing)
-✅ Code review completed (2025-11-20 12:19) - reviewed commits a03484a (enhanced name resolution), 951b294 (PageRank fix), 4d69c3f (retention integration test), 73af23c (baseline regeneration); found LOW severity edge case in PinkMountain's default export resolution (empty targetModuleFiles array; reported via [REVIEW] message 504); all other commits verified solid; continuing proactive code review
+✅ Code review completed (2025-11-20 13:01) - reviewed commits b536b2d (edge case fix), 494d528 (status optimization), 0640185 (redundant fallback cleanup), 3e83379 (parser documentation), 1bfcc5e (progress update); verified fixes are correct; found LOW severity issue in b536b2d (missing match type handling for 'import-default-fallback'; reported via [REVIEW] message 515); continuing proactive code review
 
 - Represent each function by a set `E_f = {e_1 … e_m}` of chunk vectors.
 - **Function-to-function correlation**: Default metric = cosine similarity.
