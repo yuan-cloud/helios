@@ -857,20 +857,6 @@ function mergeResolution(existing, incoming) {
   return existing;
 }
 
-function mergeMatches(current = [], incoming = []) {
-  const map = new Map();
-  [...current, ...incoming].forEach(match => {
-    if (!match) {
-      return;
-    }
-    const key = match.id || `${match.filePath}:${match.name}`;
-    if (!map.has(key)) {
-      map.set(key, match);
-    }
-  });
-  return Array.from(map.values()).slice(0, 12);
-}
-
 function computeStats(nodes, edges) {
   let staticEdges = 0;
   let dynamicEdges = 0;
