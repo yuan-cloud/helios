@@ -3,6 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="author" content="yuan-cloud">
+    <meta name="description" content="HELIOS - Interactive 3D visualization of codebase structure. Built by yuan-cloud using AST parsing, semantic embeddings, and graph analysis.">
     <title>HELIOS - See the gravity of your code</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -3888,6 +3890,43 @@
         bootstrapApp().catch(err => {
             console.error('HELIOS bootstrap error:', err);
             setStorageStatus('Initialization failed. Please refresh the page.', 'error');
+        });
+    </script>
+
+    <footer id="siteFooter" style="position: fixed; bottom: 0; left: 0; right: 0; padding: 0.75rem 1rem; text-align: center; background: rgba(15, 23, 42, 0.75); backdrop-filter: blur(8px); border-top: 1px solid rgba(148, 163, 184, 0.08); z-index: 50; font-size: 0.8rem; color: #94a3b8; opacity: 0.9; transition: opacity 0.3s ease;">
+        <div style="max-width: 1200px; margin: 0 auto;">
+            <p style="margin: 0; line-height: 1.5;">
+                Built by <a href="https://github.com/yuan-cloud" target="_blank" rel="noopener noreferrer" style="color: #a5b4fc; text-decoration: none; font-weight: 600; transition: color 0.2s;">yuan-cloud</a>
+                <span style="margin: 0 0.5rem; opacity: 0.5;">•</span>
+                <a href="https://github.com/yuan-cloud/helios" target="_blank" rel="noopener noreferrer" style="color: #a5b4fc; text-decoration: none; transition: color 0.2s;">View on GitHub</a>
+                <span style="margin: 0 0.5rem; opacity: 0.5;">•</span>
+                Powered by <a href="https://github.com/Dicklesworthstone/mcp_agent_mail" target="_blank" rel="noopener noreferrer" style="color: #a5b4fc; text-decoration: none; transition: color 0.2s;">MCP Agent Mail</a>
+            </p>
+        </div>
+    </footer>
+    <script>
+        // Hide footer when visualization is active
+        const footer = document.getElementById('siteFooter');
+        const originalDisplayResults = displayResults;
+        displayResults = function() {
+            originalDisplayResults();
+            if (footer) footer.style.display = 'none';
+        };
+        // Show footer when back to hero view
+        const originalVisualize = window.visualize;
+        if (typeof visualize === 'function') {
+            const originalVisualizeFn = visualize;
+            window.visualize = function() {
+                if (footer) footer.style.display = 'none';
+                originalVisualizeFn();
+            };
+        }
+        // Show footer on page load if hero is visible
+        document.addEventListener('DOMContentLoaded', () => {
+            const heroContainer = document.querySelector('.hero-container');
+            if (heroContainer && !heroContainer.classList.contains('hidden') && footer) {
+                footer.style.display = 'block';
+            }
         });
     </script>
 </body>
