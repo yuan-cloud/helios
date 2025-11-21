@@ -11,7 +11,7 @@
     <script src="/coi-serviceworker.js"></script>
     <script type="importmap">
     {
-      "imports": {
+        "imports": {
           "web-tree-sitter": "/public/vendor/tree-sitter.js",
           "3d-force-graph": "/public/vendor/3d-force-graph/3d-force-graph.mjs",
           "@xenova/transformers": "/public/vendor/transformers.min.js",
@@ -30,7 +30,7 @@
           "three-render-objects": "https://esm.run/three-render-objects@1.40.4",
           "accessor-fn": "https://esm.run/accessor-fn@1.5.3",
           "kapsule": "https://esm.run/kapsule@1.16.3"
-      }
+        }
     }
     </script>
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cdefs%3E%3CradialGradient id='g' cx='50%25' cy='50%25' r='50%25'%3E%3Cstop offset='0%25' stop-color='%23a855f7'/%3E%3Cstop offset='55%25' stop-color='%236366f1'/%3E%3Cstop offset='100%25' stop-color='%230a0e27'/%3E%3C/radialGradient%3E%3C/defs%3E%3Ccircle cx='32' cy='32' r='30' fill='url(%23g)'/%3E%3C/svg%3E">
@@ -733,7 +733,7 @@
             cursor: pointer !important;
             transition: all 0.2s !important;
         }
-        
+
         .viz-close-button:not(.hidden) {
             display: block !important;
             visibility: visible !important;
@@ -778,7 +778,7 @@
         <div class="gravity-particle"></div>
         <div class="gravity-particle"></div>
     </div>
-    
+
     <div class="hero-container">
         <div class="text-center space-y-6">
             <h1 class="title">HELIOS</h1>
@@ -1115,7 +1115,7 @@
             }
             demoLoading.classList.remove('hidden');
             demoLoading.setAttribute('aria-hidden', 'false');
-        }
+            }
 
         function hideDemoLoading() {
             if (!demoLoading) {
@@ -1128,7 +1128,7 @@
         function computeSimilarityStatsFromEdges(edges = []) {
             if (!Array.isArray(edges) || edges.length === 0) {
                 return null;
-            }
+        }
             let min = Infinity;
             let max = -Infinity;
             let total = 0;
@@ -1159,26 +1159,26 @@
         }
 
         function resetAnalysisState({ showProgress = false, progressLabel = 'Preparing analysis...', resetVisualization = false } = {}) {
-            sourceFiles = [];
+                sourceFiles = [];
             fileHandles = new Map();
-            sourceFileIndex.clear();
-            moduleIndex.clear();
+                sourceFileIndex.clear();
+                moduleIndex.clear();
             totalFiles = 0;
             scannedFiles = 0;
-            allFunctions = [];
-            allCalls = [];
-            callGraph = null;
-            fullVizData = null;
-            functionMapById = new Map();
-            embeddingChunks = [];
-            embeddingStats = null;
-            embeddingVectors = [];
-            embeddingMetadata = {
+                allFunctions = [];
+                allCalls = [];
+                callGraph = null;
+                fullVizData = null;
+                functionMapById = new Map();
+                embeddingChunks = [];
+                embeddingStats = null;
+                embeddingVectors = [];
+                embeddingMetadata = {
                 backend: embeddingEnvironment.backend || null,
-                modelId: null,
-                dimension: null
-            };
-            embeddingError = null;
+                    modelId: null,
+                    dimension: null
+                };
+                embeddingError = null;
             
             // Reset visualization state if requested (when selecting new repo or loading demo)
             if (resetVisualization && graphViz) {
@@ -1193,7 +1193,7 @@
             }
             embeddingFingerprint = null;
             usedCachedEmbeddings = false;
-            embeddingReuseCounts = { reused: 0, embedded: 0 };
+                embeddingReuseCounts = { reused: 0, embedded: 0 };
             functionEmbeddings = [];
             similarityEdges = [];
             similarityStats = null;
@@ -1203,25 +1203,25 @@
             graphSerialized = { nodes: [], edges: [] };
             graphExtras = null;
             latestEmbeddingSummary = null;
-            latestFunctionFingerprintMap = null;
+                latestFunctionFingerprintMap = null;
             resumeSnapshot = null;
             resumeBtn?.classList.add('hidden');
             if (symbolTableManager && typeof symbolTableManager.clear === 'function') {
                 symbolTableManager.clear();
             }
             updateEmbeddingSummary(embeddingEnvironmentSummary || null);
-            window.heliosEmbeddingChunks = [];
-            window.heliosEmbeddingStats = null;
-            window.heliosEmbeddings = null;
-            window.heliosEmbeddingReuse = null;
-            window.heliosEmbeddingError = null;
-            window.heliosFunctionEmbeddings = null;
-            window.heliosSimilarity = null;
-            fileList.innerHTML = '';
+                window.heliosEmbeddingChunks = [];
+                window.heliosEmbeddingStats = null;
+                window.heliosEmbeddings = null;
+                window.heliosEmbeddingReuse = null;
+                window.heliosEmbeddingError = null;
+                window.heliosFunctionEmbeddings = null;
+                window.heliosSimilarity = null;
+                fileList.innerHTML = '';
             counter.textContent = 'No source files loaded yet';
-            functionsCounter.textContent = '0 functions extracted';
-            visualizeBtn.classList.add('hidden');
-            progressFill.style.width = '0%';
+                functionsCounter.textContent = '0 functions extracted';
+                visualizeBtn.classList.add('hidden');
+                progressFill.style.width = '0%';
             progressText.textContent = progressLabel;
             if (storageStatusEl) {
                 storageStatusEl.textContent = '';
@@ -1256,16 +1256,12 @@
             } else if (message && message.includes('will not persist')) {
                 storageStatusEl.dataset.explanation = 'Your data is stored temporarily in browser memory. It will be lost when you close the browser tab. To enable persistent storage, your browser needs to support local file storage (most modern browsers do this automatically).';
                 storageStatusEl.title = 'Click for details';
-            } else if (message && (message.includes('Demo dataset') || message.includes('in-memory sample'))) {
-                storageStatusEl.dataset.explanation = 'Demo dataset loaded - This is a sample codebase for exploring HELIOS features. The demo data is loaded into memory and will not be saved. To analyze your own code, click "Select Repository".';
-                storageStatusEl.title = 'Click for details';
-            } else if (message && message.length > 0) {
-                // For other messages, use the message as explanation but make it clickable
-                storageStatusEl.dataset.explanation = message;
+            } else if (message && message.includes('Demo dataset loaded')) {
+                storageStatusEl.dataset.explanation = 'Demo dataset loaded successfully. This is a sample codebase (4 TypeScript files) that demonstrates HELIOS features. The demo data is stored in memory and will be lost when you close the browser tab. To save your work, analyze your own repository instead.';
                 storageStatusEl.title = 'Click for details';
             } else {
-                storageStatusEl.dataset.explanation = 'Storage status';
-                storageStatusEl.title = 'Storage status';
+                storageStatusEl.dataset.explanation = message || 'Storage status';
+                storageStatusEl.title = message || 'Storage status';
             }
         }
 
@@ -1487,15 +1483,15 @@
                 totalFiles = await countFiles(directoryHandle);
                 progressText.textContent = 'Scanning files...';
                 await scanDirectory(directoryHandle, '');
-                
+
                 progressText.textContent = 'Parsing source files...';
                 await parseSourceFiles();
-                
+
                 progressText.textContent = 'Building call graph...';
                 callGraph = buildCallGraph(allFunctions, allCalls, symbolTableManager);
-                
+
                 const stats = callGraph?.stats || { totalEdges: 0, staticEdges: 0, dynamicEdges: 0 };
-                
+
                 // Show results container and visualize button immediately after parsing/call graph
                 // Embeddings can continue in background
                 progressContainer.classList.add('hidden');
@@ -1949,7 +1945,7 @@
             
             // Hide visualization container
             if (vizContainer) {
-                vizContainer.classList.add('hidden');
+            vizContainer.classList.add('hidden');
                 vizContainer.style.setProperty('display', 'none', 'important');
                 vizContainer.style.setProperty('visibility', 'hidden', 'important');
                 vizContainer.style.setProperty('opacity', '0', 'important');
@@ -2013,12 +2009,12 @@
         }
 
         async function scanDirectory(directoryHandle, currentPath) {
-                for await (const entry of directoryHandle.values()) {
-                    if (entry.kind === 'file') {
-                        scannedFiles++;
-                        const fileName = entry.name;
-                        const fullPath = currentPath ? `${currentPath}/${fileName}` : fileName;
-                        
+            for await (const entry of directoryHandle.values()) {
+                if (entry.kind === 'file') {
+                    scannedFiles++;
+                    const fileName = entry.name;
+                    const fullPath = currentPath ? `${currentPath}/${fileName}` : fileName;
+
                     const extension = getExtension(fileName);
                     if (SUPPORTED_EXTENSIONS.includes(extension)) {
                         const language = parserManager.detectLanguage(fullPath);
@@ -2032,29 +2028,29 @@
                     }
 
                     updateProgress('Scanning...', scannedFiles, totalFiles);
-                    } else if (entry.kind === 'directory') {
-                        const dirName = entry.name.toLowerCase();
+                } else if (entry.kind === 'directory') {
+                    const dirName = entry.name.toLowerCase();
                     if (['node_modules', '.git', 'dist', 'build', '.next', 'out', 'coverage'].includes(dirName)) {
-                            continue;
-                        }
-                        const newPath = currentPath ? `${currentPath}/${entry.name}` : entry.name;
-                        await scanDirectory(entry, newPath);
+                        continue;
                     }
+                    const newPath = currentPath ? `${currentPath}/${entry.name}` : entry.name;
+                    await scanDirectory(entry, newPath);
+                }
             }
         }
 
         async function countFiles(directoryHandle) {
             let count = 0;
-                for await (const entry of directoryHandle.values()) {
-                    if (entry.kind === 'file') {
-                        count++;
-                    } else if (entry.kind === 'directory') {
-                        const dirName = entry.name.toLowerCase();
+            for await (const entry of directoryHandle.values()) {
+                if (entry.kind === 'file') {
+                    count++;
+                } else if (entry.kind === 'directory') {
+                    const dirName = entry.name.toLowerCase();
                     if (['node_modules', '.git', 'dist', 'build', '.next', 'out', 'coverage'].includes(dirName)) {
-                            continue;
-                        }
-                        count += await countFiles(entry);
+                        continue;
                     }
+                    count += await countFiles(entry);
+                }
             }
             return count;
         }
@@ -2479,7 +2475,7 @@
                 const { path, language } = file;
                 const label = languageDisplayNames[language] || language;
                 const fileFunctions = allFunctions.filter(f => f.filePath === path);
-                
+
                 const fileItem = document.createElement('div');
                 fileItem.className = 'file-item';
                 fileItem.innerHTML = `
@@ -2529,7 +2525,7 @@
                 console.log('[Visualization] Call graph validated, proceeding with initialization...');
 
                 // Force show viz container
-                vizContainer.classList.remove('hidden');
+            vizContainer.classList.remove('hidden');
                 vizContainer.style.setProperty('display', 'grid', 'important');
                 vizContainer.style.setProperty('visibility', 'visible', 'important');
                 vizContainer.style.setProperty('opacity', '1', 'important');
@@ -2661,7 +2657,7 @@
                     console.warn('[Visualization] Error disposing inspector:', err);
                 }
             }
-            inspector = new InspectorPanel(vizInspector);
+                inspector = new InspectorPanel(vizInspector);
 
             if (controls) {
                 try {
@@ -2681,10 +2677,10 @@
                         height: vizControls.offsetHeight,
                         innerHTML: vizControls.innerHTML.length
                     });
-                    controls = new VisualizationControls(vizControls, graphViz);
-                    if (typeof controls.setEmbeddingSummary === 'function') {
-                        controls.setEmbeddingSummary(latestEmbeddingSummary || null);
-                    }
+                controls = new VisualizationControls(vizControls, graphViz);
+                if (typeof controls.setEmbeddingSummary === 'function') {
+                    controls.setEmbeddingSummary(latestEmbeddingSummary || null);
+                }
                     console.log('[Visualization] VisualizationControls created, container has content:', vizControls.innerHTML.length > 0);
                     
                     // Force sidebar visible again after controls are created
@@ -2700,7 +2696,7 @@
                     console.error('[Visualization] ERROR: vizControls element not found!');
                 } else if (controls) {
                     console.log('[Visualization] VisualizationControls already exists, reusing');
-                }
+            }
 
             graphViz.onHoverDetails = (info) => {
                 if (controls && typeof controls.setHoverInfo === 'function') {
@@ -2770,7 +2766,7 @@
                 alert('No graph data available to visualize. Please ensure parsing completed successfully.');
                 return;
             }
-            
+
             const initialFilters = controls ? controls.getFilters() : {};
             console.log('[Visualization] Calling applyVisualizationFilters with', fullVizData.nodes.length, 'nodes');
             applyVisualizationFilters(initialFilters);
@@ -3094,22 +3090,22 @@
                 })();
 
                 return {
-                    id: fn.id,
+                id: fn.id,
                     fqName: fn.fqName || fn.name || fn.id,
                     name: fn.name || fn.fqName || fn.id,
-                    filePath: fn.filePath,
-                    lang: fn.lang || detectLanguageFromPath(fn.filePath),
-                    moduleId: fn.moduleId || null,
-                    isVirtual: !!fn.isVirtual,
+                filePath: fn.filePath,
+                lang: fn.lang || detectLanguageFromPath(fn.filePath),
+                moduleId: fn.moduleId || null,
+                isVirtual: !!fn.isVirtual,
                     size: fn.loc || locEstimate,
                     startLine,
                     endLine,
                     startColumn,
                     endColumn,
-                    doc: fn.doc || '',
-                    metrics: fn.metrics || {},
+                doc: fn.doc || '',
+                metrics: fn.metrics || {},
                     analysis: fn.analysis || null,
-                    source: fn.source || ''
+                source: fn.source || ''
                 };
             });
 
@@ -3207,7 +3203,7 @@
                 });
                 return;
             }
-            
+
             console.log('[applyVisualizationFilters] fullVizData has', fullVizData.nodes.length, 'nodes and', fullVizData.links.length, 'links');
             
             // Verify data structure
@@ -3221,37 +3217,37 @@
             }
 
             try {
-                const moduleFilter = filters.module?.toLowerCase() || filters.folder?.toLowerCase() || '';
-                const languageFilter = filters.language || '';
-                const minSize = Number.isFinite(filters.minSize) ? filters.minSize : 0;
-                const maxSize = Number.isFinite(filters.maxSize) ? filters.maxSize : Infinity;
+            const moduleFilter = filters.module?.toLowerCase() || filters.folder?.toLowerCase() || '';
+            const languageFilter = filters.language || '';
+            const minSize = Number.isFinite(filters.minSize) ? filters.minSize : 0;
+            const maxSize = Number.isFinite(filters.maxSize) ? filters.maxSize : Infinity;
 
                 console.log('[applyVisualizationFilters] Filter params:', { moduleFilter, languageFilter, minSize, maxSize });
 
-                const filteredNodes = fullVizData.nodes.filter(node => {
+            const filteredNodes = fullVizData.nodes.filter(node => {
                     try {
-                        if (moduleFilter && !(node.filePath || '').toLowerCase().includes(moduleFilter)) {
-                            return false;
-                        }
-                        if (languageFilter && node.lang !== languageFilter) {
-                            return false;
-                        }
-                        if (node.size < minSize) {
-                            return false;
-                        }
-                        if (Number.isFinite(maxSize) && node.size > maxSize) {
-                            return false;
-                        }
-                        return true;
+                if (moduleFilter && !(node.filePath || '').toLowerCase().includes(moduleFilter)) {
+                    return false;
+                }
+                if (languageFilter && node.lang !== languageFilter) {
+                    return false;
+                }
+                if (node.size < minSize) {
+                    return false;
+                }
+                if (Number.isFinite(maxSize) && node.size > maxSize) {
+                    return false;
+                }
+                return true;
                     } catch (nodeErr) {
                         console.error('[applyVisualizationFilters] Error filtering node:', node, nodeErr);
                         return false;
                     }
-                });
+            });
 
                 console.log('[applyVisualizationFilters] Filtered nodes:', filteredNodes.length, 'out of', fullVizData.nodes.length);
 
-                const allowedIds = new Set(filteredNodes.map(node => node.id));
+            const allowedIds = new Set(filteredNodes.map(node => node.id));
                 console.log('[applyVisualizationFilters] Allowed node IDs:', Array.from(allowedIds));
 
                 const filteredLinks = fullVizData.links.filter(link => {
@@ -3267,7 +3263,7 @@
                     throw new Error('graphViz.loadData is not a function! graphViz:', graphViz);
                 }
 
-                graphViz.loadData({ nodes: filteredNodes, links: filteredLinks });
+            graphViz.loadData({ nodes: filteredNodes, links: filteredLinks });
                 console.log('[applyVisualizationFilters] loadData() completed successfully');
             } catch (err) {
                 console.error('[applyVisualizationFilters] ERROR:', err);
