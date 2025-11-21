@@ -2,7 +2,7 @@
 
 > **See the gravity of your code** — Interactive 3D visualization of codebase structure using AST parsing, semantic embeddings, and graph analysis.
 
-[![Live Demo](https://img.shields.io/badge/demo-live-brightgreen)](https://yuan-cloud.github.io/helios/)
+[![Live Demo](https://img.shields.io/badge/demo-live-brightgreen)](https://helios-dhp.pages.dev/)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
 HELIOS is a **client-side only** web application that visualizes codebases as interactive 3D force-directed graphs. It runs entirely in your browser—no server, no data uploads, complete privacy.
@@ -31,7 +31,7 @@ HELIOS is a **client-side only** web application that visualizes codebases as in
 
 ### Try the Demo
 
-1. Visit the [live demo](https://yuan-cloud.github.io/helios/)
+1. Visit the [live demo](https://helios-dhp.pages.dev/)
 2. Click **"Load Demo"** to see a sample codebase visualization
 3. Or **"Select Repository"** to analyze your own code
 
