@@ -2,4 +2,5 @@ name = "helios"
 compatibility_date = "2024-11-21"
 
 pages_build_output_dir = "."
+exclude = ["node_modules/**", "mcp_agent_mail/**"]
 
