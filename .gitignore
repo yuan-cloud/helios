@@ -63,3 +63,4 @@ mcp_agent_mail/
 
 # Internal documentation (not for public)
 docs/internal/
+docs/SECURITY_AUDIT.md
