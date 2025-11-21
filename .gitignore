@@ -1,3 +1,61 @@
 .DS_Store
 src/.DS_Store
 
+# MCP Agent Mail - Sensitive Files (DO NOT COMMIT)
+mcp_agent_mail/.env
+mcp_agent_mail/.mcp.json
+mcp_agent_mail/*.mcp.json
+mcp_agent_mail/storage.sqlite3*
+mcp_agent_mail/logs/
+mcp_agent_mail/signing-*.key
+mcp_agent_mail/.venv/
+mcp_agent_mail/.claude/
+mcp_agent_mail/backup_config_files/
+mcp_agent_mail/.uv/
+mcp_agent_mail/__pycache__/
+mcp_agent_mail/*.pyc
+mcp_agent_mail/*.pyo
+mcp_agent_mail/*.pyd
+mcp_agent_mail/.pytest_cache/
+mcp_agent_mail/.mypy_cache/
+mcp_agent_mail/.ruff_cache/
+mcp_agent_mail/out/
+mcp_agent_mail/tmp/
+mcp_agent_mail/temp/
+
+# Node modules (if not already ignored)
+node_modules/
+.pnp
+.pnp.js
+
+# Build outputs
+dist/
+build/
+*.tsbuildinfo
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Temporary files
+*.tmp
+*.temp
+*.bak
+*.backup
+mcp_agent_mail/
