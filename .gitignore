@@ -60,3 +60,6 @@ logs/
 *.backup
 mcp_agent_mail/
 mcp_agent_mail/
+
+# Internal documentation (not for public)
+docs/internal/
