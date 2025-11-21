@@ -1837,9 +1837,9 @@ export class GraphVisualization {
       
       // Wait a frame for rendering to complete (use requestAnimationFrame instead of await for non-async function)
       requestAnimationFrame(() => {
-        // Verify canvas exists after render
-        const canvas = this.container?.querySelector('canvas');
-        if (canvas) {
+      // Verify canvas exists after render
+      const canvas = this.container?.querySelector('canvas');
+      if (canvas) {
           const canvasStyle = window.getComputedStyle(canvas);
           console.log('[GraphViz] Canvas found after render:', canvas.width, 'x', canvas.height, 
                      'display:', canvasStyle.display, 'visibility:', canvasStyle.visibility);
@@ -1860,11 +1860,11 @@ export class GraphVisualization {
               containerHeight: this.container?.offsetHeight
             });
           }
-        } else {
-          console.error('[GraphViz] ERROR: Canvas not found after render!');
+      } else {
+        console.error('[GraphViz] ERROR: Canvas not found after render!');
           console.error('[GraphViz] Container:', this.container);
           console.error('[GraphViz] Container children:', Array.from(this.container?.children || []).map(c => c.tagName));
-        }
+      }
       });
     } catch (err) {
       console.error('[GraphViz] ERROR in graphData() or repaintGraph():', err);
