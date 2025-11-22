@@ -104,7 +104,6 @@ python3 -m http.server 8000
 ## 📚 Documentation
 
 - **[PLAN.md](PLAN.md)** - Complete technical specification
-- **[docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)** - Deployment guide
 - **[docs/storage.md](docs/storage.md)** - Storage architecture
 - **[docs/parser.md](docs/parser.md)** - Parser implementation details
 - **[docs/ux-analysis-new-user.md](docs/ux-analysis-new-user.md)** - UX design decisions
