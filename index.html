@@ -1818,8 +1818,18 @@
                 return;
             }
             try {
+                // Get platform info (use stored or detect fresh)
+                const platformInfo = window.heliosPlatformInfo || {
+                    hasFileSystemAccess: !!window.showDirectoryPicker,
+                    hasWebkitDirectory: 'webkitdirectory' in document.createElement('input'),
+                    isIOS: /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream,
+                    isIOSChrome: /iPad|iPhone|iPod/.test(navigator.userAgent) && /CriOS/.test(navigator.userAgent),
+                    isIOSSafari: /iPad|iPhone|iPod/.test(navigator.userAgent) && !/CriOS/.test(navigator.userAgent) && /Safari/.test(navigator.userAgent)
+                };
+                const { hasFileSystemAccess, hasWebkitDirectory, isIOS, isIOSChrome } = platformInfo;
+                
                 // Priority 1: File System Access API (desktop Chrome/Edge)
-                if (hasFileSystemAccess) {
+                if (hasFileSystemAccess && !isIOS) {
                     const directoryHandle = await window.showDirectoryPicker();
                     await processDirectory(directoryHandle);
                 }
@@ -1849,8 +1859,12 @@
                             zipFileInput.click();
                         }
                     } else {
-                        progressText.textContent = 'Error: ' + (error?.message || 'Unknown error');
-                        setTimeout(() => progressContainer.classList.add('hidden'), 3000);
+                        if (progressText) {
+                            progressText.textContent = 'Error: ' + (error?.message || 'Unknown error');
+                            if (progressContainer) {
+                                setTimeout(() => progressContainer.classList.add('hidden'), 3000);
+                            }
+                        }
                     }
                 }
             }
