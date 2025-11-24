@@ -3812,7 +3812,17 @@
             let analysisResult = null;
             let collected = null;
             try {
+                console.log('[updateGraphData] Calling graphWorkerClient.analyze...', {
+                    functionsCount: mergedPayload.parser?.functions?.length || 0,
+                    callEdgesCount: mergedPayload.parser?.callEdges?.length || 0,
+                    similarityEdgesCount: mergedPayload.embeddings?.similarityEdges?.length || 0
+                });
                 analysisResult = await graphWorkerClient.analyze(mergedPayload, { assignMetrics: true });
+                console.log('[updateGraphData] graphWorkerClient.analyze completed', {
+                    viaWorker: analysisResult?.viaWorker,
+                    hasGraph: !!analysisResult?.graph,
+                    hasSummary: !!analysisResult?.summary
+                });
                 collected = analysisResult.collected || collectGraphPayload(mergedPayload);
 
                 graphAnalysis = analysisResult.graph || null;
@@ -3832,7 +3842,9 @@
 
                 fullVizData = convertCallGraphToVizData(graphSerialized, { includeFallbackSimilarity: false });
             } catch (err) {
-                console.error('Graph analysis failed:', err);
+                console.error('[updateGraphData] Graph analysis failed:', err);
+                console.error('[updateGraphData] Error details:', err?.stack || err);
+                console.error('[updateGraphData] Error message:', err?.message || String(err));
                 graphAnalysis = null;
                 graphSummary = null;
                 graphSerialized = { nodes: [], edges: [] };
