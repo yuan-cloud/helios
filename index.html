@@ -1635,6 +1635,54 @@
             });
         }
         
+        // Ensure touch events work on mobile - MUST be defined before use
+        function addTouchSupport(element, handler) {
+            if (!element) {
+                console.warn('[HELIOS] addTouchSupport: element is null');
+                return;
+            }
+            
+            // Ensure element is clickable on mobile
+            element.style.touchAction = 'manipulation';
+            element.style.webkitTapHighlightColor = 'rgba(99, 102, 241, 0.3)';
+            element.style.cursor = 'pointer';
+            element.style.pointerEvents = 'auto';
+            element.style.userSelect = 'none';
+            element.style.webkitUserSelect = 'none';
+            
+            let touchStartTime = 0;
+            let touchMoved = false;
+            
+            // Touch start - track if user moved finger
+            element.addEventListener('touchstart', (e) => {
+                touchStartTime = Date.now();
+                touchMoved = false;
+            }, { passive: true });
+            
+            // Touch move - mark as moved
+            element.addEventListener('touchmove', () => {
+                touchMoved = true;
+            }, { passive: true });
+            
+            // Touch end - fire handler if it was a tap (not a swipe)
+            element.addEventListener('touchend', (e) => {
+                if (!element.disabled && !touchMoved && (Date.now() - touchStartTime) < 500) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    handler(e);
+                }
+            }, { passive: false });
+            
+            // Also add click handler as fallback
+            element.addEventListener('click', (e) => {
+                if (!element.disabled) {
+                    handler(e);
+                }
+            });
+            
+            console.log('[HELIOS] Added touch support to:', element.id || element.className || 'unknown element');
+        }
+        
         // Add click handlers to buttons to show their explanations
         function showButtonHelp(buttonId, explanation) {
             const btn = document.getElementById(buttonId);
@@ -2490,53 +2538,6 @@
             }
         }
 
-        // Ensure touch events work on mobile
-        const addTouchSupport = (element, handler) => {
-            if (!element) {
-                console.warn('[HELIOS] addTouchSupport: element is null');
-                return;
-            }
-            
-            // Ensure element is clickable on mobile
-            element.style.touchAction = 'manipulation';
-            element.style.webkitTapHighlightColor = 'rgba(99, 102, 241, 0.3)';
-            element.style.cursor = 'pointer';
-            element.style.pointerEvents = 'auto';
-            element.style.userSelect = 'none';
-            element.style.webkitUserSelect = 'none';
-            
-            let touchStartTime = 0;
-            let touchMoved = false;
-            
-            // Touch start - track if user moved finger
-            element.addEventListener('touchstart', (e) => {
-                touchStartTime = Date.now();
-                touchMoved = false;
-            }, { passive: true });
-            
-            // Touch move - mark as moved
-            element.addEventListener('touchmove', () => {
-                touchMoved = true;
-            }, { passive: true });
-            
-            // Touch end - fire handler if it was a tap (not a swipe)
-            element.addEventListener('touchend', (e) => {
-                if (!element.disabled && !touchMoved && (Date.now() - touchStartTime) < 500) {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    handler(e);
-                }
-            }, { passive: false });
-            
-            // Also add click handler as fallback
-            element.addEventListener('click', (e) => {
-                if (!element.disabled) {
-                    handler(e);
-                }
-            });
-            
-            console.log('[HELIOS] Added touch support to:', element.id || element.className || 'unknown element');
-        };
 
         addTouchSupport(loadDemoBtn, async () => {
             if (loadDemoBtn?.disabled) {
