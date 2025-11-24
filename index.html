@@ -880,12 +880,37 @@
                 -webkit-overflow-scrolling: touch;
             }
             
-            /* On mobile, graph takes full screen when sidebar is closed */
+            /* CRITICAL: On mobile, graph MUST take full screen and be visible */
+            .viz-container:not(.hidden) {
+                position: fixed !important;
+                inset: 0 !important;
+                display: block !important;
+                grid-template-columns: none !important;
+            }
+            
             .viz-container:not(.hidden) .viz-graph {
                 width: 100% !important;
                 height: 100% !important;
-                position: relative !important;
+                position: absolute !important;
+                top: 0 !important;
+                left: 0 !important;
+                right: 0 !important;
+                bottom: 0 !important;
                 z-index: 100 !important;
+                display: block !important;
+                visibility: visible !important;
+                opacity: 1 !important;
+            }
+            
+            /* Ensure graph canvas is visible */
+            .viz-container:not(.hidden) .viz-graph canvas {
+                width: 100% !important;
+                height: 100% !important;
+                display: block !important;
+                visibility: visible !important;
+                opacity: 1 !important;
+                z-index: 100 !important;
+                position: relative !important;
             }
             
             /* When sidebar is open on mobile, it overlays the graph (doesn't push it) */
