@@ -2208,9 +2208,14 @@
                 try {
                     console.log('[ZIP] Trying to load fflate from:', url);
                     const fflateModule = await import(url);
-                    unzip = fflateModule.unzip || fflateModule.default?.unzip || fflateModule.default?.unzipSync || fflateModule.default;
+                    // fflate API: prefer unzipSync (sync) over unzip (async with callback)
+                    unzip = fflateModule.unzipSync || 
+                            fflateModule.default?.unzipSync || 
+                            fflateModule.unzip || 
+                            fflateModule.default?.unzip || 
+                            fflateModule.default;
                     if (unzip && typeof unzip === 'function') {
-                        console.log('[ZIP] Successfully loaded fflate from:', url);
+                        console.log('[ZIP] Successfully loaded fflate from:', url, 'function:', unzip.name || 'anonymous', 'params:', unzip.length);
                         break;
                     } else {
                         throw new Error('fflate unzip function not found in module');
