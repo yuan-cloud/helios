@@ -2118,10 +2118,21 @@
         // Add both click and touch support for maximum compatibility
         // Note: addTouchSupport already adds click handler, so we don't need to add it separately
         if (selectBtn) {
+            // Add both click and touch support for maximum compatibility
+            selectBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                handleSelectRepository();
+            });
+            selectBtn.addEventListener('touchend', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                handleSelectRepository();
+            });
             addTouchSupport(selectBtn, handleSelectRepository);
-            console.log('[HELIOS] Select button touch support added');
+            console.log('[HELIOS] Select button event handlers added');
         } else {
-            console.error('[HELIOS] selectBtn is null - cannot add touch support');
+            console.error('[HELIOS] selectBtn is null - cannot add event handlers');
         }
 
         async function processDirectory(directoryHandle) {
