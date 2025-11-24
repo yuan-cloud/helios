@@ -3767,7 +3767,27 @@
                             toggleBtn.style.setProperty('display', 'block', 'important');
                             toggleBtn.style.setProperty('visibility', 'visible', 'important');
                             toggleBtn.style.setProperty('opacity', '1', 'important');
+                            toggleBtn.style.setProperty('z-index', '170', 'important');
+                            toggleBtn.style.setProperty('pointer-events', 'auto', 'important');
+                            console.log('[Visualization] Mobile toggle button shown');
+                        } else {
+                            console.error('[Visualization] Toggle button not found!');
                         }
+                        
+                        // On mobile, briefly flash the sidebar open then close it to show controls exist
+                        // This helps users discover the controls
+                        setTimeout(() => {
+                            if (vizSidebarEl && !vizSidebarEl.classList.contains('open')) {
+                                console.log('[Visualization] Briefly opening sidebar to show controls exist');
+                                vizSidebarEl.classList.add('open');
+                                setTimeout(() => {
+                                    if (vizSidebarEl) {
+                                        vizSidebarEl.classList.remove('open');
+                                        console.log('[Visualization] Sidebar closed, user can toggle it');
+                                    }
+                                }, 2000); // Show for 2 seconds
+                            }
+                        }, 500); // Wait 500ms after visualization loads
                     } else {
                         // Desktop: sidebar is in grid, always visible
                         vizSidebarEl.classList.add('open'); // Ensure it's visible on desktop
