@@ -2235,14 +2235,21 @@
                     return;
                 } catch (err) {
                     if (err.name === 'NotAllowedError' || err.name === 'SecurityError') {
-                        // User activation lost - don't show alert, just log silently
-                        // The picker dialog will have already shown an error
-                        console.warn('[HELIOS] User activation lost or permission denied (silent):', err.name);
+                        // User activation lost - this can happen if there's a delay
+                        // Only log at debug level since picker usually works on retry
+                        console.debug('[HELIOS] User activation lost (will work on retry):', err.name);
+                        // Show a brief, non-intrusive message
+                        if (progressText) {
+                            progressText.textContent = 'Please click "Select Repository" again if the file picker didn\'t open.';
+                            setTimeout(() => {
+                                if (progressText) progressText.textContent = '';
+                            }, 3000);
+                        }
                         return;
                     }
                     if (err.name === 'AbortError') {
                         // User cancelled - silent, no error needed
-                        console.log('[HELIOS] User cancelled directory picker');
+                        console.debug('[HELIOS] User cancelled directory picker');
                         return;
                     }
                     // Other errors - rethrow to be handled below
