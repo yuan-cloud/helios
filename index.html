@@ -880,7 +880,15 @@
             }
             
             .viz-sidebar.open {
-                transform: translateX(0);
+                transform: translateX(0) !important;
+            }
+            
+            /* Ensure sidebar is visible when viz container is shown on mobile */
+            .viz-container:not(.hidden) .viz-sidebar.open {
+                transform: translateX(0) !important;
+                display: flex !important;
+                visibility: visible !important;
+                opacity: 1 !important;
             }
             
             .viz-sidebar-toggle {
