@@ -780,6 +780,18 @@
                 width: 100% !important;
                 max-width: 100% !important;
                 margin: 0.5rem 0 !important;
+                touch-action: manipulation !important;
+                -webkit-tap-highlight-color: rgba(99, 102, 241, 0.3) !important;
+                pointer-events: auto !important;
+                cursor: pointer !important;
+                user-select: none !important;
+                -webkit-user-select: none !important;
+            }
+            
+            /* Ensure buttons are not covered */
+            .button:not([disabled]) {
+                z-index: 10 !important;
+                position: relative !important;
             }
             
             /* Button container flex on mobile */
@@ -1871,8 +1883,13 @@
         };
         
         // Add both click and touch support for maximum compatibility
-        selectBtn.addEventListener('click', handleSelectRepository);
-        addTouchSupport(selectBtn, handleSelectRepository);
+        // Note: addTouchSupport already adds click handler, so we don't need to add it separately
+        if (selectBtn) {
+            addTouchSupport(selectBtn, handleSelectRepository);
+            console.log('[HELIOS] Select button touch support added');
+        } else {
+            console.error('[HELIOS] selectBtn is null - cannot add touch support');
+        }
 
         async function processDirectory(directoryHandle) {
             resetAnalysisState({ showProgress: true, progressLabel: 'Initializing parser...', resetVisualization: true });
@@ -2449,12 +2466,35 @@
 
         // Ensure touch events work on mobile
         const addTouchSupport = (element, handler) => {
-            if (!element) return;
-            element.addEventListener('click', handler);
-            element.addEventListener('touchend', (e) => {
+            if (!element) {
+                console.warn('[HELIOS] addTouchSupport: element is null');
+                return;
+            }
+            
+            // Ensure element is clickable on mobile
+            element.style.touchAction = 'manipulation';
+            element.style.webkitTapHighlightColor = 'transparent';
+            element.style.cursor = 'pointer';
+            element.style.pointerEvents = 'auto';
+            
+            // Remove any existing handlers to avoid duplicates
+            const wrappedHandler = (e) => {
                 e.preventDefault();
-                handler(e);
-            });
+                e.stopPropagation();
+                if (!element.disabled) {
+                    handler(e);
+                }
+            };
+            
+            // Add both click and touch events
+            element.addEventListener('click', wrappedHandler, { passive: false });
+            element.addEventListener('touchend', wrappedHandler, { passive: false });
+            element.addEventListener('touchstart', (e) => {
+                // Prevent double-firing on some mobile browsers
+                e.preventDefault();
+            }, { passive: false });
+            
+            console.log('[HELIOS] Added touch support to:', element.id || element.className);
         };
 
         addTouchSupport(loadDemoBtn, async () => {
