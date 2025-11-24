@@ -977,13 +977,29 @@
     <button class="viz-close-button hidden" id="vizCloseBtn">Close Visualization</button>
 
     <script type="module">
-        // Suppress harmless browser extension messaging errors
+        // Global error handler to catch all errors and prevent blank page
         window.addEventListener('error', (event) => {
+            console.error('[HELIOS] Global error caught:', event.error || event.message, event.filename, event.lineno);
+            // Don't prevent default for critical errors - let them be logged
             if (event.message && event.message.includes('message channel closed before a response was received')) {
                 // This is a harmless browser extension messaging error - suppress it
                 event.preventDefault();
                 console.debug('[HELIOS] Suppressed browser extension messaging error (harmless)');
                 return false;
+            }
+        });
+        
+        // Catch unhandled promise rejections
+        window.addEventListener('unhandledrejection', (event) => {
+            console.error('[HELIOS] Unhandled promise rejection:', event.reason);
+            // Don't prevent default - let it be logged but don't break the page
+            if (event.reason && typeof event.reason === 'object' && event.reason.message) {
+                if (event.reason.message.includes('message channel closed before a response was received')) {
+                    // This is a harmless browser extension messaging error - suppress it
+                    event.preventDefault();
+                    console.debug('[HELIOS] Suppressed browser extension promise rejection (harmless)');
+                    return false;
+                }
             }
         });
 
