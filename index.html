@@ -880,7 +880,7 @@
                 -webkit-overflow-scrolling: touch;
             }
             
-            /* Ensure graph is visible when sidebar is open on mobile */
+            /* On mobile, graph takes full screen when sidebar is closed */
             .viz-container:not(.hidden) .viz-graph {
                 width: 100% !important;
                 height: 100% !important;
@@ -888,11 +888,9 @@
                 z-index: 100 !important;
             }
             
-            /* When sidebar is open, graph should still be visible */
-            .viz-container:not(.hidden) .viz-sidebar.open ~ .viz-graph,
-            .viz-container:not(.hidden) .viz-graph {
-                margin-right: 0 !important;
-                width: 100% !important;
+            /* When sidebar is open on mobile, it overlays the graph (doesn't push it) */
+            .viz-container:not(.hidden) .viz-sidebar.open {
+                /* Sidebar overlays, graph stays full width underneath */
             }
             
             .viz-sidebar.open {
@@ -3522,13 +3520,11 @@
                     const isMobile = window.innerWidth <= 768 || /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
                     
                     if (isMobile) {
-                        // On mobile, sidebar is fixed and needs 'open' class
-                        vizSidebarEl.classList.add('open');
-                        vizSidebarEl.style.setProperty('display', 'flex', 'important');
-                        vizSidebarEl.style.setProperty('visibility', 'visible', 'important');
-                        vizSidebarEl.style.setProperty('opacity', '1', 'important');
-                        vizSidebarEl.style.setProperty('transform', 'translateX(0)', 'important');
-                        console.log('[Visualization] Mobile sidebar opened');
+                        // On mobile, sidebar starts CLOSED (hidden off-screen)
+                        // User must click toggle button to open it
+                        vizSidebarEl.classList.remove('open');
+                        vizSidebarEl.style.setProperty('transform', 'translateX(100%)', 'important');
+                        console.log('[Visualization] Mobile sidebar starts closed');
                         
                         // Show toggle button on mobile
                         const toggleBtn = document.getElementById('vizSidebarToggle');
@@ -3539,15 +3535,17 @@
                             toggleBtn.style.setProperty('opacity', '1', 'important');
                         }
                     } else {
-                        // Desktop: sidebar is in grid
+                        // Desktop: sidebar is in grid, always visible
+                        vizSidebarEl.classList.add('open'); // Ensure it's visible on desktop
                         vizSidebarEl.style.setProperty('display', 'flex', 'important');
                         vizSidebarEl.style.setProperty('visibility', 'visible', 'important');
                         vizSidebarEl.style.setProperty('opacity', '1', 'important');
                         vizSidebarEl.style.setProperty('width', '360px', 'important');
                         vizSidebarEl.style.setProperty('min-width', '360px', 'important');
                         vizSidebarEl.style.setProperty('max-width', '360px', 'important');
+                        vizSidebarEl.style.setProperty('transform', 'none', 'important');
                     }
-                    console.log('[Visualization] Sidebar forced visible, width:', vizSidebarEl.offsetWidth);
+                    console.log('[Visualization] Sidebar initialized, isMobile:', isMobile);
                 } else {
                     console.error('[Visualization] ERROR: vizSidebarEl not found!');
                 }
@@ -3671,22 +3669,25 @@
                 }
                     console.log('[Visualization] VisualizationControls created, container has content:', vizControls.innerHTML.length > 0);
                     
-                    // Force sidebar visible again after controls are created
+                    // After controls are created, ensure sidebar is properly initialized
                     const sidebar = vizContainer.querySelector('.viz-sidebar');
                     if (sidebar) {
                         const isMobile = window.innerWidth <= 768 || /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
                         
                         if (isMobile) {
+                            // On mobile, keep sidebar CLOSED (user must toggle it)
+                            sidebar.classList.remove('open');
+                            sidebar.style.setProperty('transform', 'translateX(100%)', 'important');
+                        } else {
+                            // Desktop: ensure sidebar is open and visible
                             sidebar.classList.add('open');
-                            sidebar.style.setProperty('transform', 'translateX(0)', 'important');
+                            sidebar.style.setProperty('transform', 'none', 'important');
+                            sidebar.style.setProperty('width', '360px', 'important');
                         }
                         sidebar.style.setProperty('display', 'flex', 'important');
                         sidebar.style.setProperty('visibility', 'visible', 'important');
                         sidebar.style.setProperty('opacity', '1', 'important');
-                        if (!isMobile) {
-                            sidebar.style.setProperty('width', '360px', 'important');
-                        }
-                        console.log('[Visualization] Sidebar re-checked after controls creation, width:', sidebar.offsetWidth, 'isMobile:', isMobile);
+                        console.log('[Visualization] Sidebar initialized after controls, isMobile:', isMobile, 'isOpen:', sidebar.classList.contains('open'));
                     }
                 } else if (!vizControls) {
                     console.error('[Visualization] ERROR: vizControls element not found!');
