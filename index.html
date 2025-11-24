@@ -914,6 +914,11 @@
         <div class="gravity-particle"></div>
     </div>
 
+    <!-- Error display for debugging -->
+    <div id="errorDisplay" style="display: none; position: fixed; top: 0; left: 0; right: 0; background: #ef4444; color: white; padding: 1rem; z-index: 10000; font-family: monospace; font-size: 0.85rem;">
+        <strong>JavaScript Error:</strong> <span id="errorMessage"></span>
+    </div>
+    
     <div class="hero-container">
         <div class="text-center space-y-6">
             <h1 class="title">HELIOS</h1>
@@ -977,9 +982,21 @@
     <button class="viz-close-button hidden" id="vizCloseBtn">Close Visualization</button>
 
     <script type="module">
+        // Show errors on screen for debugging
+        function showError(message) {
+            const errorDisplay = document.getElementById('errorDisplay');
+            const errorMessage = document.getElementById('errorMessage');
+            if (errorDisplay && errorMessage) {
+                errorMessage.textContent = message;
+                errorDisplay.style.display = 'block';
+            }
+            console.error('[HELIOS]', message);
+        }
+        
         // Global error handler to catch all errors and prevent blank page
         window.addEventListener('error', (event) => {
-            console.error('[HELIOS] Global error caught:', event.error || event.message, event.filename, event.lineno);
+            const errorMsg = event.error ? (event.error.message || String(event.error)) : event.message;
+            showError(`Error: ${errorMsg} (${event.filename}:${event.lineno})`);
             // Don't prevent default for critical errors - let them be logged
             if (event.message && event.message.includes('message channel closed before a response was received')) {
                 // This is a harmless browser extension messaging error - suppress it
