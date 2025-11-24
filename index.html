@@ -2509,16 +2509,24 @@
                 console.log('[Repo Selection] Call graph stats:', {
                     nodes: callGraph?.nodes?.length || 0,
                     edges: callGraph?.edges?.length || 0,
-                    hasStats: !!callGraph?.stats
+                    hasStats: !!callGraph?.stats,
+                    allFunctionsLength: allFunctions.length
                 });
                 
                 if (!callGraph || !callGraph.nodes || callGraph.nodes.length === 0) {
                     console.error('[Repo Selection] No call graph data available for visualization');
-                    alert('No call graph data available. Please ensure your repository contains valid source files.');
+                    console.error('[Repo Selection] Debug info:', {
+                        hasCallGraph: !!callGraph,
+                        nodesLength: callGraph?.nodes?.length || 0,
+                        allFunctionsLength: allFunctions.length,
+                        allCallsLength: allCalls.length
+                    });
+                    alert('No call graph data available. Please ensure your repository contains valid source files with function calls.');
                     return;
                 }
                 
                 try {
+                    console.log('[Repo Selection] Calling initializeVisualization...');
                     await initializeVisualization();
                     console.log('[Repo Selection] Visualization initialized successfully');
                 } catch (err) {
@@ -2526,7 +2534,9 @@
                     console.error('[Repo Selection] Error details:', err?.stack || err);
                     // Don't hide results container on error - let user retry with visualize button
                     // The error is logged, but we keep the UI visible so user can click "Visualize Graph" to retry
-                    alert('Visualization failed to open automatically. Please click "Visualize Graph" to retry.\n\nError: ' + (err?.message || err));
+                    const errorMsg = err?.message || String(err);
+                    console.error('[Repo Selection] Visualization error message:', errorMsg);
+                    alert('Visualization failed to open automatically. Please click "Visualize Graph" to retry.\n\nError: ' + errorMsg);
                 }
 
                 // Continue with embeddings in background (non-blocking)
