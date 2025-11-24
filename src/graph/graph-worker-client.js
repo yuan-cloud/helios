@@ -134,6 +134,33 @@ export class GraphWorkerClient {
     const requestId = ++this.requestSeq;
     return new Promise((resolve, reject) => {
       this.pending.set(requestId, { resolve, reject });
+      
+      // Add timeout to prevent hanging forever if worker doesn't respond
+      const timeout = setTimeout(() => {
+        if (this.pending.has(requestId)) {
+          this.pending.delete(requestId);
+          const error = new Error(`Graph worker request timeout after 30 seconds (type: ${type})`);
+          console.error('[GraphWorkerClient] Request timeout:', error);
+          this.useWorker = false;
+          this.dispose(true); // Mark as fallback
+          reject(error);
+        }
+      }, 30000); // 30 second timeout
+      
+      // Clear timeout when request completes
+      const originalResolve = resolve;
+      const originalReject = reject;
+      this.pending.set(requestId, {
+        resolve: (value) => {
+          clearTimeout(timeout);
+          originalResolve(value);
+        },
+        reject: (error) => {
+          clearTimeout(timeout);
+          originalReject(error);
+        }
+      });
+      
       try {
         worker.postMessage({
           type,
@@ -142,6 +169,7 @@ export class GraphWorkerClient {
           options
         });
       } catch (error) {
+        clearTimeout(timeout);
         this.pending.delete(requestId);
         reject(error);
       }
