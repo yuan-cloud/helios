@@ -104,6 +104,18 @@ self.addEventListener('message', async (event) => {
   }
 
   try {
+    console.log('[GraphWorker] Received analyze request:', {
+      requestId,
+      hasPayload: !!payload,
+      payloadType: typeof payload,
+      payloadKeys: payload ? Object.keys(payload) : [],
+      hasParser: !!(payload?.parser),
+      hasEmbeddings: !!(payload?.embeddings),
+      hasFunctions: !!(payload?.functions),
+      functionsCount: Array.isArray(payload?.functions) ? payload.functions.length : (payload?.parser?.functions?.length || 0),
+      callEdgesCount: Array.isArray(payload?.callEdges) ? payload.callEdges.length : (payload?.parser?.callEdges?.length || 0)
+    });
+    
     if (!payload || typeof payload !== 'object') {
       throw new TypeError('Graph worker payload must be an object.');
     }
@@ -111,7 +123,23 @@ self.addEventListener('message', async (event) => {
       payload.parser || payload.embeddings || payload.overrides
         ? mergeGraphPayload(payload)
         : payload;
+    
+    console.log('[GraphWorker] After merge/normalize:', {
+      mergedFunctionsCount: Array.isArray(mergedInput?.functions) ? mergedInput.functions.length : 0,
+      mergedCallEdgesCount: Array.isArray(mergedInput?.callEdges) ? mergedInput.callEdges.length : 0,
+      mergedSimilarityEdgesCount: Array.isArray(mergedInput?.similarityEdges) ? mergedInput.similarityEdges.length : 0,
+      mergedKeys: Object.keys(mergedInput || {})
+    });
+    
     const validation = validateGraphPayload(mergedInput, { strict: options.strict === true });
+    console.log('[GraphWorker] Validation result:', { valid: validation.valid, errorsCount: validation.errors?.length || 0 });
+    
+    const collected = collectGraphPayload(mergedInput);
+    console.log('[GraphWorker] Collected payload:', {
+      functionsCount: collected.functions?.length || 0,
+      callEdgesCount: collected.callEdges?.length || 0,
+      similarityEdgesCount: collected.similarityEdges?.length || 0
+    });
     const collected = collectGraphPayload(mergedInput);
     const { graph, summary } = buildAnalyzedGraph(collected, {
       assignMetrics: options.assignMetrics !== false,
