@@ -2854,12 +2854,37 @@
         }
 
 
-        addTouchSupport(loadDemoBtn, async () => {
-            if (loadDemoBtn?.disabled) {
-                return;
-            }
-            await loadDemoExperience();
-        });
+        // Add both click and touch support for maximum mobile compatibility
+        if (loadDemoBtn) {
+            loadDemoBtn.addEventListener('click', async (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                console.log('[Demo] Button clicked');
+                if (loadDemoBtn?.disabled) {
+                    return;
+                }
+                await loadDemoExperience();
+            });
+            loadDemoBtn.addEventListener('touchend', async (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                console.log('[Demo] Button touched');
+                if (loadDemoBtn?.disabled) {
+                    return;
+                }
+                await loadDemoExperience();
+            });
+            // Also add touch support as fallback
+            addTouchSupport(loadDemoBtn, async () => {
+                if (loadDemoBtn?.disabled) {
+                    return;
+                }
+                await loadDemoExperience();
+            });
+            console.log('[Demo] Load demo button event handlers added');
+        } else {
+            console.error('[Demo] loadDemoBtn is null - cannot add event handlers');
+        }
 
         const handleResetApp = async () => {
             if (clearStorageBtn?.disabled) {
