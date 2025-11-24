@@ -2143,9 +2143,22 @@
                 }
                 
                 // Priority 1: File System Access API (desktop Chrome/Edge)
+                // CRITICAL: Must call showDirectoryPicker() synchronously within user click handler
+                // to preserve user activation. Don't await anything before calling it.
                 if (hasFileSystemAccess && !isIOS) {
                     console.log('[HELIOS] Using File System Access API');
-                    const directoryHandle = await window.showDirectoryPicker();
+                    let directoryHandle;
+                    try {
+                        // Call immediately, synchronously, to preserve user activation
+                        directoryHandle = await window.showDirectoryPicker();
+                    } catch (err) {
+                        if (err.name === 'NotAllowedError' || err.name === 'SecurityError') {
+                            console.error('[HELIOS] User activation lost or permission denied:', err);
+                            alert('Please click the button again. The file picker requires a direct user click.');
+                            return;
+                        }
+                        throw err;
+                    }
                     await processDirectory(directoryHandle);
                 }
                 // Priority 2: webkitdirectory (Android Chrome, desktop Safari, iOS Chrome - try it)
