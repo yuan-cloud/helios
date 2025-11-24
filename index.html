@@ -1967,18 +1967,82 @@
         });
 
         // ZIP file handler (last resort fallback, mainly for iOS Safari)
+        let zipProcessing = false; // Prevent double-processing
+        
         zipFileInput.addEventListener('change', async (e) => {
             const file = e.target.files[0];
-            if (!file) return;
+            if (!file) {
+                console.log('[ZIP] No file selected');
+                return;
+            }
             
+            if (zipProcessing) {
+                console.log('[ZIP] Already processing a file, ignoring');
+                return;
+            }
+            
+            console.log('[ZIP] File selected:', {
+                name: file.name,
+                type: file.type,
+                size: file.size,
+                lastModified: file.lastModified
+            });
+            
+            // Validate it's a ZIP file
+            const isZip = file.name.toLowerCase().endsWith('.zip') || 
+                         file.type === 'application/zip' || 
+                         file.type === 'application/x-zip-compressed' ||
+                         file.type === 'application/octet-stream' ||
+                         file.type === '';
+            
+            if (!isZip && file.size > 0) {
+                console.warn('[ZIP] File may not be a ZIP file:', file.type);
+                // Still try to process it - Safari sometimes doesn't set MIME type correctly
+            }
+            
+            zipProcessing = true;
             try {
                 await processZipFile(file);
             } catch (err) {
-                console.error('Error processing ZIP file:', err);
+                console.error('[ZIP] Error processing ZIP file:', err);
                 alert('Failed to process ZIP file: ' + (err?.message || 'Unknown error'));
             } finally {
-                zipFileInput.value = ''; // Reset input
+                zipProcessing = false;
+                // Reset input - use setTimeout for Safari compatibility
+                setTimeout(() => {
+                    zipFileInput.value = '';
+                }, 100);
             }
+        });
+        
+        // Safari sometimes doesn't fire 'change' event - add 'input' listener as fallback
+        zipFileInput.addEventListener('input', async (e) => {
+            if (zipProcessing) return;
+            
+            const file = e.target.files[0];
+            if (!file) return;
+            
+            console.log('[ZIP] Input event fired (Safari fallback):', file.name);
+            
+            // Only process if change event didn't already fire
+            // Use a small delay to avoid double-processing
+            setTimeout(async () => {
+                if (zipProcessing) return;
+                if (e.target.files[0] === file) {
+                    zipProcessing = true;
+                    try {
+                        await processZipFile(file);
+                    } catch (err) {
+                        console.error('[ZIP] Error processing ZIP file (input event):', err);
+                        // Don't show alert here - change event might have already shown it
+                    } finally {
+                        zipProcessing = false;
+                        setTimeout(() => {
+                            zipFileInput.value = '';
+                        }, 100);
+                    }
+                }
+            }, 50);
         });
 
         const handleSelectRepository = async () => {
@@ -2152,11 +2216,37 @@
             }
             
             progressText.textContent = 'Reading ZIP file...';
-            const arrayBuffer = await zipFile.arrayBuffer();
+            console.log('[ZIP] Reading file, size:', zipFile.size, 'bytes');
+            
+            // Safari compatibility: use FileReader if arrayBuffer() fails
+            let arrayBuffer;
+            try {
+                arrayBuffer = await zipFile.arrayBuffer();
+            } catch (err) {
+                console.warn('[ZIP] arrayBuffer() failed, using FileReader fallback:', err);
+                arrayBuffer = await new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onload = () => resolve(reader.result);
+                    reader.onerror = () => reject(new Error('FileReader failed to read file'));
+                    reader.readAsArrayBuffer(zipFile);
+                });
+            }
+            
             const uint8Array = new Uint8Array(arrayBuffer);
+            console.log('[ZIP] File read, array length:', uint8Array.length);
             
             progressText.textContent = 'Decompressing ZIP file...';
-            const unzipped = unzip(uint8Array);
+            console.log('[ZIP] Starting decompression...');
+            
+            let unzipped;
+            try {
+                unzipped = unzip(uint8Array);
+            } catch (err) {
+                console.error('[ZIP] Decompression failed:', err);
+                throw new Error('Failed to decompress ZIP file. Please ensure the file is a valid ZIP archive. Error: ' + (err?.message || 'Unknown error'));
+            }
+            
+            console.log('[ZIP] Decompression complete, entries:', Object.keys(unzipped).length);
             
             progressText.textContent = 'Scanning files...';
             scannedFiles = 0;
