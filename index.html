@@ -2940,7 +2940,24 @@
                     error: embeddingError
                 });
 
-                console.log('[Demo] Calling updateGraphData...');
+                console.log('[Demo] Calling updateGraphData with:', {
+                    functionsCount: allFunctions.length,
+                    callEdgesCount: callGraphEdges.length,
+                    similarityEdgesCount: similarityEdges.length,
+                    callGraphNodesCount: callGraph.nodes?.length || 0
+                });
+                
+                if (allFunctions.length === 0 && callGraphEdges.length === 0) {
+                    console.error('[Demo] ERROR: No data to visualize!', {
+                        demoFunctions: demo?.functions?.length || 0,
+                        demoCallGraphNodes: demo?.callGraph?.nodes?.length || 0,
+                        demoCallGraphEdges: demo?.callGraph?.edges?.length || 0,
+                        allFunctions: allFunctions.length,
+                        callGraphEdges: callGraphEdges.length
+                    });
+                    throw new Error('Demo dataset contains no functions or edges to visualize');
+                }
+                
                 try {
                     await updateGraphData({
                         parser: {
