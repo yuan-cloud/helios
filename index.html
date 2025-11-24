@@ -4702,6 +4702,7 @@
         // Show footer on page load if hero is visible
         document.addEventListener('DOMContentLoaded', () => {
             const heroContainer = document.querySelector('.hero-container');
+            const footer = document.getElementById('siteFooter');
             if (heroContainer && !heroContainer.classList.contains('hidden') && footer) {
                 footer.style.display = 'block';
             }
