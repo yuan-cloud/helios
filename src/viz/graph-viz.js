@@ -204,7 +204,9 @@ export class GraphVisualization {
       .enableNodeDrag(true)
       .enableNavigationControls(true)
       .showNavInfo(false)
-      .cameraPosition({ x: 0, y: 0, z: 1000 });
+      .cameraPosition({ x: 0, y: 0, z: 1000 })
+      // Mobile touch gestures: Enable pinch zoom and orbit
+      .enablePointerInteraction(true);
 
     // Try to access THREE.js from various locations
     // 3d-force-graph bundles THREE.js internally, so we extract it from there
@@ -454,8 +456,60 @@ export class GraphVisualization {
 
     console.log('[GraphViz] loadData called:', data.nodes.length, 'nodes,', data.links.length, 'links');
 
-    const normalizedNodes = data.nodes.map(node => this.normalizeNode(node));
-    const normalizedLinks = data.links.map(link => this.normalizeLink(link));
+    // Mobile optimization: Detect iOS/mobile and apply performance optimizations
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || 
+                     (window.innerWidth <= 768 && 'ontouchstart' in window);
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+    
+    let normalizedNodes = data.nodes.map(node => this.normalizeNode(node));
+    let normalizedLinks = data.links.map(link => this.normalizeLink(link));
+    
+    // Mobile optimization: Cap node count and throttle edges per PLAN.md Section 8
+    if (isMobile) {
+      const maxNodes = isIOS ? 500 : 800; // iOS gets stricter limits
+      const maxEdges = isIOS ? 2000 : 3000; // iOS gets stricter limits
+      
+      if (normalizedNodes.length > maxNodes) {
+        console.log(`[GraphViz] Mobile: Capping nodes from ${normalizedNodes.length} to ${maxNodes}`);
+        // Sample nodes by centrality (keep most important nodes)
+        normalizedNodes.sort((a, b) => {
+          const scoreA = this.computeCentralityScore(a, this.centralityReference) || 0;
+          const scoreB = this.computeCentralityScore(b, this.centralityReference) || 0;
+          return scoreB - scoreA; // Descending
+        });
+        normalizedNodes = normalizedNodes.slice(0, maxNodes);
+        
+        // Filter links to only include kept nodes
+        const keptNodeIds = new Set(normalizedNodes.map(n => n.id));
+        normalizedLinks = normalizedLinks.filter(link => 
+          keptNodeIds.has(link.sourceId) && keptNodeIds.has(link.targetId)
+        );
+      }
+      
+      if (normalizedLinks.length > maxEdges) {
+        console.log(`[GraphViz] Mobile: Throttling edges from ${normalizedLinks.length} to ${maxEdges}`);
+        // Prioritize call edges over similarity edges for mobile
+        const callEdges = normalizedLinks.filter(l => l.type === 'call');
+        const similarityEdges = normalizedLinks.filter(l => l.type === 'similarity');
+        
+        // Keep all call edges (up to limit), then top similarity edges
+        const maxCallEdges = Math.min(callEdges.length, Math.floor(maxEdges * 0.7));
+        const maxSimilarityEdges = maxEdges - maxCallEdges;
+        
+        // Sort similarity edges by weight (highest first)
+        similarityEdges.sort((a, b) => (b.weight || 0) - (a.weight || 0));
+        
+        normalizedLinks = [
+          ...callEdges.slice(0, maxCallEdges),
+          ...similarityEdges.slice(0, maxSimilarityEdges)
+        ];
+      }
+      
+      // Auto-enable high performance mode on mobile
+      if (this.performance.auto) {
+        this.setPerformanceMode('performance', { reason: 'mobile-detected', auto: true });
+      }
+    }
 
     console.log('[GraphViz] Data normalized:', normalizedNodes.length, 'nodes,', normalizedLinks.length, 'links');
 

@@ -947,6 +947,18 @@
                 border-radius: 0.5rem !important;
                 cursor: pointer !important;
                 font-size: 0.9rem !important;
+                display: block !important;
+                visibility: visible !important;
+                opacity: 1 !important;
+                pointer-events: auto !important;
+            }
+            
+            /* Ensure toggle button is visible when viz is shown on mobile */
+            .viz-container:not(.hidden) ~ .viz-sidebar-toggle,
+            .viz-container:not(.hidden) .viz-sidebar-toggle {
+                display: block !important;
+                visibility: visible !important;
+                opacity: 1 !important;
             }
         }
         

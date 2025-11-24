@@ -37,19 +37,23 @@ if (typeof window !== 'undefined') {
     console.error('[graph-builder] Node.js import failed:', err);
   }
 } else if (typeof self !== 'undefined') {
-  // Worker context: try to use global first (set by graph-worker.js), then try ESM.run
-  // Local vendor file has "events" dependency that workers can't resolve without import maps
-  // ESM.run bundles dependencies automatically, making it work in workers
+  // Worker context: MUST use global (set by graph-worker.js)
+  // CRITICAL: Never try local vendor file in workers - it has "events" dependency that workers can't resolve
+  // The worker (graph-worker.js) loads graphology from ESM.run and sets self.__graphology before importing this module
   if (self.__graphology) {
     GraphDefault = self.__graphology;
+    console.log('[graph-builder] Using graphology from worker global (self.__graphology)');
   } else {
-    // Workers don't have import maps, so use ESM.run which bundles dependencies
+    // Fallback: try ESM.run directly (shouldn't happen if worker loaded correctly)
+    console.warn('[graph-builder] self.__graphology not set, trying ESM.run fallback');
     try {
       const graphologyModule = await import('https://esm.run/graphology@0.25.4');
       GraphDefault = graphologyModule.default || graphologyModule;
+      console.log('[graph-builder] Worker ESM.run fallback succeeded');
     } catch (err) {
       console.error('[graph-builder] Worker ESM.run import failed:', err);
       // The worker should have loaded graphology via graph-worker.js before this module is imported
+      throw new Error('Graphology not available in worker. Worker initialization may have failed.');
     }
   }
 }
