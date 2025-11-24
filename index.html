@@ -3870,12 +3870,23 @@
                 
                 console.log('[Visualization] Call graph validated, proceeding with initialization...');
 
-                // Force show viz container
-            vizContainer.classList.remove('hidden');
-                vizContainer.style.setProperty('display', 'grid', 'important');
+                // Force show viz container - CRITICAL for mobile
+                vizContainer.classList.remove('hidden');
+                const isMobile = window.innerWidth <= 768 || /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+                
+                if (isMobile) {
+                    // Mobile: use block layout, not grid
+                    vizContainer.style.setProperty('display', 'block', 'important');
+                    console.log('[Visualization] Mobile detected - using block layout');
+                } else {
+                    // Desktop: use grid layout
+                    vizContainer.style.setProperty('display', 'grid', 'important');
+                }
                 vizContainer.style.setProperty('visibility', 'visible', 'important');
                 vizContainer.style.setProperty('opacity', '1', 'important');
                 vizContainer.style.setProperty('z-index', '100', 'important');
+                vizContainer.style.setProperty('position', 'fixed', 'important');
+                vizContainer.style.setProperty('inset', '0', 'important');
                 
                 // Show close button
                 if (vizCloseBtn) {
@@ -3929,9 +3940,15 @@
                             if (vizSidebarEl && !vizSidebarEl.classList.contains('open')) {
                                 console.log('[Visualization] Briefly opening sidebar to show controls exist');
                                 vizSidebarEl.classList.add('open');
+                                // Force sidebar visible during flash
+                                vizSidebarEl.style.setProperty('transform', 'translateX(0)', 'important');
+                                vizSidebarEl.style.setProperty('display', 'flex', 'important');
+                                vizSidebarEl.style.setProperty('visibility', 'visible', 'important');
+                                vizSidebarEl.style.setProperty('opacity', '1', 'important');
                                 setTimeout(() => {
                                     if (vizSidebarEl) {
                                         vizSidebarEl.classList.remove('open');
+                                        vizSidebarEl.style.setProperty('transform', 'translateX(100%)', 'important');
                                         console.log('[Visualization] Sidebar closed, user can toggle it');
                                     }
                                 }, 2000); // Show for 2 seconds
