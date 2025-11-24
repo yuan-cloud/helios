@@ -915,9 +915,25 @@
     </div>
 
     <!-- Error display for debugging -->
-    <div id="errorDisplay" style="display: none; position: fixed; top: 0; left: 0; right: 0; background: #ef4444; color: white; padding: 1rem; z-index: 10000; font-family: monospace; font-size: 0.85rem;">
+    <div id="errorDisplay" style="display: none; position: fixed; top: 0; left: 0; right: 0; background: #ef4444; color: white; padding: 1rem; z-index: 10000; font-family: monospace; font-size: 0.85rem; max-height: 200px; overflow-y: auto;">
         <strong>JavaScript Error:</strong> <span id="errorMessage"></span>
+        <button onclick="document.getElementById('errorDisplay').style.display='none'" style="float: right; background: white; color: #ef4444; border: none; padding: 0.25rem 0.5rem; cursor: pointer; border-radius: 0.25rem;">Close</button>
     </div>
+    
+    <!-- Test if JavaScript is running -->
+    <script>
+        console.log('[HELIOS] Inline script running - JavaScript is working');
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('[HELIOS] DOMContentLoaded fired');
+            const hero = document.querySelector('.hero-container');
+            if (hero) {
+                hero.style.display = 'flex';
+                hero.style.visibility = 'visible';
+                hero.style.opacity = '1';
+                console.log('[HELIOS] Hero container forced visible');
+            }
+        });
+    </script>
     
     <div class="hero-container">
         <div class="text-center space-y-6">
