@@ -3051,8 +3051,22 @@
                 console.error('[Demo] Error details:', err?.stack || err);
                 alert('Failed to load demo dataset. Please refresh the page and try again.\n\nError: ' + (err?.message || 'Unknown error'));
             } finally {
-                hideDemoLoading();
-                loadDemoBtn.disabled = false;
+                console.log('[Demo] Cleaning up - hiding loading spinner and re-enabling button');
+                try {
+                    hideDemoLoading();
+                } catch (hideErr) {
+                    console.error('[Demo] Error hiding demo loading:', hideErr);
+                    // Force hide as fallback
+                    if (demoLoading) {
+                        demoLoading.classList.add('hidden');
+                        demoLoading.style.display = 'none';
+                        demoLoading.setAttribute('aria-hidden', 'true');
+                    }
+                }
+                if (loadDemoBtn) {
+                    loadDemoBtn.disabled = false;
+                }
+                console.log('[Demo] Cleanup complete');
             }
         }
 
