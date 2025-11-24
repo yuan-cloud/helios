@@ -2936,9 +2936,10 @@
                     });
                     console.log('[Demo] updateGraphData completed successfully');
                 } catch (graphErr) {
-                    console.error('[Demo] updateGraphData failed:', graphErr);
-                    console.error('[Demo] updateGraphData error stack:', graphErr?.stack);
-                    throw graphErr; // Re-throw to be caught by outer catch
+                    console.warn('[Demo] updateGraphData failed (will continue with fallback):', graphErr);
+                    console.warn('[Demo] updateGraphData error stack:', graphErr?.stack);
+                    // Don't throw - updateGraphData has fallback logic, so we can continue
+                    // The error is already logged and handled internally
                 }
 
                 window.heliosFunctions = allFunctions;
