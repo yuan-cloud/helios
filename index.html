@@ -3560,11 +3560,19 @@
                     // Force sidebar visible again after controls are created
                     const sidebar = vizContainer.querySelector('.viz-sidebar');
                     if (sidebar) {
+                        const isMobile = window.innerWidth <= 768 || /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+                        
+                        if (isMobile) {
+                            sidebar.classList.add('open');
+                            sidebar.style.setProperty('transform', 'translateX(0)', 'important');
+                        }
                         sidebar.style.setProperty('display', 'flex', 'important');
                         sidebar.style.setProperty('visibility', 'visible', 'important');
                         sidebar.style.setProperty('opacity', '1', 'important');
-                        sidebar.style.setProperty('width', '360px', 'important');
-                        console.log('[Visualization] Sidebar re-checked after controls creation, width:', sidebar.offsetWidth);
+                        if (!isMobile) {
+                            sidebar.style.setProperty('width', '360px', 'important');
+                        }
+                        console.log('[Visualization] Sidebar re-checked after controls creation, width:', sidebar.offsetWidth, 'isMobile:', isMobile);
                     }
                 } else if (!vizControls) {
                     console.error('[Visualization] ERROR: vizControls element not found!');
