@@ -3854,10 +3854,25 @@
                 embeddingPayload.functionEmbeddings = functionEmbeddings;
             }
 
+            console.log('[updateGraphData] Before mergeGraphPayload:', {
+                parserPayloadFunctions: parserPayload.functions?.length || 0,
+                parserPayloadCallEdges: parserPayload.callEdges?.length || 0,
+                embeddingPayloadSimilarityEdges: embeddingPayload.similarityEdges?.length || 0,
+                parserInputFunctions: parserInput.functions?.length || 0,
+                parserInputCallEdges: parserInput.callEdges?.length || 0
+            });
+            
             const mergedPayload = mergeGraphPayload({
                 parser: parserPayload,
                 embeddings: embeddingPayload,
                 overrides
+            });
+
+            console.log('[updateGraphData] After mergeGraphPayload:', {
+                mergedFunctions: mergedPayload.functions?.length || 0,
+                mergedCallEdges: mergedPayload.callEdges?.length || 0,
+                mergedSimilarityEdges: mergedPayload.similarityEdges?.length || 0,
+                hasExtras: !!mergedPayload.extras
             });
 
             graphPayload = mergedPayload;
@@ -3866,11 +3881,29 @@
             let analysisResult = null;
             let collected = null;
             try {
+                // mergedPayload from mergeGraphPayload has { functions, callEdges, similarityEdges } at top level
+                // NOT { parser: { functions }, embeddings: { ... } }
+                const finalFunctions = mergedPayload.functions || [];
+                const finalCallEdges = mergedPayload.callEdges || [];
+                const finalSimilarityEdges = mergedPayload.similarityEdges || [];
+                
                 console.log('[updateGraphData] Calling graphWorkerClient.analyze...', {
-                    functionsCount: mergedPayload.parser?.functions?.length || 0,
-                    callEdgesCount: mergedPayload.parser?.callEdges?.length || 0,
-                    similarityEdgesCount: mergedPayload.embeddings?.similarityEdges?.length || 0
+                    functionsCount: finalFunctions.length,
+                    callEdgesCount: finalCallEdges.length,
+                    similarityEdgesCount: finalSimilarityEdges.length,
+                    payloadKeys: Object.keys(mergedPayload),
+                    hasParser: 'parser' in mergedPayload,
+                    hasEmbeddings: 'embeddings' in mergedPayload
                 });
+                
+                if (finalFunctions.length === 0 && finalCallEdges.length === 0) {
+                    console.error('[updateGraphData] ERROR: mergedPayload has no data!', {
+                        mergedPayload,
+                        parserPayload,
+                        embeddingPayload
+                    });
+                    throw new Error('Merged payload contains no functions or edges');
+                }
                 analysisResult = await graphWorkerClient.analyze(mergedPayload, { assignMetrics: true });
                 console.log('[updateGraphData] graphWorkerClient.analyze completed', {
                     viaWorker: analysisResult?.viaWorker,
