@@ -3026,6 +3026,17 @@
             
             loadDemoBtn.disabled = true;
             showDemoLoading('Loading demo dataset...');
+            
+            // Add overall timeout for mobile (60 seconds)
+            const overallTimeout = setTimeout(() => {
+                console.error('[Demo] Overall timeout - demo loading took too long');
+                hideDemoLoading();
+                if (loadDemoBtn) {
+                    loadDemoBtn.disabled = false;
+                }
+                alert('Demo loading timed out. Please try again or refresh the page.');
+            }, 60000);
+            
             try {
                 await ensureStorageClient();
                 console.log('[Demo] Getting demo dataset...');
