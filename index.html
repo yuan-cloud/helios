@@ -867,9 +867,9 @@
                 right: 0 !important;
                 top: 0 !important;
                 bottom: 0 !important;
-                width: min(360px, 90vw) !important;
-                max-width: min(360px, 90vw) !important;
-                min-width: min(360px, 90vw) !important;
+                width: min(320px, 85vw) !important;
+                max-width: min(320px, 85vw) !important;
+                min-width: min(320px, 85vw) !important;
                 height: 100vh !important;
                 box-shadow: -12px 0 40px rgba(0, 0, 0, 0.5);
                 z-index: 160 !important;
@@ -877,6 +877,21 @@
                 transition: transform 0.3s ease-in-out;
                 overflow-y: auto;
                 -webkit-overflow-scrolling: touch;
+            }
+            
+            /* Ensure graph is visible when sidebar is open on mobile */
+            .viz-container:not(.hidden) .viz-graph {
+                width: 100% !important;
+                height: 100% !important;
+                position: relative !important;
+                z-index: 100 !important;
+            }
+            
+            /* When sidebar is open, graph should still be visible */
+            .viz-container:not(.hidden) .viz-sidebar.open ~ .viz-graph,
+            .viz-container:not(.hidden) .viz-graph {
+                margin-right: 0 !important;
+                width: 100% !important;
             }
             
             .viz-sidebar.open {
@@ -961,7 +976,7 @@
             </button>
             </div>
             <input type="file" id="directoryFileInput" webkitdirectory multiple style="display: none;" />
-            <input type="file" id="zipFileInput" accept=".zip" style="display: none;" />
+            <input type="file" id="zipFileInput" accept=".zip,application/zip,application/x-zip-compressed,application/octet-stream" style="display: none;" />
             <div class="storage-controls" style="margin-top: 1rem;">
                 <button class="button" id="clearStorageBtn" type="button" style="background: rgba(248, 113, 113, 0.15); border: 1px solid rgba(248, 113, 113, 0.35); color: #fecaca;" title="Reset App - Clear all saved layouts, sessions, and analysis data. Use this if experiencing issues or want a completely fresh start. This action cannot be undone.">
                     Reset App
