@@ -31,7 +31,8 @@
           "three-forcegraph": "https://esm.run/three-forcegraph@1.43.0",
           "three-render-objects": "https://esm.run/three-render-objects@1.40.4",
           "accessor-fn": "https://esm.run/accessor-fn@1.5.3",
-          "kapsule": "https://esm.run/kapsule@1.16.3"
+          "kapsule": "https://esm.run/kapsule@1.16.3",
+          "fflate": "https://cdn.jsdelivr.net/npm/fflate@0.8.2/lib/browser.mjs"
         }
     }
     </script>
@@ -751,7 +752,7 @@
             }
 
             .viz-sidebar {
-                position: absolute !important;
+                position: fixed !important;
                 right: 0 !important;
                 top: 0 !important;
                 bottom: 0 !important;
@@ -761,6 +762,28 @@
                 height: 100vh !important;
                 box-shadow: -12px 0 40px rgba(0, 0, 0, 0.5);
                 z-index: 160 !important;
+                transform: translateX(100%);
+                transition: transform 0.3s ease-in-out;
+                overflow-y: auto;
+                -webkit-overflow-scrolling: touch;
+            }
+            
+            .viz-sidebar.open {
+                transform: translateX(0);
+            }
+            
+            .viz-sidebar-toggle {
+                position: fixed !important;
+                top: 1rem !important;
+                right: 1rem !important;
+                z-index: 170 !important;
+                padding: 0.75rem 1rem !important;
+                background: rgba(15, 23, 42, 0.95) !important;
+                color: #e0e7ff !important;
+                border: 1px solid rgba(199, 210, 254, 0.5) !important;
+                border-radius: 0.5rem !important;
+                cursor: pointer !important;
+                font-size: 0.9rem !important;
             }
         }
         
@@ -797,6 +820,8 @@
                     Try Demo
             </button>
             </div>
+            <input type="file" id="directoryFileInput" webkitdirectory multiple style="display: none;" />
+            <input type="file" id="zipFileInput" accept=".zip" style="display: none;" />
             <div class="storage-controls" style="margin-top: 1rem;">
                 <button class="button" id="clearStorageBtn" type="button" style="background: rgba(248, 113, 113, 0.15); border: 1px solid rgba(248, 113, 113, 0.35); color: #fecaca;" title="Reset App - Clear all saved layouts, sessions, and analysis data. Use this if experiencing issues or want a completely fresh start. This action cannot be undone.">
                     Reset App
@@ -833,7 +858,8 @@
 
     <div class="viz-container hidden" id="vizContainer">
         <div class="viz-graph" id="vizGraph"></div>
-        <div class="viz-sidebar">
+        <button class="viz-sidebar-toggle hidden" id="vizSidebarToggle" title="Toggle Controls">☰ Controls</button>
+        <div class="viz-sidebar" id="vizSidebar">
             <div class="viz-controls" id="vizControls"></div>
             <div class="viz-inspector" id="vizInspector"></div>
         </div>
@@ -934,6 +960,127 @@
         const selectBtn = document.getElementById('selectBtn');
         const resumeBtn = document.getElementById('resumeBtn');
         const loadDemoBtn = document.getElementById('loadDemoBtn');
+        const directoryFileInput = document.getElementById('directoryFileInput');
+        const zipFileInput = document.getElementById('zipFileInput');
+        const clearStorageBtn = document.getElementById('clearStorageBtn');
+        
+        // Ensure button exists before proceeding
+        if (!selectBtn) {
+            console.error('[HELIOS] CRITICAL: selectBtn element not found in DOM!');
+        } else {
+            console.log('[HELIOS] selectBtn found, initial text:', selectBtn.textContent);
+        }
+        
+        // Function to update button text - call it immediately and also later
+        function updateSelectButtonText() {
+            if (!selectBtn) {
+                console.error('[HELIOS] Cannot update button: selectBtn not found');
+                return;
+            }
+            
+            // Use stored platform info if available, otherwise detect fresh
+            let hasFileSystemAccess, hasWebkitDirectory, isIOS, isIOSChrome, isIOSSafari;
+            
+            if (window.heliosPlatformInfo) {
+                ({ hasFileSystemAccess, hasWebkitDirectory, isIOS, isIOSChrome, isIOSSafari } = window.heliosPlatformInfo);
+            } else {
+                // Feature detection: Try File System Access API first, then webkitdirectory, then ZIP
+                hasFileSystemAccess = !!window.showDirectoryPicker;
+                hasWebkitDirectory = 'webkitdirectory' in document.createElement('input');
+                
+                // Detect iOS specifically
+                isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+                // Detect iOS Chrome (uses WebKit, webkitdirectory might work but is buggy)
+                isIOSChrome = isIOS && /CriOS/.test(navigator.userAgent);
+                // Detect iOS Safari specifically (webkitdirectory doesn't work well)
+                isIOSSafari = isIOS && !isIOSChrome && /Safari/.test(navigator.userAgent);
+            }
+            
+            // Debug logging
+            console.log('[HELIOS] Platform detection:', {
+                hasFileSystemAccess,
+                hasWebkitDirectory,
+                isIOS,
+                isIOSChrome,
+                isIOSSafari,
+                userAgent: navigator.userAgent
+            });
+            
+            // Always update button text based on platform capabilities (iOS doesn't support File System Access API)
+            try {
+                if (hasFileSystemAccess && !isIOS) {
+                    // Desktop Chrome/Edge: File System Access API works
+                    selectBtn.textContent = 'Select Repository';
+                    selectBtn.title = 'Select a local code repository to analyze';
+                    console.log('[HELIOS] Button set to: Select Repository (File System Access API)');
+                } else if (hasWebkitDirectory && !isIOS) {
+                    // Non-iOS: webkitdirectory works reliably (Android Chrome, desktop Safari)
+                    selectBtn.textContent = 'Select Repository Folder';
+                    selectBtn.title = 'Select a folder from your device';
+                    console.log('[HELIOS] Button set to: Select Repository Folder (webkitdirectory)');
+                } else if (hasWebkitDirectory && isIOSChrome) {
+                    // iOS Chrome: Try webkitdirectory first (might work), but offer ZIP fallback
+                    selectBtn.textContent = 'Select Repository Folder';
+                    selectBtn.title = 'Select a folder from your device. If this doesn\'t work, upload a ZIP file instead.';
+                    console.log('[HELIOS] Button set to: Select Repository Folder (iOS Chrome, webkitdirectory)');
+                } else {
+                    // iOS Safari or no webkitdirectory: ZIP required
+                    selectBtn.textContent = 'Upload ZIP Repository';
+                    selectBtn.title = 'Upload a ZIP file of your code repository (required on iOS Safari)';
+                    console.log('[HELIOS] Button set to: Upload ZIP Repository (iOS Safari/ZIP fallback)');
+                }
+                selectBtn.disabled = false;
+                selectBtn.style.opacity = '1';
+                selectBtn.style.cursor = 'pointer';
+                
+                // Force update - sometimes textContent doesn't stick
+                selectBtn.innerHTML = selectBtn.textContent;
+                
+                console.log('[HELIOS] Button updated successfully. Current text:', selectBtn.textContent);
+                console.log('[HELIOS] Button innerHTML:', selectBtn.innerHTML);
+                console.log('[HELIOS] Button disabled:', selectBtn.disabled);
+                console.log('[HELIOS] Button style.opacity:', selectBtn.style.opacity);
+                
+                // Verify it actually changed
+                setTimeout(() => {
+                    const currentText = selectBtn.textContent;
+                    console.log('[HELIOS] Button text verification (100ms later):', currentText);
+                    if (currentText === 'Select Repository' && (isIOS || !hasFileSystemAccess)) {
+                        console.warn('[HELIOS] Button text reverted! Forcing update again...');
+                        updateSelectButtonText();
+                    }
+                }, 100);
+            } catch (err) {
+                console.error('[HELIOS] Error updating button text:', err);
+                console.error('[HELIOS] Error stack:', err.stack);
+            }
+        }
+        
+        // Update button text immediately
+        updateSelectButtonText();
+        
+        // Also update on DOMContentLoaded (in case of timing issues)
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', () => {
+                console.log('[HELIOS] DOMContentLoaded - updating button text again');
+                updateSelectButtonText();
+            });
+        }
+        
+        // Fallback: Update after a short delay to catch any edge cases
+        setTimeout(() => {
+            if (selectBtn && (selectBtn.textContent === 'Select Repository' || selectBtn.textContent.includes('File System'))) {
+                console.log('[HELIOS] Fallback update - button text:', selectBtn.textContent);
+                updateSelectButtonText();
+            }
+        }, 100);
+        
+        // Also update when window loads (final fallback)
+        window.addEventListener('load', () => {
+            console.log('[HELIOS] Window loaded - final button text update');
+            updateSelectButtonText();
+        });
+        
         const progressContainer = document.getElementById('progressContainer');
         const progressText = document.getElementById('progressText');
         const progressDetail = document.getElementById('progressDetail');
@@ -947,9 +1094,41 @@
         const visualizeBtn = document.getElementById('visualizeBtn');
         const vizContainer = document.getElementById('vizContainer');
         const vizGraph = document.getElementById('vizGraph');
+        const vizSidebar = document.getElementById('vizSidebar');
+        const vizSidebarToggle = document.getElementById('vizSidebarToggle');
         const vizControls = document.getElementById('vizControls');
         const vizInspector = document.getElementById('vizInspector');
         const vizCloseBtn = document.getElementById('vizCloseBtn');
+        
+        // Mobile drawer toggle for sidebar (per PLAN.md Section 8)
+        const isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || 
+                               (window.innerWidth <= 768 && 'ontouchstart' in window);
+        
+        let sidebarOpen = false;
+        if (vizSidebarToggle && vizSidebar && isMobileDevice) {
+            vizSidebarToggle.classList.remove('hidden');
+            
+            const toggleSidebar = () => {
+                sidebarOpen = !sidebarOpen;
+                vizSidebar.classList.toggle('open', sidebarOpen);
+            };
+            
+            vizSidebarToggle.addEventListener('click', toggleSidebar);
+            vizSidebarToggle.addEventListener('touchend', (e) => {
+                e.preventDefault();
+                toggleSidebar();
+            });
+            
+            // Close sidebar when clicking outside on mobile
+            if (vizContainer) {
+                vizContainer.addEventListener('click', (e) => {
+                    if (sidebarOpen && !vizSidebar.contains(e.target) && !vizSidebarToggle.contains(e.target)) {
+                        sidebarOpen = false;
+                        vizSidebar.classList.remove('open');
+                    }
+                });
+            }
+        }
         
         // EMERGENCY: Force hero container visible on startup
         const heroContainer = document.querySelector('.hero-container');
@@ -1001,7 +1180,6 @@
                 }
             }
         }, 100);
-        const clearStorageBtn = document.getElementById('clearStorageBtn');
         const storageStatusEl = document.getElementById('storageStatus');
         const STORAGE_FALLBACK_MESSAGE =
             'Storage ready (data will not persist after closing browser).';
@@ -1395,12 +1573,19 @@
             console.warn('Embedding backend detection failed:', err);
         });
 
-        if (!window.showDirectoryPicker) {
-            selectBtn.textContent = 'File System Access API not supported';
-            selectBtn.disabled = true;
-            selectBtn.style.opacity = '0.5';
-            selectBtn.style.cursor = 'not-allowed';
-        }
+        // Feature detection: Try File System Access API first, then webkitdirectory, then ZIP
+        const hasFileSystemAccess = !!window.showDirectoryPicker;
+        const hasWebkitDirectory = 'webkitdirectory' in document.createElement('input');
+        
+        // Detect iOS specifically
+        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+        // Detect iOS Chrome (uses WebKit, webkitdirectory might work but is buggy)
+        const isIOSChrome = isIOS && /CriOS/.test(navigator.userAgent);
+        // Detect iOS Safari specifically (webkitdirectory doesn't work well)
+        const isIOSSafari = isIOS && !isIOSChrome && /Safari/.test(navigator.userAgent);
+        
+        // Update button text again (in case it was changed or needs refresh)
+        updateSelectButtonText();
 
         resumeBtn?.addEventListener('click', async () => {
             if (!resumeSnapshot) {
@@ -1415,80 +1600,241 @@
             }
         });
 
-        clearStorageBtn?.addEventListener('click', async () => {
-            if (clearStorageBtn.disabled) {
+
+
+        // Directory file input handler (webkitdirectory fallback)
+        directoryFileInput.addEventListener('change', async (e) => {
+            const files = Array.from(e.target.files || []);
+            
+            // iOS Chrome: webkitdirectory often returns empty or fails - offer ZIP fallback
+            if (files.length === 0 && isIOSChrome) {
+                directoryFileInput.value = '';
+                const tryZip = confirm(
+                    'Folder selection didn\'t work on iOS Chrome.\n\n' +
+                    'This is a limitation of iOS browsers (even Chrome uses Safari\'s engine).\n\n' +
+                    'Would you like to upload a ZIP file instead?\n\n' +
+                    'To create a ZIP file on iPhone:\n' +
+                    '1. Open Files app\n' +
+                    '2. Select your repository folder\n' +
+                    '3. Long-press and choose "Compress"\n' +
+                    '4. Upload the ZIP file here'
+                );
+                if (tryZip) {
+                    zipFileInput.click();
+                }
                 return;
             }
             
-            // Ask for confirmation since this is a destructive action
-            const confirmed = confirm(
-                'Reset App will clear all saved data:\n\n' +
-                '• Saved layouts\n' +
-                '• Resume sessions\n' +
-                '• Analysis snapshots\n\n' +
-                'This action cannot be undone.\n\n' +
-                'Use this if you\'re experiencing issues or want a fresh start.\n\n' +
-                'Continue?'
-            );
+            if (files.length === 0) return;
             
-            if (!confirmed) {
-                return;
-            }
-            
-            clearStorageBtn.disabled = true;
-            setStorageStatus('Clearing stored data…', 'info');
             try {
-                const available = storageClient || (await ensureStorageClient());
-                if (!available || !storageClient) {
-                    setStorageStatus('Storage unavailable; nothing to clear.', 'warning');
-                    return;
-                }
-
-                const result = await storageClient.reset();
-                storageReady = false;
-                storageClientInitPromise = null;
-                resumeSnapshot = null;
-                resumeBtn?.classList.add('hidden');
-
-                const message = result?.removed
-                    ? 'All stored data cleared successfully.'
-                    : 'All stored data cleared.';
-
-                const reinitialized = await ensureStorageClient();
-                await initializeResumeOption();
-                if (reinitialized) {
-                    setStorageStatus(message, 'success');
-                } else {
-                    setStorageStatus(message, 'success');
-                }
+                await processWebkitDirectory(files);
             } catch (err) {
-                console.error('Failed to clear stored data', err);
-                    setStorageStatus('Failed to clear stored data. Please try again.', 'error');
+                console.error('Error processing directory files:', err);
+                // iOS Chrome: Offer ZIP fallback if webkitdirectory fails
+                if (isIOSChrome) {
+                    const tryZip = confirm(
+                        'Failed to process folder selection.\n\n' +
+                        'Would you like to try uploading a ZIP file instead?\n\n' +
+                        'ZIP upload works reliably on all iOS browsers.'
+                    );
+                    if (tryZip) {
+                        zipFileInput.click();
+                    }
+                } else {
+                    alert('Failed to process files: ' + (err?.message || 'Unknown error'));
+                }
             } finally {
-                clearStorageBtn.disabled = false;
+                directoryFileInput.value = '';
             }
         });
 
+        // ZIP file handler (last resort fallback, mainly for iOS Safari)
+        zipFileInput.addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            
+            try {
+                await processZipFile(file);
+            } catch (err) {
+                console.error('Error processing ZIP file:', err);
+                alert('Failed to process ZIP file: ' + (err?.message || 'Unknown error'));
+            } finally {
+                zipFileInput.value = ''; // Reset input
+            }
+        });
 
         selectBtn.addEventListener('click', async () => {
             try {
-                const directoryHandle = await window.showDirectoryPicker();
+                // Priority 1: File System Access API (desktop Chrome/Edge)
+                if (hasFileSystemAccess) {
+                    const directoryHandle = await window.showDirectoryPicker();
+                    await processDirectory(directoryHandle);
+                }
+                // Priority 2: webkitdirectory (Android Chrome, desktop Safari, iOS Chrome - try it)
+                else if (hasWebkitDirectory && (isIOSChrome || !isIOS)) {
+                    // Try webkitdirectory (works on Android/desktop, might work on iOS Chrome)
+                    directoryFileInput.click();
+                }
+                // Priority 3: ZIP upload (iOS Safari and fallback)
+                else {
+                    zipFileInput.click();
+                }
+            } catch (error) {
+                if (error?.name !== 'AbortError') {
+                    console.error('Error selecting directory:', error);
+                    // iOS Chrome: If directory picker fails, suggest ZIP
+                    if (isIOSChrome) {
+                        const tryZip = confirm(
+                            'Directory picker failed.\n\n' +
+                            'Would you like to try uploading a ZIP file instead?'
+                        );
+                        if (tryZip) {
+                            zipFileInput.click();
+                        }
+                    } else {
+                        progressText.textContent = 'Error: ' + (error?.message || 'Unknown error');
+                        setTimeout(() => progressContainer.classList.add('hidden'), 3000);
+                    }
+                }
+            }
+        });
+
+        async function processDirectory(directoryHandle) {
+            resetAnalysisState({ showProgress: true, progressLabel: 'Initializing parser...', resetVisualization: true });
+            embeddingMetadata.backend = embeddingEnvironment.backend || null;
+            updateEmbeddingSummary(embeddingEnvironmentSummary || null);
+
+            await parserManager.initialize();
+            await ensureStorageClient();
+
+            progressText.textContent = 'Counting files...';
+            totalFiles = await countFiles(directoryHandle);
+            progressText.textContent = 'Scanning files...';
+            await scanDirectory(directoryHandle, '');
+
+            progressText.textContent = 'Parsing source files...';
+            await parseSourceFiles();
+
+            await finishProcessing();
+        }
+
+        async function processWebkitDirectory(files) {
+            resetAnalysisState({ showProgress: true, progressLabel: 'Initializing parser...', resetVisualization: true });
+            embeddingMetadata.backend = embeddingEnvironment.backend || null;
+            updateEmbeddingSummary(embeddingEnvironmentSummary || null);
+
+            await parserManager.initialize();
+            await ensureStorageClient();
+
+            progressText.textContent = 'Scanning files...';
+            scannedFiles = 0;
+            const ignoredDirs = ['node_modules', '.git', 'dist', 'build', '.next', 'out', 'coverage'];
+            
+            // Process files from webkitdirectory input
+            // Files have webkitRelativePath property that preserves directory structure
+            for (const file of files) {
+                const relativePath = file.webkitRelativePath || file.name;
+                const pathParts = relativePath.split('/');
                 
-                resetAnalysisState({ showProgress: true, progressLabel: 'Initializing parser...', resetVisualization: true });
-                embeddingMetadata.backend = embeddingEnvironment.backend || null;
-                updateEmbeddingSummary(embeddingEnvironmentSummary || null);
+                // Skip ignored directories
+                if (pathParts.some(part => ignoredDirs.includes(part.toLowerCase()))) {
+                    continue;
+                }
+                
+                scannedFiles++;
+                const extension = getExtension(relativePath);
+                if (SUPPORTED_EXTENSIONS.includes(extension)) {
+                    const language = parserManager.detectLanguage(relativePath);
+                    if (language) {
+                        const { moduleId, aliases } = createModuleMetadata(relativePath, language);
+                        const fileMeta = { path: relativePath, language, moduleId, moduleAliases: aliases };
+                        sourceFiles.push(fileMeta);
+                        // Store file handle for later parsing
+                        fileHandles.set(relativePath, { getFile: async () => file });
+                        registerSourceFile(fileMeta);
+                    }
+                }
+                
+                updateProgress('Scanning...', scannedFiles, files.length);
+            }
+            
+            totalFiles = scannedFiles;
+            progressText.textContent = 'Parsing source files...';
+            await parseSourceFiles();
 
-                await parserManager.initialize();
-                await ensureStorageClient();
+            await finishProcessing();
+        }
 
-                progressText.textContent = 'Counting files...';
-                totalFiles = await countFiles(directoryHandle);
-                progressText.textContent = 'Scanning files...';
-                await scanDirectory(directoryHandle, '');
+        async function processZipFile(zipFile) {
+            resetAnalysisState({ showProgress: true, progressLabel: 'Loading ZIP file...', resetVisualization: true });
+            embeddingMetadata.backend = embeddingEnvironment.backend || null;
+            updateEmbeddingSummary(embeddingEnvironmentSummary || null);
 
-                progressText.textContent = 'Parsing source files...';
-                await parseSourceFiles();
+            // Import fflate for ZIP decompression
+            let unzip;
+            try {
+                const fflateModule = await import('fflate');
+                unzip = fflateModule.unzip || fflateModule.default?.unzip;
+                if (!unzip) {
+                    throw new Error('fflate unzip function not found');
+                }
+            } catch (err) {
+                console.error('Failed to load fflate:', err);
+                alert('Failed to load ZIP decompression library. Please refresh the page and try again.');
+                throw err;
+            }
+            
+            progressText.textContent = 'Reading ZIP file...';
+            const arrayBuffer = await zipFile.arrayBuffer();
+            const uint8Array = new Uint8Array(arrayBuffer);
+            
+            progressText.textContent = 'Decompressing ZIP file...';
+            const unzipped = unzip(uint8Array);
+            
+            progressText.textContent = 'Scanning files...';
+            scannedFiles = 0;
+            const zipFiles = [];
+            const ignoredDirs = ['node_modules', '.git', 'dist', 'build', '.next', 'out', 'coverage'];
+            
+            // Process ZIP entries
+            for (const [path, data] of Object.entries(unzipped)) {
+                // Skip directories and ignored paths
+                if (path.endsWith('/')) continue;
+                const pathParts = path.split('/');
+                if (pathParts.some(part => ignoredDirs.includes(part.toLowerCase()))) continue;
+                
+                scannedFiles++;
+                const extension = getExtension(path);
+                if (SUPPORTED_EXTENSIONS.includes(extension)) {
+                    const language = parserManager.detectLanguage(path);
+                    if (language) {
+                        const { moduleId, aliases } = createModuleMetadata(path, language);
+                        const fileMeta = { path, language, moduleId, moduleAliases: aliases };
+                        sourceFiles.push(fileMeta);
+                        // Store file data as Blob for later parsing
+                        const blob = new Blob([data], { type: 'text/plain' });
+                        fileHandles.set(path, { getFile: async () => blob });
+                        registerSourceFile(fileMeta);
+                        zipFiles.push({ path, data });
+                    }
+                }
+            }
+            
+            totalFiles = scannedFiles;
+            progressText.textContent = `Found ${sourceFiles.length} source files`;
+            
+            await parserManager.initialize();
+            await ensureStorageClient();
 
+            progressText.textContent = 'Parsing source files...';
+            await parseSourceFiles();
+
+            await finishProcessing();
+        }
+
+        async function finishProcessing() {
+            try {
                 progressText.textContent = 'Building call graph...';
                 callGraph = buildCallGraph(allFunctions, allCalls, symbolTableManager);
 
@@ -1877,7 +2223,7 @@
                     try {
                         const snapshotLayoutKey = computeLayoutStorageKey(callGraph);
                         const savedSnapshot = await saveAnalysisSnapshot(storageClient, {
-                            projectLabel: directoryHandle?.name || null,
+                            projectLabel: (typeof directoryHandle !== 'undefined' && directoryHandle?.name) || null,
                             sourceFiles,
                             callGraph,
                             similarityEdges,
@@ -1920,19 +2266,90 @@
 
             } catch (error) {
                 if (error?.name !== 'AbortError') {
-                    console.error('Error selecting directory:', error);
+                    console.error('Error in finishProcessing:', error);
                     progressText.textContent = 'Error: ' + (error?.message || 'Unknown error');
                     setTimeout(() => progressContainer.classList.add('hidden'), 3000);
                 }
             }
-        });
+        }
 
-        loadDemoBtn?.addEventListener('click', async () => {
-            if (loadDemoBtn.disabled) {
+        // Ensure touch events work on mobile
+        const addTouchSupport = (element, handler) => {
+            if (!element) return;
+            element.addEventListener('click', handler);
+            element.addEventListener('touchend', (e) => {
+                e.preventDefault();
+                handler(e);
+            });
+        };
+
+        addTouchSupport(loadDemoBtn, async () => {
+            if (loadDemoBtn?.disabled) {
                 return;
             }
             await loadDemoExperience();
         });
+
+        const handleResetApp = async () => {
+            if (clearStorageBtn?.disabled) {
+                return;
+            }
+            
+            // Ask for confirmation since this is a destructive action
+            const confirmed = confirm(
+                'Reset App will clear all saved data:\n\n' +
+                '• Saved layouts\n' +
+                '• Resume sessions\n' +
+                '• Analysis snapshots\n\n' +
+                'This action cannot be undone.\n\n' +
+                'Use this if you\'re experiencing issues or want a fresh start.\n\n' +
+                'Continue?'
+            );
+            
+            if (!confirmed) {
+                return;
+            }
+            
+            clearStorageBtn.disabled = true;
+            setStorageStatus('Clearing stored data…', 'info');
+            try {
+                // Reset in-memory state first
+                storageReady = false;
+                storageClientInitPromise = null;
+                resumeSnapshot = null;
+                resumeBtn?.classList.add('hidden');
+                
+                // Try to clear storage if available
+                try {
+                    const available = storageClient || (await ensureStorageClient().catch(() => null));
+                    if (available && storageClient) {
+                        const result = await storageClient.reset();
+                        const message = result?.removed
+                            ? 'All stored data cleared successfully.'
+                            : 'All stored data cleared.';
+                        setStorageStatus(message, 'success');
+                    } else {
+                        setStorageStatus('In-memory data cleared (storage unavailable).', 'info');
+                    }
+                } catch (storageErr) {
+                    console.warn('Storage reset failed (non-critical):', storageErr);
+                    setStorageStatus('In-memory data cleared (storage reset failed).', 'warning');
+                }
+
+                // Reinitialize storage
+                await ensureStorageClient().catch(() => null);
+                await initializeResumeOption();
+            } catch (err) {
+                console.error('Failed to clear stored data', err);
+                setStorageStatus('Failed to clear stored data. Please try again.', 'error');
+            } finally {
+                clearStorageBtn.disabled = false;
+            }
+        };
+        
+        // Add both touch and click support for maximum compatibility
+        addTouchSupport(clearStorageBtn, handleResetApp);
+        clearStorageBtn.addEventListener('click', handleResetApp);
 
         visualizeBtn.addEventListener('click', async () => {
             if (!callGraph || !callGraph.nodes?.length) {
@@ -2243,17 +2660,46 @@
                 }
 
                 console.log('[Demo] Auto-opening visualization...');
-                await initializeVisualization();
-                if (controls && similarityStats) {
-                    controls.updateSimilarityControls(similarityStats, { minWeight: similarityStats.min ?? 0 });
-                }
+                
+                // Add timeout to prevent infinite loading
+                let visualizationTimeout;
+                const timeoutPromise = new Promise((_, reject) => {
+                    visualizationTimeout = setTimeout(() => {
+                        console.error('[Demo] Visualization initialization timeout after 15 seconds');
+                        reject(new Error('Visualization initialization timeout'));
+                    }, 15000);
+                });
+                
+                try {
+                    // Race between visualization and timeout
+                    await Promise.race([
+                        initializeVisualization(),
+                        timeoutPromise
+                    ]);
+                    clearTimeout(visualizationTimeout);
+                    
+                    if (controls && similarityStats) {
+                        controls.updateSimilarityControls(similarityStats, { minWeight: similarityStats.min ?? 0 });
+                    }
 
-                setStorageStatus('Demo dataset loaded (in-memory sample).', 'info');
-                console.log('[Demo] Visualization should now be visible');
+                    setStorageStatus('Demo dataset loaded (in-memory sample).', 'info');
+                    console.log('[Demo] Visualization should now be visible');
+                } catch (vizErr) {
+                    clearTimeout(visualizationTimeout);
+                    console.error('[Demo] Failed to initialize visualization:', vizErr);
+                    console.error('[Demo] Visualization error details:', vizErr?.stack || vizErr);
+                    // Don't fail completely - show results even if visualization fails
+                    const errorMsg = vizErr?.message || 'Unknown error';
+                    if (errorMsg.includes('timeout')) {
+                        alert('Demo data loaded, but visualization is taking too long to initialize. You can try clicking "Visualize Graph" manually, or refresh the page.');
+                    } else {
+                        alert('Demo data loaded, but visualization failed to initialize: ' + errorMsg + '\n\nYou can try clicking "Visualize Graph" manually.');
+                    }
+                }
             } catch (err) {
                 console.error('[Demo] Failed to load demo dataset:', err);
                 console.error('[Demo] Error details:', err?.stack || err);
-                alert('Failed to load demo dataset. Please refresh the page and try again.');
+                alert('Failed to load demo dataset. Please refresh the page and try again.\n\nError: ' + (err?.message || 'Unknown error'));
             } finally {
                 hideDemoLoading();
                 loadDemoBtn.disabled = false;
