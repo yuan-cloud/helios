@@ -1724,6 +1724,15 @@
         // Detect iOS Safari specifically (webkitdirectory doesn't work well)
         const isIOSSafari = isIOS && !isIOSChrome && /Safari/.test(navigator.userAgent);
         
+        // Store platform info for updateSelectButtonText to use
+        window.heliosPlatformInfo = {
+            hasFileSystemAccess,
+            hasWebkitDirectory,
+            isIOS,
+            isIOSChrome,
+            isIOSSafari
+        };
+        
         // Update button text again (in case it was changed or needs refresh)
         updateSelectButtonText();
 
@@ -1826,8 +1835,12 @@
             } catch (error) {
                 if (error?.name !== 'AbortError') {
                     console.error('Error selecting directory:', error);
+                    // Get platform info for error handling
+                    const platformInfo = window.heliosPlatformInfo || {
+                        isIOSChrome: /iPad|iPhone|iPod/.test(navigator.userAgent) && /CriOS/.test(navigator.userAgent)
+                    };
                     // iOS Chrome: If directory picker fails, suggest ZIP
-                    if (isIOSChrome) {
+                    if (platformInfo.isIOSChrome) {
                         const tryZip = confirm(
                             'Directory picker failed.\n\n' +
                             'Would you like to try uploading a ZIP file instead?'
