@@ -2284,31 +2284,46 @@
                     unzipped = unzip(uint8Array);
                 } else {
                     // Async version with callback - MUST provide callback
-                    console.log('[ZIP] Using asynchronous unzip with callback');
-                    unzipped = await new Promise((resolve, reject) => {
-                        // Set timeout to catch hanging decompression
-                        const timeout = setTimeout(() => {
-                            reject(new Error('ZIP decompression timed out after 30 seconds'));
-                        }, 30000);
-                        
-                        try {
-                            unzip(uint8Array, (err, data) => {
-                                clearTimeout(timeout);
-                                if (err) {
-                                    console.error('[ZIP] Unzip callback error:', err);
-                                    reject(err);
-                                } else {
-                                    console.log('[ZIP] Unzip callback success, entries:', Object.keys(data || {}).length);
-                                    resolve(data);
-                                }
-                            });
-                        } catch (syncErr) {
-                            clearTimeout(timeout);
-                            // If callback throws synchronously, reject
-                            console.error('[ZIP] Unzip threw synchronously:', syncErr);
-                            reject(syncErr);
+                    // CRITICAL: On mobile, try sync first even if it looks async
+                    // Some mobile browsers have issues with async callbacks
+                    console.log('[ZIP] Detected async unzip, but trying sync first for mobile compatibility');
+                    try {
+                        // Try calling it synchronously first (some versions work both ways)
+                        const testResult = unzip(uint8Array);
+                        if (testResult && typeof testResult === 'object') {
+                            console.log('[ZIP] Async function actually worked synchronously!');
+                            unzipped = testResult;
+                        } else {
+                            throw new Error('Sync call returned invalid result');
                         }
-                    });
+                    } catch (syncAttemptErr) {
+                        // Sync failed, use async with callback
+                        console.log('[ZIP] Sync attempt failed, using async callback:', syncAttemptErr.message);
+                        unzipped = await new Promise((resolve, reject) => {
+                            // Set timeout to catch hanging decompression (60s for mobile)
+                            const timeout = setTimeout(() => {
+                                reject(new Error('ZIP decompression timed out after 60 seconds. The file may be too large or corrupted.'));
+                            }, 60000);
+                            
+                            try {
+                                unzip(uint8Array, (err, data) => {
+                                    clearTimeout(timeout);
+                                    if (err) {
+                                        console.error('[ZIP] Unzip callback error:', err);
+                                        reject(err);
+                                    } else {
+                                        console.log('[ZIP] Unzip callback success, entries:', Object.keys(data || {}).length);
+                                        resolve(data);
+                                    }
+                                });
+                            } catch (syncErr) {
+                                clearTimeout(timeout);
+                                // If callback throws synchronously, reject
+                                console.error('[ZIP] Unzip threw synchronously:', syncErr);
+                                reject(syncErr);
+                            }
+                        });
+                    }
                 }
             } catch (err) {
                 console.error('[ZIP] Decompression failed:', err);
