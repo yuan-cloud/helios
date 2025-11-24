@@ -37,23 +37,19 @@ if (typeof window !== 'undefined') {
     console.error('[graph-builder] Node.js import failed:', err);
   }
 } else if (typeof self !== 'undefined') {
-  // Worker context: try to use global first, then try to import
+  // Worker context: try to use global first (set by graph-worker.js), then try local vendor file
+  // DO NOT use CDN in workers - CDN builds have Node.js dependencies like "events" that workers can't resolve
   if (self.__graphology) {
     GraphDefault = self.__graphology;
   } else {
-    // Workers don't have import maps, so try direct path
+    // Workers don't have import maps, so try local vendor file only
     try {
       const graphologyModule = await import('/public/vendor/graphology/graphology.esm.js');
       GraphDefault = graphologyModule.default || graphologyModule;
     } catch (err) {
-      console.error('[graph-builder] Worker import failed:', err);
-      // Last resort: try CDN
-      try {
-        const graphologyModule = await import('https://cdn.jsdelivr.net/npm/graphology@0.25.4/dist/graphology.esm.js');
-        GraphDefault = graphologyModule.default || graphologyModule;
-      } catch (cdnErr) {
-        console.error('[graph-builder] CDN import also failed:', cdnErr);
-      }
+      console.error('[graph-builder] Worker local import failed:', err);
+      // Don't try CDN - it will fail with "events" module resolution error
+      // The worker should have loaded graphology via graph-worker.js before this module is imported
     }
   }
 }
