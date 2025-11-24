@@ -1183,17 +1183,43 @@
         
         // Fallback: Update after a short delay to catch any edge cases
         setTimeout(() => {
-            if (selectBtn && (selectBtn.textContent === 'Select Repository' || selectBtn.textContent.includes('File System'))) {
-                console.log('[HELIOS] Fallback update - button text:', selectBtn.textContent);
-                updateSelectButtonText();
+            if (selectBtn) {
+                const currentText = selectBtn.textContent;
+                console.log('[HELIOS] Fallback update (100ms) - current button text:', currentText);
+                // Force update on mobile if still showing default text
+                const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+                if (isMobile && (currentText === 'Select Repository' || currentText.includes('File System'))) {
+                    console.log('[HELIOS] Mobile detected with wrong button text - forcing update');
+                    updateSelectButtonText();
+                }
             }
         }, 100);
         
         // Also update when window loads (final fallback)
         window.addEventListener('load', () => {
             console.log('[HELIOS] Window loaded - final button text update');
-            updateSelectButtonText();
+            if (selectBtn) {
+                const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+                console.log('[HELIOS] Window loaded - isMobile:', isMobile, 'button text:', selectBtn.textContent);
+                updateSelectButtonText();
+            }
         });
+        
+        // Mobile-specific: Update button text after a longer delay to ensure platform detection is complete
+        if (/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)) {
+            setTimeout(() => {
+                console.log('[HELIOS] Mobile-specific delayed update (500ms)');
+                updateSelectButtonText();
+            }, 500);
+            
+            // Also update on orientation change (common on mobile)
+            window.addEventListener('orientationchange', () => {
+                setTimeout(() => {
+                    console.log('[HELIOS] Orientation change - updating button text');
+                    updateSelectButtonText();
+                }, 100);
+            });
+        }
         
         const progressContainer = document.getElementById('progressContainer');
         const progressText = document.getElementById('progressText');
