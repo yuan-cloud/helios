@@ -352,6 +352,17 @@
             display: flex !important;
             visibility: visible !important;
             opacity: 1 !important;
+            z-index: 10 !important;
+        }
+        
+        /* Ensure viz container doesn't cover hero when hidden */
+        .viz-container.hidden {
+            z-index: 1 !important;
+            pointer-events: none !important;
+        }
+        
+        .viz-container:not(.hidden) {
+            z-index: 100 !important;
         }
 
         .viz-container {
@@ -747,43 +758,212 @@
         .viz-close-button:hover { background: rgba(15, 23, 42, 1) !important; border-color: rgba(199, 210, 254, 0.6) !important; }
 
         @media (max-width: 1024px) {
+            /* Mobile: Ensure hero container is visible and on top when viz is hidden */
+            .hero-container:not(.hidden) {
+                z-index: 10 !important;
+                position: relative !important;
+                display: flex !important;
+            }
+            
+            /* Mobile: Viz container should be behind hero when hidden */
+            .viz-container.hidden {
+                z-index: 1 !important;
+                pointer-events: none !important;
+            }
+            
+            /* Mobile: Viz container when visible should be on top */
+            .viz-container:not(.hidden) {
+                z-index: 100 !important;
+            }
+            
             .viz-container {
                 grid-template-columns: 1fr;
             }
-
-            .viz-sidebar {
-                position: fixed !important;
-                right: 0 !important;
-                top: 0 !important;
-                bottom: 0 !important;
-                width: min(360px, 90vw) !important;
-                max-width: min(360px, 90vw) !important;
-                min-width: min(360px, 90vw) !important;
-                height: 100vh !important;
-                box-shadow: -12px 0 40px rgba(0, 0, 0, 0.5);
-                z-index: 160 !important;
-                transform: translateX(100%);
-                transition: transform 0.3s ease-in-out;
-                overflow-y: auto;
-                -webkit-overflow-scrolling: touch;
+            
+            /* Mobile: Better spacing for hero content */
+            .hero-container {
+                padding: 2rem 1rem !important;
             }
             
-            .viz-sidebar.open {
-                transform: translateX(0);
+            /* Mobile: Ensure buttons are visible and properly sized */
+            .hero-container .button {
+                min-width: 200px !important;
+                width: auto !important;
+                max-width: 90vw !important;
+            }
+        }
+        
+        /* Mobile phones only (not tablets) */
+        @media (max-width: 768px) {
+            .hero-container {
+                padding: 1.5rem 1rem !important;
+                padding-top: 2rem !important;
+                min-height: 100vh;
+                justify-content: flex-start !important;
             }
             
-            .viz-sidebar-toggle {
-                position: fixed !important;
-                top: 1rem !important;
-                right: 1rem !important;
-                z-index: 170 !important;
-                padding: 0.75rem 1rem !important;
-                background: rgba(15, 23, 42, 0.95) !important;
-                color: #e0e7ff !important;
-                border: 1px solid rgba(199, 210, 254, 0.5) !important;
-                border-radius: 0.5rem !important;
-                cursor: pointer !important;
-                font-size: 0.9rem !important;
+            .title {
+                font-size: clamp(2.5rem, 12vw, 4rem) !important;
+                margin-bottom: 0.5rem !important;
+            }
+            
+            .tagline {
+                font-size: clamp(1rem, 4vw, 1.25rem) !important;
+                margin-bottom: 1rem !important;
+            }
+            
+            .button {
+                padding: 0.875rem 1.5rem !important;
+                font-size: 0.95rem !important;
+                width: 100% !important;
+                max-width: 300px !important;
+                margin: 0.4rem auto !important;
+                display: block !important;
+            }
+            
+            /* Button container */
+            .hero-container > div > div:first-of-type {
+                width: 100% !important;
+                display: flex !important;
+                flex-direction: column !important;
+                align-items: center !important;
+                gap: 0.5rem !important;
+                margin-bottom: 1rem !important;
+            }
+            
+            /* Storage controls on mobile */
+            .storage-controls {
+                width: 100% !important;
+                max-width: 300px !important;
+                margin: 0.5rem auto 0 !important;
+                display: flex !important;
+                flex-direction: column !important;
+                align-items: center !important;
+            }
+            
+            .storage-controls .button {
+                width: 100% !important;
+                max-width: 300px !important;
+            }
+            
+            /* Info box on mobile */
+            .hero-container > div > div:last-child {
+                max-width: 100% !important;
+                margin: 1rem auto 0 !important;
+                padding: 0.875rem !important;
+                font-size: 0.8rem !important;
+                line-height: 1.4 !important;
+            }
+            
+            /* Close button positioning on mobile - make sure it doesn't cover content */
+            .viz-close-button:not(.hidden) {
+                top: 0.5rem !important;
+                right: 0.5rem !important;
+                padding: 0.5rem 1rem !important;
+                font-size: 0.8rem !important;
+                z-index: 200 !important;
+            }
+            
+            /* Ensure progress and results containers are visible and properly sized */
+            .progress-container,
+            .results-container {
+                width: 100% !important;
+                max-width: 100% !important;
+                padding: 0 1rem !important;
+                margin-top: 1rem !important;
+            }
+            
+            /* Make sure nothing covers the hero content */
+            .hero-container * {
+                position: relative !important;
+                z-index: inherit !important;
+            }
+        }
+        
+        /* Mobile-specific optimizations (phones only, not tablets) */
+        @media (max-width: 768px) {
+            .hero-container {
+                padding: 1.5rem 1rem !important;
+                padding-top: 2rem !important;
+                min-height: 100vh;
+                justify-content: flex-start !important;
+            }
+            
+            .title {
+                font-size: clamp(2.5rem, 12vw, 4rem) !important;
+                margin-bottom: 0.5rem !important;
+            }
+            
+            .tagline {
+                font-size: clamp(1rem, 4vw, 1.25rem) !important;
+                margin-bottom: 1rem !important;
+            }
+            
+            .button {
+                padding: 0.875rem 1.5rem !important;
+                font-size: 0.95rem !important;
+                width: 100% !important;
+                max-width: 300px !important;
+                margin: 0.4rem auto !important;
+                display: block !important;
+            }
+            
+            /* Button container - ensure proper layout */
+            .hero-container > div > div:first-of-type {
+                width: 100% !important;
+                display: flex !important;
+                flex-direction: column !important;
+                align-items: center !important;
+                gap: 0.5rem !important;
+                margin-bottom: 1rem !important;
+            }
+            
+            /* Storage controls on mobile */
+            .storage-controls {
+                width: 100% !important;
+                max-width: 300px !important;
+                margin: 0.5rem auto 0 !important;
+                display: flex !important;
+                flex-direction: column !important;
+                align-items: center !important;
+            }
+            
+            .storage-controls .button {
+                width: 100% !important;
+                max-width: 300px !important;
+            }
+            
+            /* Info box on mobile */
+            .hero-container > div > div:last-child {
+                max-width: 100% !important;
+                margin: 1rem auto 0 !important;
+                padding: 0.875rem !important;
+                font-size: 0.8rem !important;
+                line-height: 1.4 !important;
+            }
+            
+            /* Close button positioning on mobile - make sure it doesn't cover content */
+            .viz-close-button:not(.hidden) {
+                top: 0.5rem !important;
+                right: 0.5rem !important;
+                padding: 0.5rem 1rem !important;
+                font-size: 0.8rem !important;
+                z-index: 200 !important;
+            }
+            
+            /* Ensure progress and results containers are visible and properly sized */
+            .progress-container,
+            .results-container {
+                width: 100% !important;
+                max-width: 100% !important;
+                padding: 0 1rem !important;
+                margin-top: 1rem !important;
+            }
+            
+            /* Make sure nothing covers the hero content */
+            .hero-container * {
+                position: relative !important;
+                z-index: inherit !important;
             }
         }
         
