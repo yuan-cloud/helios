@@ -2827,7 +2827,23 @@
             showDemoLoading('Loading demo dataset...');
             try {
                 await ensureStorageClient();
+                console.log('[Demo] Getting demo dataset...');
                 const demo = getDemoDataset();
+                console.log('[Demo] Demo dataset received:', {
+                    hasSourceFiles: Array.isArray(demo?.sourceFiles),
+                    sourceFilesCount: demo?.sourceFiles?.length || 0,
+                    hasFunctions: Array.isArray(demo?.functions),
+                    functionsCount: demo?.functions?.length || 0,
+                    hasCallGraph: !!demo?.callGraph,
+                    callGraphNodesCount: demo?.callGraph?.nodes?.length || 0,
+                    callGraphEdgesCount: demo?.callGraph?.edges?.length || 0,
+                    hasSimilarityEdges: Array.isArray(demo?.similarityEdges),
+                    similarityEdgesCount: demo?.similarityEdges?.length || 0
+                });
+                
+                if (!demo || (!demo.functions && !demo.callGraph)) {
+                    throw new Error('Demo dataset is empty or invalid');
+                }
 
                 // Reset all state including visualization
                 resetAnalysisState({ showProgress: false, progressLabel: 'Preparing demo dataset...', resetVisualization: true });
@@ -2847,6 +2863,12 @@
                     ? demo.calls.map(call => ({ ...call }))
                     : [];
                 functionMapById = new Map(allFunctions.map(fn => [fn.id, fn]));
+                
+                console.log('[Demo] Data loaded:', {
+                    allFunctionsCount: allFunctions.length,
+                    allCallsCount: allCalls.length,
+                    functionMapSize: functionMapById.size
+                });
 
                 const callGraphNodes = Array.isArray(demo.callGraph?.nodes)
                     ? demo.callGraph.nodes.map(node => ({ ...node }))
