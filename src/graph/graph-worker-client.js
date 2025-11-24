@@ -133,8 +133,6 @@ export class GraphWorkerClient {
     const worker = await this.#ensureWorker();
     const requestId = ++this.requestSeq;
     return new Promise((resolve, reject) => {
-      this.pending.set(requestId, { resolve, reject });
-      
       // Add timeout to prevent hanging forever if worker doesn't respond
       const timeout = setTimeout(() => {
         if (this.pending.has(requestId)) {
@@ -147,19 +145,17 @@ export class GraphWorkerClient {
         }
       }, 30000); // 30 second timeout
       
-      // Clear timeout when request completes
-      const originalResolve = resolve;
-      const originalReject = reject;
-      this.pending.set(requestId, {
-        resolve: (value) => {
-          clearTimeout(timeout);
-          originalResolve(value);
-        },
-        reject: (error) => {
-          clearTimeout(timeout);
-          originalReject(error);
-        }
-      });
+      // Wrap resolve/reject to clear timeout
+      const wrappedResolve = (value) => {
+        clearTimeout(timeout);
+        resolve(value);
+      };
+      const wrappedReject = (error) => {
+        clearTimeout(timeout);
+        reject(error);
+      };
+      
+      this.pending.set(requestId, { resolve: wrappedResolve, reject: wrappedReject });
       
       try {
         worker.postMessage({
