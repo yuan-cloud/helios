@@ -1,7 +1,8 @@
 // Workers don't inherit import maps, so we need to pre-load graphology using absolute URLs
 // and make it available globally before importing modules that depend on it
-// IMPORTANT: Only use local vendor file - CDN builds have Node.js dependencies like "events" that workers can't resolve
-const graphologyUrl = '/public/vendor/graphology/graphology.esm.js';
+// IMPORTANT: Local vendor file also has "events" dependency, so we need to use ESM.run which handles dependencies
+// ESM.run bundles dependencies automatically, making it work in workers
+const graphologyUrl = 'https://esm.run/graphology@0.25.4';
 const louvainUrl = 'https://esm.run/graphology-communities-louvain@2.0.2';
 
 // Pre-load graphology modules and store them globally so dependent modules can use them
