@@ -897,12 +897,17 @@
                 transform: translateX(0) !important;
             }
             
-            /* Ensure sidebar is visible when viz container is shown on mobile */
+            /* Ensure sidebar is visible when viz container is shown on mobile AND has open class */
             .viz-container:not(.hidden) .viz-sidebar.open {
                 transform: translateX(0) !important;
                 display: flex !important;
                 visibility: visible !important;
                 opacity: 1 !important;
+            }
+            
+            /* CRITICAL: Sidebar should start CLOSED on mobile (no open class) */
+            .viz-container:not(.hidden) .viz-sidebar:not(.open) {
+                transform: translateX(100%) !important;
             }
             
             .viz-sidebar-toggle {
@@ -2248,10 +2253,37 @@
             
             let unzipped;
             try {
-                unzipped = unzip(uint8Array);
+                // fflate unzip can be sync (unzipSync) or async (unzip with callback)
+                // Try sync first, then async with callback
+                if (unzip.name === 'unzipSync' || unzip.length === 1) {
+                    // Synchronous version
+                    console.log('[ZIP] Using synchronous unzip');
+                    unzipped = unzip(uint8Array);
+                } else {
+                    // Async version with callback - wrap in Promise
+                    console.log('[ZIP] Using asynchronous unzip with callback');
+                    unzipped = await new Promise((resolve, reject) => {
+                        try {
+                            unzip(uint8Array, (err, data) => {
+                                if (err) {
+                                    reject(err);
+                                } else {
+                                    resolve(data);
+                                }
+                            });
+                        } catch (syncErr) {
+                            // If callback throws synchronously, reject
+                            reject(syncErr);
+                        }
+                    });
+                }
             } catch (err) {
                 console.error('[ZIP] Decompression failed:', err);
                 throw new Error('Failed to decompress ZIP file. Please ensure the file is a valid ZIP archive. Error: ' + (err?.message || 'Unknown error'));
+            }
+            
+            if (!unzipped || typeof unzipped !== 'object') {
+                throw new Error('ZIP decompression returned invalid data. Expected an object with file entries.');
             }
             
             console.log('[ZIP] Decompression complete, entries:', Object.keys(unzipped).length);
