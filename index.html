@@ -1072,6 +1072,97 @@
 
     <script type="module">
         // Show errors on screen for debugging
+        // Mobile-friendly on-screen console for debugging
+        // Only show on mobile devices to help with debugging
+        function initMobileConsole() {
+            if (window.innerWidth > 768) {
+                return; // Desktop - use browser console
+            }
+            
+            const mobileConsole = document.createElement('div');
+            mobileConsole.id = 'mobileConsole';
+            mobileConsole.style.cssText = `
+                position: fixed;
+                bottom: 0;
+                left: 0;
+                right: 0;
+                max-height: 150px;
+                overflow-y: auto;
+                background: rgba(0,0,0,0.95);
+                color: #0f0;
+                font-family: 'Courier New', monospace;
+                font-size: 9px;
+                padding: 8px;
+                z-index: 9999;
+                display: none;
+                border-top: 2px solid #0f0;
+            `;
+            document.body.appendChild(mobileConsole);
+            
+            // Store original console methods
+            const originalLog = console.log;
+            const originalError = console.error;
+            const originalWarn = console.warn;
+            
+            // Override console methods
+            console.log = function(...args) {
+                originalLog.apply(console, args);
+                const msg = args.map(a => typeof a === 'object' ? JSON.stringify(a) : String(a)).join(' ');
+                const div = document.createElement('div');
+                div.style.cssText = 'color:#0f0; padding:2px 0; border-bottom:1px solid rgba(0,255,0,0.1);';
+                div.textContent = '[LOG] ' + msg;
+                mobileConsole.appendChild(div);
+                mobileConsole.scrollTop = mobileConsole.scrollHeight;
+            };
+            
+            console.error = function(...args) {
+                originalError.apply(console, args);
+                const msg = args.map(a => typeof a === 'object' ? JSON.stringify(a) : String(a)).join(' ');
+                const div = document.createElement('div');
+                div.style.cssText = 'color:#f00; padding:2px 0; border-bottom:1px solid rgba(255,0,0,0.1); font-weight:bold;';
+                div.textContent = '[ERROR] ' + msg;
+                mobileConsole.appendChild(div);
+                mobileConsole.scrollTop = mobileConsole.scrollHeight;
+            };
+            
+            console.warn = function(...args) {
+                originalWarn.apply(console, args);
+                const msg = args.map(a => typeof a === 'object' ? JSON.stringify(a) : String(a)).join(' ');
+                const div = document.createElement('div');
+                div.style.cssText = 'color:#ff0; padding:2px 0; border-bottom:1px solid rgba(255,255,0,0.1);';
+                div.textContent = '[WARN] ' + msg;
+                mobileConsole.appendChild(div);
+                mobileConsole.scrollTop = mobileConsole.scrollHeight;
+            };
+            
+            // Add toggle button
+            const toggleBtn = document.createElement('button');
+            toggleBtn.textContent = '📱 Console';
+            toggleBtn.style.cssText = `
+                position: fixed;
+                bottom: 10px;
+                right: 10px;
+                z-index: 10000;
+                padding: 8px 12px;
+                background: rgba(99, 102, 241, 0.9);
+                color: #fff;
+                border: 2px solid rgba(129, 140, 248, 0.8);
+                border-radius: 5px;
+                font-size: 11px;
+                font-weight: 600;
+                cursor: pointer;
+                box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+            `;
+            toggleBtn.onclick = () => {
+                const isVisible = mobileConsole.style.display !== 'none';
+                mobileConsole.style.display = isVisible ? 'none' : 'block';
+                toggleBtn.textContent = isVisible ? '📱 Console' : '✕ Close';
+            };
+            document.body.appendChild(toggleBtn);
+            
+            console.log('[Mobile Console] On-screen console initialized. Tap "📱 Console" button to view logs.');
+        }
+        
         function showError(message) {
             const errorDisplay = document.getElementById('errorDisplay');
             const errorMessage = document.getElementById('errorMessage');
