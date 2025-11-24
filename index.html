@@ -2098,14 +2098,24 @@
             let unzip;
             try {
                 const fflateModule = await import('fflate');
-                unzip = fflateModule.unzip || fflateModule.default?.unzip;
+                unzip = fflateModule.unzip || fflateModule.default?.unzip || fflateModule.default;
                 if (!unzip) {
                     throw new Error('fflate unzip function not found');
                 }
             } catch (err) {
-                console.error('Failed to load fflate:', err);
-                alert('Failed to load ZIP decompression library. Please refresh the page and try again.');
-                throw err;
+                console.error('Failed to load fflate from import map:', err);
+                // Try fallback to direct CDN URL
+                try {
+                    const fflateModule = await import('https://cdn.jsdelivr.net/npm/fflate@0.8.2/lib/browser.mjs');
+                    unzip = fflateModule.unzip || fflateModule.default?.unzip || fflateModule.default;
+                    if (!unzip) {
+                        throw new Error('fflate unzip function not found in fallback');
+                    }
+                } catch (fallbackErr) {
+                    console.error('Failed to load fflate from fallback:', fallbackErr);
+                    alert('Failed to load ZIP decompression library. Please refresh the page and try again.');
+                    throw fallbackErr;
+                }
             }
             
             progressText.textContent = 'Reading ZIP file...';

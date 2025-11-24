@@ -15,12 +15,27 @@ let GraphDefault = null;
 // 3. Worker (browser without window): use global (set by worker)
 if (typeof window !== 'undefined') {
   // Main thread (browser): use import map via dynamic import
-  const graphologyModule = await import('graphology');
-  GraphDefault = graphologyModule.default || graphologyModule;
+  try {
+    const graphologyModule = await import('graphology');
+    GraphDefault = graphologyModule.default || graphologyModule;
+  } catch (err) {
+    console.error('[graph-builder] Failed to import graphology:', err);
+    // Try fallback to direct path
+    try {
+      const graphologyModule = await import('/public/vendor/graphology/graphology.esm.js');
+      GraphDefault = graphologyModule.default || graphologyModule;
+    } catch (fallbackErr) {
+      console.error('[graph-builder] Fallback import also failed:', fallbackErr);
+    }
+  }
 } else if (typeof process !== 'undefined' && process.versions?.node) {
   // Node.js (tests): use normal import
-  const graphologyModule = await import('graphology');
-  GraphDefault = graphologyModule.default || graphologyModule;
+  try {
+    const graphologyModule = await import('graphology');
+    GraphDefault = graphologyModule.default || graphologyModule;
+  } catch (err) {
+    console.error('[graph-builder] Node.js import failed:', err);
+  }
 }
 
 // Check for worker context (no window, no Node.js) and global graphology, fall back to imported module
@@ -28,7 +43,7 @@ const Graph = (typeof window === 'undefined' && typeof process === 'undefined' &
 
 // Defensive runtime check to catch module loading issues early
 if (!Graph) {
-  throw new Error('Graphology module not available - check worker initialization or import map');
+  throw new Error('Graphology module not available - check worker initialization or import map. GraphDefault=' + GraphDefault + ', window=' + typeof window + ', process=' + typeof process);
 }
 
 export const EDGE_LAYERS = {
