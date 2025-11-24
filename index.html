@@ -1078,9 +1078,10 @@
         } from './src/graph/index.js';
         import { getDemoDataset } from './src/demo/demo-data.js';
 
-        // Wrap critical initialization in try-catch to prevent blank page
-        try {
-            const starsContainer = document.getElementById('stars');
+        // Initialize immediately - don't wait for imports
+        (function initImmediate() {
+            try {
+                const starsContainer = document.getElementById('stars');
             if (starsContainer) {
                 const starCount = 120;
                 for (let i = 0; i < starCount; i++) {
