@@ -42,12 +42,21 @@ try {
 
 // Store in global scope so graph-builder.js and communities.js can access them
 // Use double underscore prefix to indicate internal/private global
+// CRITICAL: Set these BEFORE importing any modules that depend on them
 self.__graphology = graphologyModule;
 if (louvainModule) {
   self.__graphologyLouvain = louvainModule;
 }
 
+// Verify graphology is set before importing dependent modules
+if (!self.__graphology) {
+  throw new Error('[GraphWorker] CRITICAL: self.__graphology not set after loading!');
+}
+
+console.log('[GraphWorker] Graphology loaded and set to self.__graphology:', !!self.__graphology);
+
 // Now import modules that depend on graphology
+// These imports will execute their top-level await code, which should now find self.__graphology
 import { mergeGraphPayload } from '../graph/merge.js';
 import { collectGraphPayload, buildAnalyzedGraph, serializeGraph } from '../graph/pipeline.js';
 import { validateGraphPayload } from '../graph/payload-validator.js';
