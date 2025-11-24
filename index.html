@@ -2208,15 +2208,31 @@
                 try {
                     console.log('[ZIP] Trying to load fflate from:', url);
                     const fflateModule = await import(url);
-                    // fflate API: prefer unzipSync (sync) over unzip (async with callback)
-                    unzip = fflateModule.unzipSync || 
-                            fflateModule.default?.unzipSync || 
-                            fflateModule.unzip || 
-                            fflateModule.default?.unzip || 
-                            fflateModule.default;
-                    if (unzip && typeof unzip === 'function') {
-                        console.log('[ZIP] Successfully loaded fflate from:', url, 'function:', unzip.name || 'anonymous', 'params:', unzip.length);
+                    // fflate API: 
+                    // - unzipSync(data) - synchronous, returns object directly
+                    // - unzip(data, callback) - async, callback(err, data)
+                    // CRITICAL: Prefer unzipSync, but if not available, use unzip with proper callback handling
+                    const unzipSyncFn = fflateModule.unzipSync || fflateModule.default?.unzipSync;
+                    const unzipAsyncFn = fflateModule.unzip || fflateModule.default?.unzip;
+                    
+                    if (unzipSyncFn && typeof unzipSyncFn === 'function') {
+                        // Use synchronous version
+                        unzip = unzipSyncFn;
+                        console.log('[ZIP] Successfully loaded fflate unzipSync (synchronous) from:', url);
                         break;
+                    } else if (unzipAsyncFn && typeof unzipAsyncFn === 'function') {
+                        // Use async version - will wrap in Promise
+                        unzip = unzipAsyncFn;
+                        console.log('[ZIP] Successfully loaded fflate unzip (async) from:', url);
+                        break;
+                    } else if (fflateModule.default && typeof fflateModule.default === 'function') {
+                        // Fallback: might be the default export
+                        unzip = fflateModule.default;
+                        console.log('[ZIP] Using default export as unzip from:', url);
+                        break;
+                    } else {
+                        throw new Error('fflate unzip function not found in module');
+                    }
                     } else {
                         throw new Error('fflate unzip function not found in module');
                     }
@@ -2258,26 +2274,41 @@
             
             let unzipped;
             try {
-                // fflate unzip can be sync (unzipSync) or async (unzip with callback)
-                // Try sync first, then async with callback
-                if (unzip.name === 'unzipSync' || unzip.length === 1) {
-                    // Synchronous version
-                    console.log('[ZIP] Using synchronous unzip');
+                // fflate API detection:
+                // - unzipSync(data) - synchronous, 1 param, returns object
+                // - unzip(data, callback) - async, 2 params, callback(err, data)
+                // Check function name first (most reliable), then parameter count
+                const isSync = unzip.name === 'unzipSync' || 
+                              (unzip.length === 1 && unzip.name !== 'unzip');
+                
+                if (isSync) {
+                    // Synchronous version - call directly
+                    console.log('[ZIP] Using synchronous unzip (unzipSync)');
                     unzipped = unzip(uint8Array);
                 } else {
-                    // Async version with callback - wrap in Promise
+                    // Async version with callback - MUST provide callback
                     console.log('[ZIP] Using asynchronous unzip with callback');
                     unzipped = await new Promise((resolve, reject) => {
+                        // Set timeout to catch hanging decompression
+                        const timeout = setTimeout(() => {
+                            reject(new Error('ZIP decompression timed out after 30 seconds'));
+                        }, 30000);
+                        
                         try {
                             unzip(uint8Array, (err, data) => {
+                                clearTimeout(timeout);
                                 if (err) {
+                                    console.error('[ZIP] Unzip callback error:', err);
                                     reject(err);
                                 } else {
+                                    console.log('[ZIP] Unzip callback success, entries:', Object.keys(data || {}).length);
                                     resolve(data);
                                 }
                             });
                         } catch (syncErr) {
+                            clearTimeout(timeout);
                             // If callback throws synchronously, reject
+                            console.error('[ZIP] Unzip threw synchronously:', syncErr);
                             reject(syncErr);
                         }
                     });
@@ -3721,18 +3752,21 @@
                         const isMobile = window.innerWidth <= 768 || /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
                         
                         if (isMobile) {
-                            // On mobile, keep sidebar CLOSED (user must toggle it)
+                            // CRITICAL: On mobile, FORCE sidebar CLOSED (user must toggle it)
+                            // Remove open class and ensure it stays closed
                             sidebar.classList.remove('open');
                             sidebar.style.setProperty('transform', 'translateX(100%)', 'important');
+                            sidebar.style.setProperty('display', 'flex', 'important'); // Keep display for when it opens
+                            console.log('[Visualization] Mobile sidebar FORCED closed after controls, has open class:', sidebar.classList.contains('open'));
                         } else {
                             // Desktop: ensure sidebar is open and visible
                             sidebar.classList.add('open');
                             sidebar.style.setProperty('transform', 'none', 'important');
                             sidebar.style.setProperty('width', '360px', 'important');
+                            sidebar.style.setProperty('display', 'flex', 'important');
+                            sidebar.style.setProperty('visibility', 'visible', 'important');
+                            sidebar.style.setProperty('opacity', '1', 'important');
                         }
-                        sidebar.style.setProperty('display', 'flex', 'important');
-                        sidebar.style.setProperty('visibility', 'visible', 'important');
-                        sidebar.style.setProperty('opacity', '1', 'important');
                         console.log('[Visualization] Sidebar initialized after controls, isMobile:', isMobile, 'isOpen:', sidebar.classList.contains('open'));
                     }
                 } else if (!vizControls) {
