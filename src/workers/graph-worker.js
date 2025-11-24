@@ -1,24 +1,50 @@
 // Workers don't inherit import maps, so we need to pre-load graphology using absolute URLs
 // and make it available globally before importing modules that depend on it
-const graphologyUrl = '/public/vendor/graphology/graphology.esm.js';
+const graphologyUrls = [
+  '/public/vendor/graphology/graphology.esm.js', // Try local first
+  'https://cdn.jsdelivr.net/npm/graphology@0.25.4/dist/graphology.esm.js', // CDN fallback
+  'https://esm.run/graphology@0.25.4' // ESM.run fallback
+];
 const louvainUrl = 'https://esm.run/graphology-communities-louvain@2.0.2';
 
 // Pre-load graphology modules and store them globally so dependent modules can use them
 // If this fails, the worker will fail to initialize and the client will fall back to inline computation
-try {
-  const [graphologyModule, louvainModule] = await Promise.all([
-    import(graphologyUrl),
-    import(louvainUrl)
-  ]);
+let graphologyModule = null;
+let lastError = null;
 
-  // Store in global scope so graph-builder.js and communities.js can access them
-  // Use double underscore prefix to indicate internal/private global
-  self.__graphology = graphologyModule.default || graphologyModule;
-  self.__graphologyLouvain = louvainModule.default || louvainModule;
-} catch (error) {
-  // If graphology fails to load, throw to prevent worker initialization
-  // The worker client will catch this and fall back to inline computation
-  throw new Error(`Failed to load graphology modules in worker: ${error.message}`);
+for (const url of graphologyUrls) {
+  try {
+    console.log('[GraphWorker] Trying to load graphology from:', url);
+    graphologyModule = await import(url);
+    graphologyModule = graphologyModule.default || graphologyModule;
+    console.log('[GraphWorker] Successfully loaded graphology from:', url);
+    break;
+  } catch (err) {
+    console.warn('[GraphWorker] Failed to load graphology from', url, ':', err.message);
+    lastError = err;
+    continue;
+  }
+}
+
+if (!graphologyModule) {
+  throw new Error(`Failed to load graphology from all sources: ${lastError?.message || 'Unknown error'}`);
+}
+
+// Load louvain
+let louvainModule = null;
+try {
+  louvainModule = await import(louvainUrl);
+  louvainModule = louvainModule.default || louvainModule;
+} catch (err) {
+  console.warn('[GraphWorker] Failed to load louvain:', err.message);
+  // Louvain is optional, continue without it
+}
+
+// Store in global scope so graph-builder.js and communities.js can access them
+// Use double underscore prefix to indicate internal/private global
+self.__graphology = graphologyModule;
+if (louvainModule) {
+  self.__graphologyLouvain = louvainModule;
 }
 
 // Now import modules that depend on graphology
