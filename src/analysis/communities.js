@@ -11,23 +11,75 @@ let louvainDefault = null;
 // Handle three cases:
 // 1. Node.js (tests): use normal import (no import maps, but Node.js resolves modules)
 // 2. Main thread (browser with window): use import map via dynamic import
-// 3. Worker (browser without window): use global (set by worker)
+// 3. Worker (browser without window): use global (set by worker) or try to import
 if (typeof window !== 'undefined') {
   // Main thread (browser): use import map via dynamic imports
-  const [graphologyModule, louvainModule] = await Promise.all([
-    import('graphology'),
-    import('graphology-communities-louvain')
-  ]);
-  GraphDefault = graphologyModule.default || graphologyModule;
-  louvainDefault = louvainModule.default || louvainModule;
+  try {
+    const [graphologyModule, louvainModule] = await Promise.all([
+      import('graphology'),
+      import('graphology-communities-louvain')
+    ]);
+    GraphDefault = graphologyModule.default || graphologyModule;
+    louvainDefault = louvainModule.default || louvainModule;
+  } catch (err) {
+    console.error('[communities] Failed to import modules:', err);
+    // Try fallback to direct paths
+    try {
+      const [graphologyModule, louvainModule] = await Promise.all([
+        import('/public/vendor/graphology/graphology.esm.js'),
+        import('https://esm.run/graphology-communities-louvain@2.0.2')
+      ]);
+      GraphDefault = graphologyModule.default || graphologyModule;
+      louvainDefault = louvainModule.default || louvainModule;
+    } catch (fallbackErr) {
+      console.error('[communities] Fallback import also failed:', fallbackErr);
+    }
+  }
 } else if (typeof process !== 'undefined' && process.versions?.node) {
   // Node.js (tests): use normal imports
-  const [graphologyModule, louvainModule] = await Promise.all([
-    import('graphology'),
-    import('graphology-communities-louvain')
-  ]);
-  GraphDefault = graphologyModule.default || graphologyModule;
-  louvainDefault = louvainModule.default || louvainModule;
+  try {
+    const [graphologyModule, louvainModule] = await Promise.all([
+      import('graphology'),
+      import('graphology-communities-louvain')
+    ]);
+    GraphDefault = graphologyModule.default || graphologyModule;
+    louvainDefault = louvainModule.default || louvainModule;
+  } catch (err) {
+    console.error('[communities] Node.js import failed:', err);
+  }
+} else if (typeof self !== 'undefined') {
+  // Worker context: try to use global first, then try to import
+  if (self.__graphology) {
+    GraphDefault = self.__graphology;
+  } else {
+    // Workers don't have import maps, so try direct path
+    try {
+      const graphologyModule = await import('/public/vendor/graphology/graphology.esm.js');
+      GraphDefault = graphologyModule.default || graphologyModule;
+    } catch (err) {
+      console.error('[communities] Worker graphology import failed:', err);
+      // Last resort: try CDN
+      try {
+        const graphologyModule = await import('https://cdn.jsdelivr.net/npm/graphology@0.25.4/dist/graphology.esm.js');
+        GraphDefault = graphologyModule.default || graphologyModule;
+      } catch (cdnErr) {
+        console.error('[communities] CDN import also failed:', cdnErr);
+      }
+    }
+  }
+  
+  if (self.__graphologyLouvain) {
+    louvainDefault = self.__graphologyLouvain;
+  } else {
+    // Try to load louvain
+    try {
+      const louvainModule = await import('https://esm.run/graphology-communities-louvain@2.0.2');
+      louvainDefault = louvainModule.default || louvainModule;
+    } catch (err) {
+      console.warn('[communities] Worker louvain import failed:', err);
+      // Louvain is optional, continue without it
+    }
+  }
 }
 
 // Check for worker context (no window, no Node.js) and global modules, fall back to imported modules
@@ -36,10 +88,11 @@ const louvain = (typeof window === 'undefined' && typeof process === 'undefined'
 
 // Defensive runtime checks to catch module loading issues early
 if (!Graph) {
-  throw new Error('Graphology module not available - check worker initialization or import map');
+  throw new Error('Graphology module not available - check worker initialization or import map. GraphDefault=' + GraphDefault + ', window=' + typeof window + ', process=' + typeof process + ', self=' + typeof self + ', self.__graphology=' + (typeof self !== 'undefined' ? self.__graphology : 'N/A'));
 }
 if (!louvain) {
-  throw new Error('graphology-communities-louvain module not available - check worker initialization or import map');
+  console.warn('[communities] Louvain module not available - community detection will be disabled');
+  // Louvain is optional, don't throw - just disable community detection
 }
 import { assertGraph, mergeNodeMetrics } from './utils.js';
 
