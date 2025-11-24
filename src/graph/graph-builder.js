@@ -12,7 +12,7 @@ let GraphDefault = null;
 // Handle three cases:
 // 1. Node.js (tests): use normal import (no import maps, but Node.js resolves modules)
 // 2. Main thread (browser with window): use import map via dynamic import
-// 3. Worker (browser without window): use global (set by worker)
+// 3. Worker (browser without window): use global (set by worker) or try to import
 if (typeof window !== 'undefined') {
   // Main thread (browser): use import map via dynamic import
   try {
@@ -36,6 +36,26 @@ if (typeof window !== 'undefined') {
   } catch (err) {
     console.error('[graph-builder] Node.js import failed:', err);
   }
+} else if (typeof self !== 'undefined') {
+  // Worker context: try to use global first, then try to import
+  if (self.__graphology) {
+    GraphDefault = self.__graphology;
+  } else {
+    // Workers don't have import maps, so try direct path
+    try {
+      const graphologyModule = await import('/public/vendor/graphology/graphology.esm.js');
+      GraphDefault = graphologyModule.default || graphologyModule;
+    } catch (err) {
+      console.error('[graph-builder] Worker import failed:', err);
+      // Last resort: try CDN
+      try {
+        const graphologyModule = await import('https://cdn.jsdelivr.net/npm/graphology@0.25.4/dist/graphology.esm.js');
+        GraphDefault = graphologyModule.default || graphologyModule;
+      } catch (cdnErr) {
+        console.error('[graph-builder] CDN import also failed:', cdnErr);
+      }
+    }
+  }
 }
 
 // Check for worker context (no window, no Node.js) and global graphology, fall back to imported module
@@ -43,7 +63,7 @@ const Graph = (typeof window === 'undefined' && typeof process === 'undefined' &
 
 // Defensive runtime check to catch module loading issues early
 if (!Graph) {
-  throw new Error('Graphology module not available - check worker initialization or import map. GraphDefault=' + GraphDefault + ', window=' + typeof window + ', process=' + typeof process);
+  throw new Error('Graphology module not available - check worker initialization or import map. GraphDefault=' + GraphDefault + ', window=' + typeof window + ', process=' + typeof process + ', self=' + typeof self + ', self.__graphology=' + (typeof self !== 'undefined' ? self.__graphology : 'N/A'));
 }
 
 export const EDGE_LAYERS = {
