@@ -1141,6 +1141,8 @@
             console.log('[HELIOS] selectBtn found, initial text:', selectBtn.textContent);
         }
         
+        })(); // Close initImmediate IIFE
+        
         // Function to update button text - call it immediately and also later
         function updateSelectButtonText() {
             if (!selectBtn) {
