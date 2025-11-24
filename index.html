@@ -2178,6 +2178,11 @@
                 }
             } catch (error) {
                 if (error?.name !== 'AbortError') {
+                    // Don't log NotAllowedError if we already handled it above
+                    if (error?.name === 'NotAllowedError' || error?.name === 'SecurityError') {
+                        // Already handled in the try block above, just return silently
+                        return;
+                    }
                     console.error('Error selecting directory:', error);
                     // Get platform info for error handling
                     const platformInfo = window.heliosPlatformInfo || {
