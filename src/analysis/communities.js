@@ -152,6 +152,11 @@ export function computeCommunities(graph, options = {}) {
   let assignments = null;
   let modularity = null;
 
+  if (!louvain) {
+    console.warn('[communities] Louvain module not available - skipping community detection');
+    return { communities: null, modularity: null };
+  }
+
   if (typeof louvain.detailed === 'function') {
     try {
       const detailed = louvain.detailed(tempGraph, louvainOptions);
