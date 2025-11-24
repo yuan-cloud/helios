@@ -2705,15 +2705,7 @@
             
             // UX Improvement: After closing visualization, clear results and return to hero page
             // This provides a clean slate and makes it clear the user can select a new repo
-            // Show hero container again when closing visualization
-            const heroContainer = document.querySelector('.hero-container');
-            if (heroContainer) {
-                heroContainer.classList.remove('hidden');
-                heroContainer.style.setProperty('display', 'flex', 'important');
-                heroContainer.style.setProperty('visibility', 'visible', 'important');
-                heroContainer.style.setProperty('opacity', '1', 'important');
-                heroContainer.style.setProperty('z-index', '5', 'important');
-            }
+            // Hero container already shown above, no need to duplicate
             
             // Hide results container and visualize button to return to clean state
             // User can then select a new repo or load demo from the hero page
@@ -3238,7 +3230,7 @@
             };
         }
 
-        function displayResults() {
+        window.displayResults = function displayResults() {
             fileList.innerHTML = '';
 
             sourceFiles.forEach((file, index) => {
@@ -4672,22 +4664,40 @@
             </p>
         </div>
     </footer>
-    <script>
-        // Hide footer when visualization is active
-        const footer = document.getElementById('siteFooter');
-        const originalDisplayResults = displayResults;
-        displayResults = function() {
-            originalDisplayResults();
-            if (footer) footer.style.display = 'none';
-        };
-        // Show footer when back to hero view
-        const originalVisualize = window.visualize;
-        if (typeof visualize === 'function') {
-            const originalVisualizeFn = visualize;
-            window.visualize = function() {
-                if (footer) footer.style.display = 'none';
-                originalVisualizeFn();
-            };
+    <script type="module">
+        // Wait for displayResults to be defined before wrapping it
+        // This script runs after the main module script
+        function setupFooterHiding() {
+            const footer = document.getElementById('siteFooter');
+            if (!footer) return;
+            
+            // Wait for displayResults to be available
+            if (typeof displayResults === 'function') {
+                const originalDisplayResults = displayResults;
+                window.displayResults = function() {
+                    originalDisplayResults();
+                    if (footer) footer.style.display = 'none';
+                };
+            } else {
+                // Retry after a short delay if displayResults isn't ready yet
+                setTimeout(setupFooterHiding, 100);
+            }
+            
+            // Show footer when back to hero view
+            if (typeof window.visualize === 'function') {
+                const originalVisualizeFn = window.visualize;
+                window.visualize = function() {
+                    if (footer) footer.style.display = 'none';
+                    originalVisualizeFn();
+                };
+            }
+        }
+        
+        // Run after DOM and module scripts are loaded
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', setupFooterHiding);
+        } else {
+            setTimeout(setupFooterHiding, 100);
         }
         // Show footer on page load if hero is visible
         document.addEventListener('DOMContentLoaded', () => {
