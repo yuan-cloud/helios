@@ -1327,25 +1327,34 @@
         
         let sidebarOpen = false;
         if (vizSidebarToggle && vizSidebar && isMobileDevice) {
-            vizSidebarToggle.classList.remove('hidden');
+            // Toggle button visibility is handled by initialization code
             
             const toggleSidebar = () => {
                 sidebarOpen = !sidebarOpen;
                 vizSidebar.classList.toggle('open', sidebarOpen);
+                console.log('[Sidebar] Toggled, isOpen:', sidebarOpen);
             };
             
-            vizSidebarToggle.addEventListener('click', toggleSidebar);
+            vizSidebarToggle.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                toggleSidebar();
+            });
             vizSidebarToggle.addEventListener('touchend', (e) => {
                 e.preventDefault();
+                e.stopPropagation();
                 toggleSidebar();
             });
             
-            // Close sidebar when clicking outside on mobile
+            // Close sidebar when clicking on graph canvas (but not when clicking on sidebar or toggle)
             if (vizContainer) {
                 vizContainer.addEventListener('click', (e) => {
-                    if (sidebarOpen && !vizSidebar.contains(e.target) && !vizSidebarToggle.contains(e.target)) {
+                    // Only close if clicking on the graph area, not on sidebar or toggle
+                    const clickedGraph = e.target.closest('.viz-graph');
+                    if (sidebarOpen && clickedGraph && !vizSidebar.contains(e.target) && !vizSidebarToggle.contains(e.target)) {
                         sidebarOpen = false;
                         vizSidebar.classList.remove('open');
+                        console.log('[Sidebar] Closed by clicking on graph');
                     }
                 });
             }
