@@ -1075,9 +1075,16 @@
         // Mobile-friendly on-screen console for debugging
         // Only show on mobile devices to help with debugging
         function initMobileConsole() {
-            if (window.innerWidth > 768) {
+            // Check if mobile device (more reliable than just width)
+            const isMobile = window.innerWidth <= 768 || 
+                           /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+            
+            if (!isMobile) {
+                console.log('[Mobile Console] Desktop detected, skipping mobile console');
                 return; // Desktop - use browser console
             }
+            
+            console.log('[Mobile Console] Mobile device detected, initializing on-screen console...');
             
             const mobileConsole = document.createElement('div');
             mobileConsole.id = 'mobileConsole';
@@ -1160,7 +1167,16 @@
             };
             document.body.appendChild(toggleBtn);
             
-            console.log('[Mobile Console] On-screen console initialized. Tap "📱 Console" button to view logs.');
+            // Make sure button is visible
+            toggleBtn.style.display = 'block';
+            toggleBtn.style.visibility = 'visible';
+            toggleBtn.style.opacity = '1';
+            
+            console.log('[Mobile Console] On-screen console initialized. Tap "📱 Console" button (bottom-right) to view logs.');
+            console.log('[Mobile Console] Button should be visible at bottom-right corner of screen.');
+            
+            // Also log an error to test
+            console.error('[Mobile Console] TEST ERROR - If you see this, console is working!');
         }
         
         function showError(message) {
