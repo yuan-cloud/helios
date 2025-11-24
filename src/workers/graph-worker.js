@@ -1,33 +1,25 @@
 // Workers don't inherit import maps, so we need to pre-load graphology using absolute URLs
 // and make it available globally before importing modules that depend on it
-const graphologyUrls = [
-  '/public/vendor/graphology/graphology.esm.js', // Try local first
-  'https://cdn.jsdelivr.net/npm/graphology@0.25.4/dist/graphology.esm.js', // CDN fallback
-  'https://esm.run/graphology@0.25.4' // ESM.run fallback
-];
+// IMPORTANT: Only use local vendor file - CDN builds have Node.js dependencies like "events" that workers can't resolve
+const graphologyUrl = '/public/vendor/graphology/graphology.esm.js';
 const louvainUrl = 'https://esm.run/graphology-communities-louvain@2.0.2';
 
 // Pre-load graphology modules and store them globally so dependent modules can use them
 // If this fails, the worker will fail to initialize and the client will fall back to inline computation
 let graphologyModule = null;
-let lastError = null;
 
-for (const url of graphologyUrls) {
-  try {
-    console.log('[GraphWorker] Trying to load graphology from:', url);
-    graphologyModule = await import(url);
-    graphologyModule = graphologyModule.default || graphologyModule;
-    console.log('[GraphWorker] Successfully loaded graphology from:', url);
-    break;
-  } catch (err) {
-    console.warn('[GraphWorker] Failed to load graphology from', url, ':', err.message);
-    lastError = err;
-    continue;
-  }
+try {
+  console.log('[GraphWorker] Loading graphology from local vendor file:', graphologyUrl);
+  graphologyModule = await import(graphologyUrl);
+  graphologyModule = graphologyModule.default || graphologyModule;
+  console.log('[GraphWorker] Successfully loaded graphology');
+} catch (err) {
+  console.error('[GraphWorker] Failed to load graphology from local vendor file:', err);
+  throw new Error(`Failed to load graphology from local vendor file: ${err.message}. Make sure /public/vendor/graphology/graphology.esm.js exists.`);
 }
 
 if (!graphologyModule) {
-  throw new Error(`Failed to load graphology from all sources: ${lastError?.message || 'Unknown error'}`);
+  throw new Error('Graphology module is null after import');
 }
 
 // Load louvain
