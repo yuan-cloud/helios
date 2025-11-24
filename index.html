@@ -2918,20 +2918,28 @@
                     error: embeddingError
                 });
 
-                await updateGraphData({
-                    parser: {
-                        functions: allFunctions,
-                        callEdges: callGraphEdges,
-                        stats: callGraphStats,
-                        symbolTables: demo.symbolTables || null
-                    },
-                    embeddings: {
-                        similarityEdges,
-                        metadata: embeddingMetadata,
-                        stats: demoEmbedding.stats || similarityStats || null,
-                        functionEmbeddings: Array.isArray(functionEmbeddings) && functionEmbeddings.length > 0 ? functionEmbeddings : undefined
-                    }
-                });
+                console.log('[Demo] Calling updateGraphData...');
+                try {
+                    await updateGraphData({
+                        parser: {
+                            functions: allFunctions,
+                            callEdges: callGraphEdges,
+                            stats: callGraphStats,
+                            symbolTables: demo.symbolTables || null
+                        },
+                        embeddings: {
+                            similarityEdges,
+                            metadata: embeddingMetadata,
+                            stats: demoEmbedding.stats || similarityStats || null,
+                            functionEmbeddings: Array.isArray(functionEmbeddings) && functionEmbeddings.length > 0 ? functionEmbeddings : undefined
+                        }
+                    });
+                    console.log('[Demo] updateGraphData completed successfully');
+                } catch (graphErr) {
+                    console.error('[Demo] updateGraphData failed:', graphErr);
+                    console.error('[Demo] updateGraphData error stack:', graphErr?.stack);
+                    throw graphErr; // Re-throw to be caught by outer catch
+                }
 
                 window.heliosFunctions = allFunctions;
                 window.heliosCallGraph = callGraph;
@@ -3007,12 +3015,17 @@
                 });
                 
                 try {
+                    console.log('[Demo] Starting initializeVisualization...');
                     // Race between visualization and timeout
                     await Promise.race([
-                        initializeVisualization(),
+                        initializeVisualization().catch(err => {
+                            console.error('[Demo] initializeVisualization promise rejected:', err);
+                            throw err;
+                        }),
                         timeoutPromise
                     ]);
                     clearTimeout(visualizationTimeout);
+                    console.log('[Demo] initializeVisualization completed successfully');
                     
                     if (controls && similarityStats) {
                         controls.updateSimilarityControls(similarityStats, { minWeight: similarityStats.min ?? 0 });
