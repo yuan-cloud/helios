@@ -1045,14 +1045,18 @@
         import { getDemoDataset } from './src/demo/demo-data.js';
 
         const starsContainer = document.getElementById('stars');
-        const starCount = 120;
-        for (let i = 0; i < starCount; i++) {
-            const star = document.createElement('div');
-            star.className = 'star';
-            star.style.left = Math.random() * 100 + '%';
-            star.style.top = Math.random() * 100 + '%';
-            star.style.animationDelay = Math.random() * 3 + 's';
-            starsContainer.appendChild(star);
+        if (starsContainer) {
+            const starCount = 120;
+            for (let i = 0; i < starCount; i++) {
+                const star = document.createElement('div');
+                star.className = 'star';
+                star.style.left = Math.random() * 100 + '%';
+                star.style.top = Math.random() * 100 + '%';
+                star.style.animationDelay = Math.random() * 3 + 's';
+                starsContainer.appendChild(star);
+            }
+        } else {
+            console.warn('[HELIOS] Stars container not found - stars animation disabled');
         }
 
         const selectBtn = document.getElementById('selectBtn');
@@ -1800,7 +1804,10 @@
             }
         });
 
-        selectBtn.addEventListener('click', async () => {
+        const handleSelectRepository = async () => {
+            if (selectBtn?.disabled) {
+                return;
+            }
             try {
                 // Priority 1: File System Access API (desktop Chrome/Edge)
                 if (hasFileSystemAccess) {
@@ -1834,7 +1841,11 @@
                     }
                 }
             }
-        });
+        };
+        
+        // Add both click and touch support for maximum compatibility
+        selectBtn.addEventListener('click', handleSelectRepository);
+        addTouchSupport(selectBtn, handleSelectRepository);
 
         async function processDirectory(directoryHandle) {
             resetAnalysisState({ showProgress: true, progressLabel: 'Initializing parser...', resetVisualization: true });
