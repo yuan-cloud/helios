@@ -2097,8 +2097,12 @@
 
         const handleSelectRepository = async () => {
             if (selectBtn?.disabled) {
+                console.log('[HELIOS] Select button is disabled, ignoring click');
                 return;
             }
+            
+            console.log('[HELIOS] handleSelectRepository called, button text:', selectBtn?.textContent);
+            
             try {
                 // Get platform info (use stored or detect fresh)
                 const platformInfo = window.heliosPlatformInfo || {
@@ -2110,19 +2114,46 @@
                 };
                 const { hasFileSystemAccess, hasWebkitDirectory, isIOS, isIOSChrome } = platformInfo;
                 
+                // Check button text to determine action (button text is set by updateSelectButtonText)
+                const buttonText = selectBtn?.textContent || '';
+                const isZipButton = buttonText.includes('ZIP') || buttonText.includes('zip') || buttonText.includes('Upload');
+                
+                console.log('[HELIOS] Button text check:', { buttonText, isZipButton, hasFileSystemAccess, hasWebkitDirectory, isIOS });
+                
+                // If button says "Upload ZIP Repository", always use ZIP
+                if (isZipButton) {
+                    console.log('[HELIOS] ZIP button detected, triggering ZIP input');
+                    if (zipFileInput) {
+                        console.log('[HELIOS] Clicking ZIP file input');
+                        zipFileInput.click();
+                        return;
+                    } else {
+                        console.error('[HELIOS] ZIP file input not found!');
+                        alert('ZIP file input not found. Please refresh the page.');
+                        return;
+                    }
+                }
+                
                 // Priority 1: File System Access API (desktop Chrome/Edge)
                 if (hasFileSystemAccess && !isIOS) {
+                    console.log('[HELIOS] Using File System Access API');
                     const directoryHandle = await window.showDirectoryPicker();
                     await processDirectory(directoryHandle);
                 }
                 // Priority 2: webkitdirectory (Android Chrome, desktop Safari, iOS Chrome - try it)
                 else if (hasWebkitDirectory && (isIOSChrome || !isIOS)) {
+                    console.log('[HELIOS] Using webkitdirectory');
                     // Try webkitdirectory (works on Android/desktop, might work on iOS Chrome)
                     directoryFileInput.click();
                 }
                 // Priority 3: ZIP upload (iOS Safari and fallback)
                 else {
-                    zipFileInput.click();
+                    console.log('[HELIOS] Falling back to ZIP upload');
+                    if (zipFileInput) {
+                        zipFileInput.click();
+                    } else {
+                        alert('ZIP file input not found. Please refresh the page.');
+                    }
                 }
             } catch (error) {
                 if (error?.name !== 'AbortError') {
