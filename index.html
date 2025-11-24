@@ -3028,7 +3028,8 @@
             showDemoLoading('Loading demo dataset...');
             
             // Add overall timeout for mobile (60 seconds)
-            const overallTimeout = setTimeout(() => {
+            let overallTimeout = null;
+            overallTimeout = setTimeout(() => {
                 console.error('[Demo] Overall timeout - demo loading took too long');
                 hideDemoLoading();
                 if (loadDemoBtn) {
@@ -3304,10 +3305,16 @@
             } finally {
                 console.log('[Demo] Cleaning up - hiding loading spinner and re-enabling button');
                 try {
-                    clearTimeout(overallTimeout);
+                    if (overallTimeout) {
+                        clearTimeout(overallTimeout);
+                        overallTimeout = null;
+                    }
                     hideDemoLoading();
                 } catch (hideErr) {
-                    clearTimeout(overallTimeout);
+                    if (overallTimeout) {
+                        clearTimeout(overallTimeout);
+                        overallTimeout = null;
+                    }
                     console.error('[Demo] Error hiding demo loading:', hideErr);
                     // Force hide as fallback
                     if (demoLoading) {
