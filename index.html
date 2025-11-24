@@ -3304,8 +3304,10 @@
             } finally {
                 console.log('[Demo] Cleaning up - hiding loading spinner and re-enabling button');
                 try {
+                    clearTimeout(overallTimeout);
                     hideDemoLoading();
                 } catch (hideErr) {
+                    clearTimeout(overallTimeout);
                     console.error('[Demo] Error hiding demo loading:', hideErr);
                     // Force hide as fallback
                     if (demoLoading) {
