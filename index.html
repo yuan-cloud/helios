@@ -1056,27 +1056,44 @@
         } from './src/graph/index.js';
         import { getDemoDataset } from './src/demo/demo-data.js';
 
-        const starsContainer = document.getElementById('stars');
-        if (starsContainer) {
-            const starCount = 120;
-            for (let i = 0; i < starCount; i++) {
-                const star = document.createElement('div');
-                star.className = 'star';
-                star.style.left = Math.random() * 100 + '%';
-                star.style.top = Math.random() * 100 + '%';
-                star.style.animationDelay = Math.random() * 3 + 's';
-                starsContainer.appendChild(star);
+        // Wrap critical initialization in try-catch to prevent blank page
+        try {
+            const starsContainer = document.getElementById('stars');
+            if (starsContainer) {
+                const starCount = 120;
+                for (let i = 0; i < starCount; i++) {
+                    const star = document.createElement('div');
+                    star.className = 'star';
+                    star.style.left = Math.random() * 100 + '%';
+                    star.style.top = Math.random() * 100 + '%';
+                    star.style.animationDelay = Math.random() * 3 + 's';
+                    starsContainer.appendChild(star);
+                }
+                console.log('[HELIOS] Stars animation initialized');
+            } else {
+                console.warn('[HELIOS] Stars container not found - stars animation disabled');
             }
-        } else {
-            console.warn('[HELIOS] Stars container not found - stars animation disabled');
+        } catch (err) {
+            console.error('[HELIOS] Error initializing stars:', err);
         }
 
-        const selectBtn = document.getElementById('selectBtn');
-        const resumeBtn = document.getElementById('resumeBtn');
-        const loadDemoBtn = document.getElementById('loadDemoBtn');
-        const directoryFileInput = document.getElementById('directoryFileInput');
-        const zipFileInput = document.getElementById('zipFileInput');
-        const clearStorageBtn = document.getElementById('clearStorageBtn');
+        let selectBtn, resumeBtn, loadDemoBtn, directoryFileInput, zipFileInput, clearStorageBtn;
+        try {
+            selectBtn = document.getElementById('selectBtn');
+            resumeBtn = document.getElementById('resumeBtn');
+            loadDemoBtn = document.getElementById('loadDemoBtn');
+            directoryFileInput = document.getElementById('directoryFileInput');
+            zipFileInput = document.getElementById('zipFileInput');
+            clearStorageBtn = document.getElementById('clearStorageBtn');
+            
+            console.log('[HELIOS] Button elements found:', {
+                selectBtn: !!selectBtn,
+                loadDemoBtn: !!loadDemoBtn,
+                clearStorageBtn: !!clearStorageBtn
+            });
+        } catch (err) {
+            console.error('[HELIOS] Error getting button elements:', err);
+        }
         
         // Ensure button exists before proceeding
         if (!selectBtn) {
