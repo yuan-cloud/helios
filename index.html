@@ -2473,28 +2473,43 @@
             
             // Ensure element is clickable on mobile
             element.style.touchAction = 'manipulation';
-            element.style.webkitTapHighlightColor = 'transparent';
+            element.style.webkitTapHighlightColor = 'rgba(99, 102, 241, 0.3)';
             element.style.cursor = 'pointer';
             element.style.pointerEvents = 'auto';
+            element.style.userSelect = 'none';
+            element.style.webkitUserSelect = 'none';
             
-            // Remove any existing handlers to avoid duplicates
-            const wrappedHandler = (e) => {
-                e.preventDefault();
-                e.stopPropagation();
+            let touchStartTime = 0;
+            let touchMoved = false;
+            
+            // Touch start - track if user moved finger
+            element.addEventListener('touchstart', (e) => {
+                touchStartTime = Date.now();
+                touchMoved = false;
+            }, { passive: true });
+            
+            // Touch move - mark as moved
+            element.addEventListener('touchmove', () => {
+                touchMoved = true;
+            }, { passive: true });
+            
+            // Touch end - fire handler if it was a tap (not a swipe)
+            element.addEventListener('touchend', (e) => {
+                if (!element.disabled && !touchMoved && (Date.now() - touchStartTime) < 500) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    handler(e);
+                }
+            }, { passive: false });
+            
+            // Also add click handler as fallback
+            element.addEventListener('click', (e) => {
                 if (!element.disabled) {
                     handler(e);
                 }
-            };
+            });
             
-            // Add both click and touch events
-            element.addEventListener('click', wrappedHandler, { passive: false });
-            element.addEventListener('touchend', wrappedHandler, { passive: false });
-            element.addEventListener('touchstart', (e) => {
-                // Prevent double-firing on some mobile browsers
-                e.preventDefault();
-            }, { passive: false });
-            
-            console.log('[HELIOS] Added touch support to:', element.id || element.className);
+            console.log('[HELIOS] Added touch support to:', element.id || element.className || 'unknown element');
         };
 
         addTouchSupport(loadDemoBtn, async () => {
