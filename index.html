@@ -2109,62 +2109,69 @@
                 return;
             }
             
-            console.log('[HELIOS] handleSelectRepository called, button text:', selectBtn?.textContent);
+            // CRITICAL: Check button text FIRST (synchronous) to determine if ZIP
+            // This must be done before any async operations to preserve user activation
+            const buttonText = selectBtn?.textContent || '';
+            const isZipButton = buttonText.includes('ZIP') || buttonText.includes('zip') || buttonText.includes('Upload');
             
-            try {
-                // Get platform info (use stored or detect fresh)
-                const platformInfo = window.heliosPlatformInfo || {
-                    hasFileSystemAccess: !!window.showDirectoryPicker,
-                    hasWebkitDirectory: 'webkitdirectory' in document.createElement('input'),
-                    isIOS: /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream,
-                    isIOSChrome: /iPad|iPhone|iPod/.test(navigator.userAgent) && /CriOS/.test(navigator.userAgent),
-                    isIOSSafari: /iPad|iPhone|iPod/.test(navigator.userAgent) && !/CriOS/.test(navigator.userAgent) && /Safari/.test(navigator.userAgent)
-                };
-                const { hasFileSystemAccess, hasWebkitDirectory, isIOS, isIOSChrome } = platformInfo;
-                
-                // Check button text to determine action (button text is set by updateSelectButtonText)
-                const buttonText = selectBtn?.textContent || '';
-                const isZipButton = buttonText.includes('ZIP') || buttonText.includes('zip') || buttonText.includes('Upload');
-                
-                console.log('[HELIOS] Button text check:', { buttonText, isZipButton, hasFileSystemAccess, hasWebkitDirectory, isIOS });
-                
-                // If button says "Upload ZIP Repository", always use ZIP
-                if (isZipButton) {
-                    console.log('[HELIOS] ZIP button detected, triggering ZIP input');
-                    if (zipFileInput) {
-                        console.log('[HELIOS] Clicking ZIP file input');
-                        zipFileInput.click();
-                        return;
-                    } else {
-                        console.error('[HELIOS] ZIP file input not found!');
-                        alert('ZIP file input not found. Please refresh the page.');
-                        return;
-                    }
+            // If button says "Upload ZIP Repository", handle ZIP immediately (preserves activation)
+            if (isZipButton) {
+                console.log('[HELIOS] ZIP button detected, triggering ZIP input');
+                if (zipFileInput) {
+                    zipFileInput.click();
+                    return;
+                } else {
+                    console.error('[HELIOS] ZIP file input not found!');
+                    alert('ZIP file input not found. Please refresh the page.');
+                    return;
                 }
-                
-                // Priority 1: File System Access API (desktop Chrome/Edge)
-                // CRITICAL: Must call showDirectoryPicker() synchronously within user click handler
-                // to preserve user activation. Don't await anything before calling it.
-                if (hasFileSystemAccess && !isIOS) {
-                    console.log('[HELIOS] Using File System Access API');
-                    let directoryHandle;
-                    try {
-                        // Call immediately, synchronously, to preserve user activation
-                        directoryHandle = await window.showDirectoryPicker();
-                    } catch (err) {
-                        if (err.name === 'NotAllowedError' || err.name === 'SecurityError') {
-                            console.error('[HELIOS] User activation lost or permission denied:', err);
-                            alert('Please click the button again. The file picker requires a direct user click.');
-                            return;
-                        }
-                        throw err;
-                    }
+            }
+            
+            // Quick synchronous platform check (no async operations)
+            const hasFileSystemAccess = !!window.showDirectoryPicker;
+            const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+            
+            // CRITICAL: If File System Access API is available, call it IMMEDIATELY
+            // This must happen before any other async operations to preserve user activation
+            if (hasFileSystemAccess && !isIOS) {
+                console.log('[HELIOS] Using File System Access API - calling immediately');
+                try {
+                    // Call IMMEDIATELY, synchronously, to preserve user activation
+                    // Don't do ANY other async operations before this
+                    const directoryHandle = await window.showDirectoryPicker();
+                    // Only after successful picker, do async processing
                     await processDirectory(directoryHandle);
+                    return;
+                } catch (err) {
+                    if (err.name === 'NotAllowedError' || err.name === 'SecurityError') {
+                        // User activation lost - don't show alert, just log silently
+                        // The picker dialog will have already shown an error
+                        console.warn('[HELIOS] User activation lost or permission denied (silent):', err.name);
+                        return;
+                    }
+                    if (err.name === 'AbortError') {
+                        // User cancelled - silent, no error needed
+                        console.log('[HELIOS] User cancelled directory picker');
+                        return;
+                    }
+                    // Other errors - rethrow to be handled below
+                    throw err;
                 }
+            }
+            
+            // Fallback to webkitdirectory or ZIP (these don't require user activation)
+            try {
+                // Get full platform info for fallback
+                const platformInfo = window.heliosPlatformInfo || {
+                    hasWebkitDirectory: 'webkitdirectory' in document.createElement('input'),
+                    isIOS: isIOS,
+                    isIOSChrome: /iPad|iPhone|iPod/.test(navigator.userAgent) && /CriOS/.test(navigator.userAgent)
+                };
+                const { hasWebkitDirectory, isIOSChrome } = platformInfo;
+                
                 // Priority 2: webkitdirectory (Android Chrome, desktop Safari, iOS Chrome - try it)
-                else if (hasWebkitDirectory && (isIOSChrome || !isIOS)) {
+                if (hasWebkitDirectory && (isIOSChrome || !isIOS)) {
                     console.log('[HELIOS] Using webkitdirectory');
-                    // Try webkitdirectory (works on Android/desktop, might work on iOS Chrome)
                     directoryFileInput.click();
                 }
                 // Priority 3: ZIP upload (iOS Safari and fallback)
