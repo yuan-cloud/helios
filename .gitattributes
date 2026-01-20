@@ -1,0 +1,9 @@
+# Ignore build artifacts and distribution folders
+dist/** linguist-vendored
+build/** linguist-vendored
+out/** linguist-vendored
+public/** linguist-vendored
+
+# Ignore large library vendor files
+static/js/** linguist-vendored
+vendor/** linguist-vendored
