@@ -1,5 +1,3 @@
-# Ignore JavaScript vendored files
 *.js linguist-vendored
 *.js.map linguist-vendored
 *.ts linguist-detectable
-*.tsx linguist-detectable
