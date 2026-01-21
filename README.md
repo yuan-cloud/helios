@@ -13,11 +13,11 @@ HELIOS is a **client-side only** web application that visualizes codebases as in
 
 - **🌳 AST Parsing**: Language-aware parsing using Tree-sitter (WASM) for JavaScript/TypeScript and Python
 - **🔗 Call Graph Extraction**: Static analysis to identify function calls and dependencies
-- **🧠 Semantic Similarity**: AI-powered embeddings (Transformers.js) to find semantically related functions
+- **🧠 Semantic Similarity**: **AI-powered embeddings** (Transformers.js) to find semantically related functions
 - **📊 Graph Analysis**: Centrality metrics, community detection (Louvain), and network analysis
 - **💾 Persistent Storage**: SQLite-WASM with OPFS for local data persistence
-- **🎨 3D Visualization**: Interactive force-directed graph with Three.js and 3d-force-graph
-- **⚡ WebGPU Acceleration**: Automatic WebGPU detection for faster embeddings (with WASM fallback)
+- **🎨 3D Visualization**: **Interactive force-directed graph with Three.js and 3d-force-graph**
+- **⚡ WebGPU Acceleration**: **Automatic WebGPU detection for faster embeddings (with WASM fallback)**
 
 ### 🚀 Technical Highlights
 
