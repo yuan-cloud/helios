@@ -155,7 +155,7 @@ python3 -m http.server 8000
 
 **This is a personal portfolio project.** While I appreciate interest in HELIOS, I'm not currently accepting contributions or pull requests. This project serves as a showcase of my technical capabilities.
 
-If you have questions about the implementation or want to discuss the technology, feel free to open a GitHub Discussion or reach out!
+If you have questions about the implementation or want to discuss the technology, feel free to open a GitHub Discussion or reach out directly!
 
 ## 📄 License
 
